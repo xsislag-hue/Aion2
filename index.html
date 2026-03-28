@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - Simplified & Compact</title>
+    <title>AION 2 Tracker - Full Name Energy</title>
     <style>
         :root { --primary: #1a73e8; --success: #16a34a; --danger: #dc2626; --gold: #f59e0b; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; }
-        .container { background: white; width: 100%; max-width: 1100px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { background: white; width: 100%; max-width: 1200px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
         .money-display { background: linear-gradient(135deg, #fffbeb, #fef3c7); padding: 15px; border-radius: 10px; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
@@ -19,18 +19,18 @@
 
         .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
-        th { background: #f1f3f4; padding: 8px 2px; border: 1px solid #ddd; font-size: 13px; text-align: center; position: relative; }
+        th { background: #f1f3f4; padding: 10px 2px; border: 1px solid #ddd; font-size: 13px; text-align: center; position: relative; }
         td { border: 1px solid #ddd; padding: 0; }
         
-        /* Column Widths - กลับมาใช้สัดส่วนเดิมที่กระชับ */
-        .col-name { width: 20%; }
-        .col-job { width: 15%; }
-        .col-ene { width: 12%; }
-        .col-curr { width: 12%; }
+        /* Column Widths */
+        .col-name { width: 18%; }
+        .col-job { width: 13%; }
+        .col-ene-input { width: 16%; }
+        .col-ene-curr { width: 13%; }
+        .col-buy { width: 12%; }
         .col-extra { width: 12%; }
-        .col-del { width: 35px; } /* ขนาดเล็กลงตามสั่ง */
+        .col-del { width: 35px; }
         
-        /* Inventory Widths */
         .col-item-name { width: 30%; }
         .col-item-val { width: 20%; }
         .col-item-sum { width: 20%; }
@@ -38,6 +38,8 @@
         .input-cell { width: 100%; padding: 10px 5px; border: none; outline: none; box-sizing: border-box; background: transparent; font-size: 13px; text-align: center; }
         .readonly-cell { background: #f0f4ff; color: #1a73e8; font-weight: bold; }
         .sum-cell { background: #eef2ff; color: #4338ca; font-weight: bold; }
+        .buy-done { color: var(--success); font-weight: bold; }
+        .buy-not { color: var(--danger); }
 
         .btn-edit-head { position: absolute; left: 2px; top: 2px; background: none; border: none; color: #ccc; cursor: pointer; font-size: 9px; opacity: 0.6; }
         .btn-edit-head:hover { opacity: 1; color: var(--primary); }
@@ -47,7 +49,6 @@
         .btn-blue { background: var(--primary); }
         .btn-add { background: var(--success); }
         
-        /* ปุ่มลบแถวขนาดเล็กพิเศษ */
         .btn-del-tiny { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; font-size: 9px; padding: 2px 5px; font-weight: bold; }
         .btn-del-tiny:hover { background: #dc2626; color: white; }
         
@@ -137,8 +138,8 @@
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const DEFAULT_ITEMS = ["เขาเล็ก", "เขากลาง", "เขาใหญ่", "เขาแดง", "โอไดล์ทอง", "หินเหลือง", "Amp แดง", "Amp ทอง"];
     
-    // Headers กลับมาเป็นชุดพื้นฐาน 4 ช่อง
-    let baseHeaders = ["ชื่อตัวละคร", "อาชีพ", "Ene (กรอก)", "Ene (ปัจจุบัน)"];
+    // อัปเดตชื่อหัวข้อหลัก
+    let baseHeaders = ["ชื่อตัวละคร", "อาชีพ", "Energy คงเหลือ (กรอก)", "Energy ปัจจุบัน", "ซื้อ Energy"];
     let extraCols = [];
     let vipInterval;
 
@@ -154,7 +155,7 @@
         const thead = document.getElementById('charHead');
         let html = `<tr>`;
         baseHeaders.forEach((h, i) => {
-            let cls = i === 0 ? 'col-name' : (i === 1 ? 'col-job' : 'col-ene');
+            let cls = (i === 0) ? 'col-name' : (i === 1 ? 'col-job' : (i===2 ? 'col-ene-input' : (i===3 ? 'col-ene-curr' : 'col-buy')));
             html += `<th class="${cls}"><button class="btn-edit-head" onclick="editHeader(${i}, true)">✏️</button>${h}</th>`;
         });
         extraCols.forEach((h, i) => {
@@ -171,11 +172,20 @@
         let bonus = calculateBonus();
         let curEne = (data.energy > 0) ? (parseInt(data.energy) + bonus) : "";
 
+        // ตัวเลือกการซื้อ
+        const buyVal = data.buyStatus || "";
+        const buyOptions = `
+            <option value="" ${buyVal===''?'selected':''}>-</option>
+            <option value="ซื้อแล้ว" class="buy-done" ${buyVal==='ซื้อแล้ว'?'selected':''}>ซื้อแล้ว</option>
+            <option value="ยังไม่ซื้อ" class="buy-not" ${buyVal==='ยังไม่ซื้อ'?'selected':''}>ยังไม่ซื้อ</option>
+        `;
+
         let html = `
             <td><input type="text" class="input-cell c-name" value="${data.name||''}" oninput="queueSave()"></td>
             <td><select class="input-cell c-job" onchange="queueSave()"><option value="">-</option>${options}</select></td>
             <td><input type="number" class="input-cell c-ene" value="${data.energy||''}" oninput="updateEne(this)"></td>
             <td><input type="text" class="input-cell c-curr readonly-cell" value="${curEne}" readonly></td>
+            <td><select class="input-cell c-buy ${buyVal==='ซื้อแล้ว'?'buy-done':(buyVal==='ยังไม่ซื้อ'?'buy-not':'')}" onchange="this.className='input-cell c-buy '+(this.value==='ซื้อแล้ว'?'buy-done':(this.value==='ยังไม่ซื้อ'?'buy-not':'')); queueSave();">${buyOptions}</select></td>
         `;
         extraCols.forEach((_, idx) => {
             let val = (data.extras && data.extras[idx]) ? data.extras[idx] : "";
@@ -217,7 +227,10 @@
     // --- STORAGE & CORE ---
     function saveToStorage() {
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
-            name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value, energy: r.querySelector('.c-ene').value,
+            name: r.querySelector('.c-name').value, 
+            job: r.querySelector('.c-job').value, 
+            energy: r.querySelector('.c-ene').value,
+            buyStatus: r.querySelector('.c-buy').value,
             extras: Array.from(r.querySelectorAll('.c-extra')).map(ex => ex.value)
         }));
         const items = Array.from(document.querySelectorAll('#itemBody tr')).map(r => ({
@@ -239,8 +252,10 @@
         document.getElementById('pageText').innerText = `หน้า ${currentID}`;
         document.getElementById('idNote').value = localStorage.getItem(`AION_Note_ID_${currentID}`) || "";
         document.getElementById('moneyM').value = localStorage.getItem(`AION_Money_ID_${currentID}`) || "";
-        baseHeaders = JSON.parse(localStorage.getItem(`AION_BaseHeaders_ID_${currentID}`)) || ["ชื่อตัวละคร", "อาชีพ", "Ene (กรอก)", "Ene (ปัจจุบัน)"];
+        
+        baseHeaders = JSON.parse(localStorage.getItem(`AION_BaseHeaders_ID_${currentID}`)) || ["ชื่อตัวละคร", "อาชีพ", "Energy คงเหลือ (กรอก)", "Energy ปัจจุบัน", "ซื้อ Energy"];
         extraCols = JSON.parse(localStorage.getItem(`AION_ExtraCols_ID_${currentID}`)) || [];
+        
         renderHeaders();
         document.getElementById('charBody').innerHTML = "";
         const saved = JSON.parse(localStorage.getItem(`AION_Chars_ID_${currentID}`)) || [];
@@ -248,23 +263,23 @@
         loadItems(); updateTimerDisplay();
     }
 
-    function updateEne(el) { el.parentElement.parentElement.querySelector('.c-curr').value = el.value || ""; queueSave(); }
-    function editHeader(i, isBase) { const n = prompt("แก้ไขชื่อ:", isBase?baseHeaders[i]:extraCols[i]); if(n){ if(isBase) baseHeaders[i]=n; else extraCols[i]=n; renderHeaders(); saveToStorage(); } }
-    function addNewColumn() { const n = prompt("ชื่อช่องพิเศษ:"); if(n) { extraCols.push(n); renderHeaders(); document.getElementById('charBody').innerHTML=""; loadFromStorage(); } }
-    function deleteExtraCol(i) { if(confirm("ลบช่องนี้?")) { extraCols.splice(i, 1); renderHeaders(); document.getElementById('charBody').innerHTML=""; loadFromStorage(); } }
+    function updateEne(el) { el.parentElement.parentElement.querySelector('.c-curr').value = (el.value > 0) ? (parseInt(el.value) + calculateBonus()) : ""; queueSave(); }
+    function editHeader(i, isBase) { const n = prompt("แก้ไขชื่อ:", isBase?baseHeaders[i]:extraCols[i]); if(n){ if(isBase) baseHeaders[i]=n; else extraCols[i]=n; saveToStorage(); loadFromStorage(); } }
+    function addNewColumn() { const n = prompt("ชื่อช่องพิเศษ:"); if(n) { extraCols.push(n); saveToStorage(); loadFromStorage(); } }
+    function deleteExtraCol(i) { if(confirm("ลบคอลัมน์?")) { extraCols.splice(i, 1); saveToStorage(); loadFromStorage(); } }
+    
     function calculateBonus() {
         const last = localStorage.getItem(`AION_LastUpdate_ID_${currentID}`); if(!last) return 0;
         let bonus = 0; let check = new Date(last); check.setMinutes(0,0,0); let now = new Date();
         while(check < now) { check.setHours(check.getHours()+1); if(check > now) break; if(MILESTONES.includes(check.getHours())) bonus += 15; }
         return bonus;
     }
+    
     function changeID(s) { currentID += s; if(currentID < 1) currentID = 1; loadFromStorage(); }
     let saveTimeout; function queueSave() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToStorage, 800); }
 
-    // VIP (Standard)
     function startVipCountdown() {
         const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0;
-        if(d===0 && h===0) return;
         const exp = new Date(); exp.setDate(exp.getDate()+d); exp.setHours(exp.getHours()+h);
         localStorage.setItem(`AION_VipExpire_ID_${currentID}`, exp.toISOString());
         updateTimerDisplay(); saveToStorage();
