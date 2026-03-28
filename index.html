@@ -3,87 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aion 2 Tracker Template</title>
+    <title>AION 2 Ultimate Tracker - Full Version</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; padding: 20px; font-size: 14px; }
-        .container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
-        table { border-collapse: collapse; background: #111; margin-bottom: 20px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: center; min-width: 80px; }
-        th { background-color: #222; }
-        .bg-green { background-color: #93c47d; color: #000; }
-        .bg-blue { background-color: #3d85c6; color: #fff; }
-        .bg-orange { background-color: #e69138; color: #000; }
-        /* ช่องที่แก้ไขได้ */
-        [contenteditable="true"] { background: #1a1a1a; color: #00ff00; outline: none; border: 1px inset #333; }
-        [contenteditable="true"]:focus { background: #333; border: 1px solid #00ff00; }
-        .instruction { text-align: center; color: #aaa; margin-bottom: 20px; border: 1px dashed #555; padding: 10px; }
+        :root { --bg: #0b0c10; --card: #1f2833; --text: #c5c6c7; --bright: #66fcf1; --green: #93c47d; --blue: #3d85c6; --orange: #e69138; --red: #ff0000; --yellow: #ffff00; }
+        body { background: var(--bg); color: var(--text); font-family: 'Tahoma', sans-serif; padding: 20px; font-size: 13px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
+        table { border-collapse: collapse; width: 100%; background: #000; margin-bottom: 25px; border: 1px solid #444; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: center; font-weight: bold; }
+        
+        /* Summary Table Colors */
+        .bg-white-th { background: #fff; color: #000; font-size: 16px; }
+        .bg-green { background: var(--green); color: #000; }
+        .bg-blue { background: var(--blue); color: #fff; }
+        .bg-orange { background: var(--orange); color: #000; }
+        .bg-yellow { background: var(--yellow); color: #000; }
+        .text-red { color: var(--red); }
+        .text-blue-light { color: #5dade2; }
+        
+        /* Character & Item Tables */
+        .header-main { background: #222; color: var(--bright); }
+        [contenteditable="true"] { background: #111; color: #00ff00; outline: none; border-radius: 3px; }
+        .name { color: #ffeb3b; text-align: left; }
+        .title { color: var(--bright); border-left: 5px solid var(--bright); padding-left: 10px; margin: 20px 0 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div class="instruction">
-        <strong>📌 วิธีใช้:</strong> พิมพ์ข้อมูลลงในช่องสีดำได้เลย ระบบจะ <strong>บันทึกข้อมูลอัตโนมัติ</strong> ไว้ในเครื่องของคุณ <br>
-        (คนอื่นจะไม่เห็นข้อมูลที่คุณพิมพ์ และข้อมูลจะไม่หายไปแม้จะปิดเบราว์เซอร์)
-    </div>
+<h2 style="text-align:center; color:var(--bright);">AION 2 - FULL DASHBOARD</h2>
 
-    <div class="container">
-        <!-- ส่วนที่ 1: สรุปรอบ -->
-        <div>
-            <table>
-                <tr><th colspan="2">รอบลงดันปัจจุบัน</th></tr>
-                <tr><td class="bg-green">Expedition Conquest</td><td contenteditable="true" id="val1">69</td></tr>
-                <tr><td class="bg-blue">Transcendent</td><td contenteditable="true" id="val2">0</td></tr>
-                <tr><td style="color:red">รอบที่คาดหวัง</td><td contenteditable="true" id="val3">84</td></tr>
-            </table>
-        </div>
-
-        <!-- ส่วนที่ 2: ตารางตัวละคร -->
-        <div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ตัวละคร</th><th>Energy</th><th>Ascention</th><th>Raid</th><th>Nightmare</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td contenteditable="true" id="c1_n">Xyze (เทมพลา)</td>
-                        <td contenteditable="true" id="c1_e">820</td>
-                        <td contenteditable="true" id="c1_a">ลงแล้ว</td>
-                        <td contenteditable="true" id="c1_r">ลงแล้ว</td>
-                        <td contenteditable="true" id="c1_nm">8/14</td>
-                    </tr>
-                    <tr>
-                        <td contenteditable="true" id="c2_n">Zxye (ธนู)</td>
-                        <td contenteditable="true" id="c2_e">120</td>
-                        <td contenteditable="true" id="c2_a">-</td>
-                        <td contenteditable="true" id="c2_r">1</td>
-                        <td contenteditable="true" id="c2_nm">14/14</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        // ฟังก์ชันบันทึกและโหลดข้อมูลอัตโนมัติ
-        const cells = document.querySelectorAll('[contenteditable="true"]');
+<div class="grid">
+    <!-- 1. สรุปรอบลงดัน (6 แถวครบถ้วน) -->
+    <div>
+        <h3 class="title">สรุปรอบลงดัน</h3>
+        <table>
+            <tr><th colspan="2" class="bg-white-th">รอบลงดันปัจจุบัน</th></tr>
+            <tr><td class="bg-green" width="70%">Expedition Conquest</td><td contenteditable="true" id="d1">69</td></tr>
+            <tr><td class="bg-blue">Trancendent</td><td contenteditable="true" id="d2">0</td></tr>
+            <tr><td style="color:#fff">รอบลงดันรวมที่คาดหวัง</td><td contenteditable="true" id="d3" class="text-red">84</td></tr>
+            <tr><td class="bg-orange">รวมรอบลงดันที่ใช้ปัจจุบัน</td><td id="total_curr" style="color:var(--yellow)">69</td></tr>
+            <tr><td style="color:#fff">คงเหลือรอบที่ต้องลง (รวมทุกตัวละคร)</td><td contenteditable="true" id="d4">4</td></tr>
+            <tr><td class="bg-yellow">จำนวนรอบเหลือที่ต้องลงให้ครบรอบดันที่คาดหวัง</td><td id="rem_needed" class="text-blue-light">15</td></tr>
+        </table>
         
-        // 1. โหลดข้อมูลที่เคยพิมพ์ไว้
-        cells.forEach(cell => {
-            const savedValue = localStorage.getItem(cell.id);
-            if (savedValue !== null) {
-                cell.innerText = savedValue;
-            }
-        });
+        <h3 class="title">สถานะ VIP & การเงิน</h3>
+        <table>
+            <tr><td>VIP คงเหลือ</td><td contenteditable="true" id="v1">23 วัน 6 ชั่วโมง</td></tr>
+            <tr><td class="bg-green">เงินในตัว (M)</td><td contenteditable="true" id="m1">2.3 M</td></tr>
+        </table>
+    </div>
 
-        // 2. บันทึกทุกครั้งที่มีการพิมพ์
-        cells.forEach(cell => {
-            cell.addEventListener('input', () => {
-                localStorage.setItem(cell.id, cell.innerText);
-            });
-        });
-    </script>
+    <!-- 2. ตารางตัวละคร (4 ตัวครบ) -->
+    <div>
+        <h3 class="title">ตารางตัวละคร</h3>
+        <table>
+            <tr class="header-main"><th>ตัวละคร</th><th>Energy</th><th>Ascen</th><th>Raid</th><th>Nightmare</th></tr>
+            <tr><td contenteditable="true" id="c1_n" class="name">Xyze (เทมพลา)</td><td contenteditable="true" id="c1_e">820</td><td contenteditable="true" id="c1_a">ลงแล้ว</td><td contenteditable="true" id="c1_r">ลงแล้ว</td><td contenteditable="true" id="c1_nm">8/14</td></tr>
+            <tr><td contenteditable="true" id="c2_n" class="name">Zxye (ธนู)</td><td contenteditable="true" id="c2_e">120</td><td contenteditable="true" id="c2_a">-</td><td contenteditable="true" id="c2_r">1</td><td contenteditable="true" id="c2_nm">14/14</td></tr>
+            <tr><td contenteditable="true" id="c3_n" class="name">Yz (ซอ)</td><td contenteditable="true" id="c3_e">0</td><td contenteditable="true" id="c3_a">-</td><td contenteditable="true" id="c3_r">-</td><td contenteditable="true" id="c3_nm">-</td></tr>
+            <tr><td contenteditable="true" id="c4_n" class="name">Yz (ดาบคู่)</td><td contenteditable="true" id="c4_e">0</td><td contenteditable="true" id="c4_a">-</td><td contenteditable="true" id="c4_r">-</td><td contenteditable="true" id="c4_nm">-</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- 3. ตารางไอเทม (ITEM) ครบทุกแถวทุกคอลัมน์ -->
+<h3 class="title">(ITEM)</h3>
+<table style="font-size: 12px;">
+    <tr class="header-main">
+        <th>ประเภท</th><th>เขาเล็ก</th><th>เขากลาง</th><th>เขาใหญ่</th><th>เขาแดง</th><th>โอไดล์ทอง</th><th>หินเหลือง</th><th>Amp แดง/th><th>Amp ทอง</th>
+    </tr>
+    <tr>
+        <td class="bg-blue">เทรดได้</td>
+        <td contenteditable="true" id="i1">0</td><td contenteditable="true" id="i2">0</td><td contenteditable="true" id="i3">25</td><td contenteditable="true" id="i4">1</td>
+        <td contenteditable="true" id="i5">8</td><td contenteditable="true" id="i6">2</td><td contenteditable="true" id="i7">13</td><td contenteditable="true" id="i8">0</td><td contenteditable="true" id="i9">0</td>
+    </tr>
+    <tr>
+        <td class="bg-orange">เทรดไม่ได้</td>
+        <td contenteditable="true" id="j1">24</td><td contenteditable="true" id="j2">31</td><td contenteditable="true" id="j3">5</td><td contenteditable="true" id="j4">0</td>
+        <td contenteditable="true" id="j5">0</td><td contenteditable="true" id="j6">0</td><td contenteditable="true" id="j7">12</td><td contenteditable="true" id="j8">2</td><td contenteditable="true" id="j9">1</td>
+    </tr>
+</table>
+
+<script>
+    const editables = document.querySelectorAll('[contenteditable="true"]');
+    
+    function update() {
+        const d1 = parseInt(document.getElementById('d1').innerText) || 0;
+        const d2 = parseInt(document.getElementById('d2').innerText) || 0;
+        const d3 = parseInt(document.getElementById('d3').innerText) || 0;
+        
+        const totalUsed = d1 + d2;
+        document.getElementById('total_curr').innerText = totalUsed;
+        
+        const remaining = d3 - totalUsed;
+        document.getElementById('rem_needed').innerText = remaining > 0 ? remaining : 0;
+
+        editables.forEach(c => localStorage.setItem(c.id, c.innerText));
+    }
+
+    editables.forEach(c => {
+        const saved = localStorage.getItem(c.id);
+        if (saved !== null) c.innerText = saved;
+        c.addEventListener('input', update);
+    });
+
+    update();
+</script>
+
 </body>
 </html>
-
