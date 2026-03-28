@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - Fixed Headers & Columns</title>
+    <title>AION 2 Tracker - Full System</title>
     <style>
         :root { --primary: #1a73e8; --success: #16a34a; --danger: #dc2626; --gold: #f59e0b; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; }
-        .container { background: white; width: 100%; max-width: 1200px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { background: white; width: 100%; max-width: 1350px; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
         
         .money-display { background: linear-gradient(135deg, #fffbeb, #fef3c7); padding: 15px; border-radius: 10px; border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
@@ -19,43 +19,46 @@
 
         .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
-        th { background: #f1f3f4; padding: 10px 2px; border: 1px solid #ddd; font-size: 12px; text-align: center; position: relative; }
+        th { background: #f1f3f4; padding: 10px 2px; border: 1px solid #ddd; font-size: 11px; text-align: center; }
         td { border: 1px solid #ddd; padding: 0; }
         
-        /* Column Widths - ปรับให้สมดุล */
-        .col-name { width: 15%; }
-        .col-job { width: 12%; }
-        .col-ene-input { width: 18%; }
-        .col-ene-curr { width: 14%; }
-        .col-buy { width: 13%; }
-        .col-extra { width: 12%; }
-        .col-del { width: 35px; }
+        .col-name { width: 12%; } .col-job { width: 9%; } .col-ene-input { width: 14%; }
+        .col-ene-curr { width: 10%; } .col-buy { width: 9%; } .col-craft { width: 9%; }
+        .col-asc { width: 9%; } .col-raid { width: 9%; } .col-extra { width: 8%; } .col-del { width: 35px; }
         
-        .input-cell { width: 100%; padding: 10px 5px; border: none; outline: none; box-sizing: border-box; background: transparent; font-size: 13px; text-align: center; }
-        .readonly-cell { background: #f0f4ff; color: #1a73e8; font-weight: bold; }
-        .sum-cell { background: #eef2ff; color: #4338ca; font-weight: bold; }
-        .buy-done { color: var(--success); font-weight: bold; }
-        .buy-not { color: var(--danger); }
+        .input-cell { width: 100%; padding: 10px 5px; border: none; outline: none; box-sizing: border-box; background: transparent; font-size: 11px; text-align: center; cursor: pointer; }
+        .readonly-cell { background: #f0f4ff; color: #1a73e8; font-weight: bold; cursor: default; }
+        
+        .status-done { color: white !important; font-weight: bold; background: var(--success) !important; }
+        .status-not { color: white !important; background: var(--danger) !important; }
+        .status-off { color: #ccc; background: #f9fafb !important; cursor: not-allowed; }
 
-        .btn-edit-head { position: absolute; left: 1px; top: 1px; background: none; border: none; color: #ccc; cursor: pointer; font-size: 8px; opacity: 0.5; }
         .section-title { font-size: 18px; font-weight: bold; color: var(--primary); margin: 15px 0 10px 0; display: flex; align-items: center; justify-content: space-between; }
         .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 13px; }
         .btn-blue { background: var(--primary); }
         .btn-add { background: var(--success); }
+        .btn-reset { background: #4b5563; margin-left: 10px; }
         .btn-del-tiny { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; font-size: 9px; padding: 2px 5px; font-weight: bold; }
         
-        .status { text-align: center; color: var(--success); font-size: 12px; height: 18px; font-weight: bold; }
+        .status-msg { text-align: center; color: var(--success); font-size: 12px; height: 18px; font-weight: bold; }
         .content { display: none; }
         .content.active { display: block; }
-        .vip-timer-display { background: #111827; color: #10b981; padding: 10px; border-radius: 8px; text-align: center; margin-top: 5px; }
-        .timer-val { font-family: monospace; font-size: 22px; font-weight: bold; }
+
+        /* VIP Style */
+        .vip-timer-display { background: #111827; color: #10b981; padding: 15px; border-radius: 8px; text-align: center; margin-top: 5px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .timer-val { font-family: 'Courier New', monospace; font-size: 26px; font-weight: bold; letter-spacing: 2px; }
+        .expire-label { font-size: 13px; color: #fbbf24; margin-top: 5px; font-weight: bold; }
+        .reset-info { font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <div style="font-size: 20px; font-weight: bold; color: var(--primary);">ID: <span id="idLabel">1</span> <input type="text" id="idNote" style="border:none; border-bottom:1px solid #ccc; font-size:16px; width:150px; outline:none;" placeholder="ชื่อโน้ต..." oninput="queueSave()"></div>
+        <div style="font-size: 20px; font-weight: bold; color: var(--primary);">
+            ID: <span id="idLabel">1</span> 
+            <input type="text" id="idNote" style="border:none; border-bottom:1px solid #ccc; font-size:16px; width:150px; outline:none;" placeholder="ชื่อโน้ต..." oninput="queueSave()">
+        </div>
         <div id="clock" style="font-family: monospace; color: #666; font-size: 16px;"></div>
     </div>
 
@@ -71,25 +74,42 @@
     </div>
 
     <div id="charView" class="content active">
-        <div class="vip-card" style="background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-bottom: 15px;">
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                <span>VIP เหลือ:</span>
-                <input type="number" id="vipDays" placeholder="วัน" style="width:50px; text-align:center;" oninput="startVipCountdown()"> <span>วัน</span>
-                <input type="number" id="vipHours" placeholder="ชม." style="width:50px; text-align:center;" oninput="startVipCountdown()"> <span>ชม.</span>
+        <div class="vip-card" style="background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 10px; justify-content: center;">
+                <span style="font-weight:bold;">ตั้งค่า VIP:</span>
+                <input type="number" id="vipDays" placeholder="วัน" style="width:60px; text-align:center; padding:5px; border-radius:4px; border:1px solid #ccc;" oninput="startVipCountdown()"> <span>วัน</span>
+                <input type="number" id="vipHours" placeholder="ชม." style="width:60px; text-align:center; padding:5px; border-radius:4px; border:1px solid #ccc;" oninput="startVipCountdown()"> <span>ชั่วโมง</span>
             </div>
             <div class="vip-timer-display">
                 <div class="timer-val" id="countdownLabel">00 วัน 00:00:00</div>
-                <div id="expireDateLabel" style="font-size:11px; color:#fbbf24;"></div>
+                <div class="expire-label" id="expireDateLabel">ยังไม่ได้ตั้งค่าวันหมดอายุ</div>
             </div>
         </div>
 
         <div class="section-title">
-            <span>📋 รายการตัวละคร</span>
-            <button class="btn btn-blue" onclick="addNewColumn()" style="font-size:11px;">+ เพิ่มช่องพิเศษ</button>
+            <span>📋 รายการตัวละคร <span class="reset-info">(รีเซ็ตทุกวันพุธ 09:00 น.)</span></span>
+            <div>
+                <button class="btn btn-reset" onclick="manualWeeklyReset()">ล้างข้อมูลสัปดาห์นี้</button>
+                <button class="btn btn-blue" onclick="addNewColumn()">+ ช่องพิเศษ</button>
+            </div>
         </div>
+
         <div class="table-wrapper">
-            <table id="charTable">
-                <thead id="charHead"></thead>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-name">ชื่อตัวละคร</th>
+                        <th class="col-job">อาชีพ</th>
+                        <th class="col-ene-input">Energy คงเหลือ</th>
+                        <th class="col-ene-curr">Energy ปัจจุบัน</th>
+                        <th class="col-buy">ซื้อ Energy</th>
+                        <th class="col-craft">คราฟ Energy</th>
+                        <th class="col-asc">Ascension</th>
+                        <th class="col-raid">Raid</th>
+                        <tbody id="extraHead"></tbody>
+                        <th class="col-del"></th>
+                    </tr>
+                </thead>
                 <tbody id="charBody"></tbody>
             </table>
         </div>
@@ -97,7 +117,7 @@
     </div>
 
     <div id="itemView" class="content">
-        <div class="section-title"><span>🎒 คลังไอเทม</span></div>
+         <div class="section-title"><span>🎒 คลังไอเทม</span></div>
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -115,7 +135,7 @@
         <button class="btn btn-add" onclick="addItemRow()">+ เพิ่มไอเทม</button>
     </div>
 
-    <div id="saveText" class="status"></div>
+    <div id="saveText" class="status-msg"></div>
     <div style="text-align:center; margin-top:15px;">
         <button class="btn btn-blue" onclick="changeID(-1)">←</button>
         <span id="pageText" style="margin:0 15px; font-weight:bold;">หน้า 1</span>
@@ -128,125 +148,207 @@
     const CLASSES = ["Ranger", "Gladiator", "Templar", "Assassin", "Sorcerer", "Spiritmaster", "Cleric", "Chanter"];
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const DEFAULT_ITEMS = ["เขาเล็ก", "เขากลาง", "เขาใหญ่", "เขาแดง", "โอไดล์ทอง", "หินเหลือง", "Amp แดง", "Amp ทอง"];
-    
-    // บังคับชุดหัวข้อมาตรฐาน
-    const FIXED_HEADERS = ["ชื่อตัวละคร", "อาชีพ", "Energy คงเหลือ (กรอก)", "Energy ปัจจุบัน", "ซื้อ Energy"];
     let extraCols = [];
     let vipInterval;
 
-    function changeTab(view) {
-        document.getElementById('charView').classList.toggle('active', view === 'char');
-        document.getElementById('itemView').classList.toggle('active', view === 'item');
-        document.getElementById('tabChar').classList.toggle('active', view === 'char');
-        document.getElementById('tabItem').classList.toggle('active', view === 'item');
+    // --- VIP Logic ---
+    function formatThaiDate(date) {
+        const days = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        return `วัน${days[date.getDay()]} ที่ ${String(date.getDate()).padStart(2, '0')} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
     }
 
-    function renderHeaders() {
-        const thead = document.getElementById('charHead');
-        let html = `<tr>`;
-        FIXED_HEADERS.forEach((h, i) => {
-            let cls = (i === 0) ? 'col-name' : (i === 1 ? 'col-job' : (i===2 ? 'col-ene-input' : (i===3 ? 'col-ene-curr' : 'col-buy')));
-            html += `<th class="${cls}">${h}</th>`;
-        });
-        extraCols.forEach((h, i) => {
-            html += `<th class="col-extra">${h} <span style="color:red; cursor:pointer;" onclick="deleteExtraCol(${i})">×</span></th>`;
-        });
-        html += `<th class="col-del"></th></tr>`;
-        thead.innerHTML = html;
+    function startVipCountdown() {
+        const d = parseInt(document.getElementById('vipDays').value) || 0;
+        const h = parseInt(document.getElementById('vipHours').value) || 0;
+        if (d === 0 && h === 0) return;
+
+        const exp = new Date();
+        exp.setDate(exp.getDate() + d);
+        exp.setHours(exp.getHours() + h);
+
+        localStorage.setItem(`AION_VipExpire_ID_${currentID}`, exp.toISOString());
+        updateTimerDisplay();
+        queueSave();
     }
 
+    function updateTimerDisplay() {
+        clearInterval(vipInterval);
+        const expStr = localStorage.getItem(`AION_VipExpire_ID_${currentID}`);
+        const label = document.getElementById('countdownLabel');
+        const expireLabel = document.getElementById('expireDateLabel');
+
+        if (!expStr) {
+            label.innerText = "00 วัน 00:00:00";
+            expireLabel.innerText = "ยังไม่ได้ตั้งค่าวันหมดอายุ";
+            return;
+        }
+
+        const exp = new Date(expStr);
+        expireLabel.innerText = "หมดอายุ: " + formatThaiDate(exp);
+
+        vipInterval = setInterval(() => {
+            const diff = exp - new Date();
+            if (diff <= 0) {
+                label.innerText = "หมดอายุแล้ว";
+                label.style.color = "#dc2626";
+                clearInterval(vipInterval);
+                return;
+            }
+            label.style.color = "#10b981";
+            const dd = Math.floor(diff / 86400000);
+            const hh = Math.floor((diff % 86400000) / 3600000);
+            const mm = Math.floor((diff % 3600000) / 60000);
+            const ss = Math.floor((diff % 60000) / 1000);
+            label.innerText = `${dd} วัน ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    // --- Table Logic ---
     function addCharRow(data = {}) {
         const body = document.getElementById('charBody');
         const row = body.insertRow();
-        let options = CLASSES.map(c => `<option value="${c}" ${data.job===c?'selected':''}>${c}</option>`).join('');
-        let bonus = calculateBonus();
-        let curEne = (data.energy > 0) ? (parseInt(data.energy) + bonus) : "";
+        const bonus = calculateBonus();
+        const curEne = (data.energy > 0) ? (parseInt(data.energy) + bonus) : "";
+        const hasChar = (data.name && data.name.trim() !== "") && (data.job && data.job !== "");
 
-        const buyVal = data.buyStatus || "";
-        const buyOptions = `
-            <option value="" ${buyVal===''?'selected':''}>-</option>
-            <option value="ซื้อแล้ว" class="buy-done" ${buyVal==='ซื้อแล้ว'?'selected':''}>ซื้อแล้ว</option>
-            <option value="ยังไม่ซื้อ" class="buy-not" ${buyVal==='ยังไม่ซื้อ'?'selected':''}>ยังไม่ซื้อ</option>
-        `;
-
-        let html = `
-            <td><input type="text" class="input-cell c-name" value="${data.name||''}" oninput="queueSave()"></td>
-            <td><select class="input-cell c-job" onchange="queueSave()"><option value="">-</option>${options}</select></td>
+        row.innerHTML = `
+            <td><input type="text" class="input-cell c-name" value="${data.name||''}" oninput="updateRowLogic(this)"></td>
+            <td><select class="input-cell c-job" onchange="updateRowLogic(this)">
+                <option value="">-</option>
+                ${CLASSES.map(c => `<option value="${c}" ${data.job===c?'selected':''}>${c}</option>`).join('')}
+            </select></td>
             <td><input type="number" class="input-cell c-ene" value="${data.energy||''}" oninput="updateEne(this)"></td>
             <td><input type="text" class="input-cell c-curr readonly-cell" value="${curEne}" readonly></td>
-            <td><select class="input-cell c-buy ${buyVal==='ซื้อแล้ว'?'buy-done':(buyVal==='ยังไม่ซื้อ'?'buy-not':'')}" onchange="this.className='input-cell c-buy '+(this.value==='ซื้อแล้ว'?'buy-done':(this.value==='ยังไม่ซื้อ'?'buy-not':'')); queueSave();">${buyOptions}</select></td>
+            <td><select class="input-cell c-buy"></select></td>
+            <td><select class="input-cell c-craft"></select></td>
+            <td><select class="input-cell c-asc"></select></td>
+            <td><select class="input-cell c-raid"></select></td>
+            ${extraCols.map((_, idx) => `<td><input type="text" class="input-cell c-extra" value="${(data.extras && data.extras[idx]) ? data.extras[idx] : ""}" oninput="queueSave()"></td>`).join('')}
+            <td align="center"><button class="btn-del-tiny" onclick="this.parentElement.parentElement.remove(); queueSave();">×</button></td>
         `;
-        extraCols.forEach((_, idx) => {
-            let val = (data.extras && data.extras[idx]) ? data.extras[idx] : "";
-            html += `<td><input type="text" class="input-cell c-extra" value="${val}" oninput="queueSave()"></td>`;
+        applyStatusLogic(row, hasChar, data);
+    }
+
+    function applyStatusLogic(row, hasChar, data = {}) {
+        const selectors = [
+            { el: row.querySelector('.c-buy'), val: data.buyStatus || "ยังไม่ซื้อ", opt: ["ยังไม่ซื้อ", "ซื้อแล้ว"] },
+            { el: row.querySelector('.c-craft'), val: data.craftStatus || "ยังไม่คราฟ", opt: ["ยังไม่คราฟ", "คราฟแล้ว"] },
+            { el: row.querySelector('.c-asc'), val: data.ascStatus || "ยังไม่ลง", opt: ["ยังไม่ลง", "ลงแล้ว"] },
+            { el: row.querySelector('.c-raid'), val: data.raidStatus || "ยังไม่ลง", opt: ["ยังไม่ลง", "ลงแล้ว"] }
+        ];
+        selectors.forEach(s => {
+            if (!hasChar) {
+                s.el.innerHTML = `<option value="">-</option>`;
+                s.el.className = "input-cell status-off";
+                s.el.disabled = true;
+            } else {
+                s.el.disabled = false;
+                s.el.innerHTML = s.opt.map(o => `<option value="${o}" ${s.val === o ? 'selected' : ''}>${o}</option>`).join('');
+                updateColor(s.el);
+                s.el.onchange = function() { updateColor(this); queueSave(); };
+            }
         });
-        html += `<td align="center"><button class="btn-del-tiny" onclick="this.parentElement.parentElement.remove(); queueSave();">×</button></td>`;
-        row.innerHTML = html;
     }
 
-    function loadFromStorage() {
-        document.getElementById('idLabel').innerText = currentID;
-        document.getElementById('pageText').innerText = `หน้า ${currentID}`;
-        document.getElementById('idNote').value = localStorage.getItem(`AION_Note_ID_${currentID}`) || "";
-        document.getElementById('moneyM').value = localStorage.getItem(`AION_Money_ID_${currentID}`) || "";
-        
-        // โหลดเฉพาะ Extra Column เท่านั้น ส่วนหัวหลักเราบังคับใช้ตัวแปร FIXED_HEADERS
-        extraCols = JSON.parse(localStorage.getItem(`AION_ExtraCols_ID_${currentID}`)) || [];
-        
-        renderHeaders();
-        document.getElementById('charBody').innerHTML = "";
-        const saved = JSON.parse(localStorage.getItem(`AION_Chars_ID_${currentID}`)) || [];
-        if (saved.length > 0) saved.forEach(d => addCharRow(d)); else { for(let i=0; i<4; i++) addCharRow(); }
-        loadItems(); updateTimerDisplay();
+    function updateColor(el) {
+        if (el.value.includes("แล้ว")) el.className = "input-cell status-done";
+        else if (el.value.includes("ยังไม่")) el.className = "input-cell status-not";
+        else el.className = "input-cell status-off";
     }
 
+    function updateRowLogic(el) {
+        const row = el.closest('tr');
+        const hasChar = (row.querySelector('.c-name').value.trim() !== "" && row.querySelector('.c-job').value !== "");
+        applyStatusLogic(row, hasChar);
+        queueSave();
+    }
+
+    // --- Storage & Page ---
     function saveToStorage() {
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
-            name: r.querySelector('.c-name').value, 
-            job: r.querySelector('.c-job').value, 
-            energy: r.querySelector('.c-ene').value,
-            buyStatus: r.querySelector('.c-buy').value,
+            name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value, 
+            energy: r.querySelector('.c-ene').value, buyStatus: r.querySelector('.c-buy').value,
+            craftStatus: r.querySelector('.c-craft').value, ascStatus: r.querySelector('.c-asc').value,
+            raidStatus: r.querySelector('.c-raid').value,
             extras: Array.from(r.querySelectorAll('.c-extra')).map(ex => ex.value)
         }));
         const items = Array.from(document.querySelectorAll('#itemBody tr')).map(r => ({
             name: r.querySelector('.i-name').value, t1: r.querySelector('.i-t1').value, t2: r.querySelector('.i-t2').value
         }));
-        localStorage.setItem(`AION_ExtraCols_ID_${currentID}`, JSON.stringify(extraCols));
         localStorage.setItem(`AION_Chars_ID_${currentID}`, JSON.stringify(chars));
         localStorage.setItem(`AION_Items_ID_${currentID}`, JSON.stringify(items));
         localStorage.setItem(`AION_Note_ID_${currentID}`, document.getElementById('idNote').value);
         localStorage.setItem(`AION_Money_ID_${currentID}`, document.getElementById('moneyM').value);
+        localStorage.setItem(`AION_ExtraCols_ID_${currentID}`, JSON.stringify(extraCols));
         localStorage.setItem(`AION_LastUpdate_ID_${currentID}`, new Date().toISOString());
-        document.getElementById('saveText').innerText = "✓ เซฟ";
+        document.getElementById('saveText').innerText = "✓ บันทึกแล้ว";
         setTimeout(() => document.getElementById('saveText').innerText = "", 1000);
     }
 
-    // --- ส่วนงานอื่นๆ ---
-    function loadItems() {
-        const body = document.getElementById('itemBody'); body.innerHTML = "";
-        const saved = JSON.parse(localStorage.getItem(`AION_Items_ID_${currentID}`)) || [];
-        const list = saved.length > 0 ? saved : DEFAULT_ITEMS.map(n => ({name:n, t1:"", t2:""}));
-        list.forEach(i => addItemRow(i.name, i.t1, i.t2));
+    function loadFromStorage() {
+        checkWeeklyReset();
+        document.getElementById('idLabel').innerText = currentID;
+        document.getElementById('pageText').innerText = `หน้า ${currentID}`;
+        document.getElementById('idNote').value = localStorage.getItem(`AION_Note_ID_${currentID}`) || "";
+        document.getElementById('moneyM').value = localStorage.getItem(`AION_Money_ID_${currentID}`) || "";
+        extraCols = JSON.parse(localStorage.getItem(`AION_ExtraCols_ID_${currentID}`)) || [];
+        document.getElementById('charBody').innerHTML = "";
+        const saved = JSON.parse(localStorage.getItem(`AION_Chars_ID_${currentID}`)) || [];
+        if (saved.length > 0) saved.forEach(d => addCharRow(d)); else { for(let i=0; i<4; i++) addCharRow(); }
+        loadItems();
+        updateTimerDisplay(); // สำคัญ: ต้องโหลด VIP ใหม่ทุกครั้งที่เปลี่ยนหน้า
     }
+
+    function checkWeeklyReset() {
+        const now = new Date();
+        const lastReset = localStorage.getItem('AION_LastWeeklyReset');
+        let resetPoint = new Date();
+        resetPoint.setDate(now.getDate() - ((now.getDay() + 4) % 7)); 
+        resetPoint.setHours(9, 0, 0, 0);
+        if (now >= resetPoint && (!lastReset || new Date(lastReset) < resetPoint)) {
+            performReset();
+            localStorage.setItem('AION_LastWeeklyReset', now.toISOString());
+        }
+    }
+
+    function manualWeeklyReset() { if (confirm("ต้องการล้างสถานะสัปดาห์นี้ทั้งหมด?")) { performReset(); saveToStorage(); } }
+    function performReset() {
+        const rows = document.querySelectorAll('#charBody tr');
+        rows.forEach(row => {
+            const hasChar = (row.querySelector('.c-name').value.trim() !== "" && row.querySelector('.c-job').value !== "");
+            if (hasChar) applyStatusLogic(row, true);
+        });
+    }
+
     function addItemRow(n="", t1="", t2="") {
         const body = document.getElementById('itemBody'); const row = body.insertRow();
         const sum = (parseFloat(t1)||0) + (parseFloat(t2)||0);
         row.innerHTML = `<td><input type="text" class="input-cell i-name" value="${n}" oninput="queueSave()"></td>
             <td><input type="number" class="input-cell i-t1" value="${t1}" oninput="updateSum(this)"></td>
             <td><input type="number" class="input-cell i-t2" value="${t2}" oninput="updateSum(this)"></td>
-            <td><input type="text" class="input-cell i-sum sum-cell" value="${sum||''}" readonly></td>
+            <td><input type="text" class="input-cell i-sum sum-cell readonly-cell" value="${sum||''}" readonly></td>
             <td align="center"><button class="btn-del-tiny" onclick="this.parentElement.parentElement.remove(); queueSave();">×</button></td>`;
     }
     function updateSum(el) { const row = el.parentElement.parentElement; const v1 = parseFloat(row.querySelector('.i-t1').value) || 0; const v2 = parseFloat(row.querySelector('.i-t2').value) || 0; row.querySelector('.i-sum').value = (v1 + v2 === 0) ? "" : (v1 + v2); queueSave(); }
+    function loadItems() {
+        const body = document.getElementById('itemBody'); body.innerHTML = "";
+        const saved = JSON.parse(localStorage.getItem(`AION_Items_ID_${currentID}`)) || [];
+        const list = saved.length > 0 ? saved : DEFAULT_ITEMS.map(n => ({name:n, t1:"", t2:""}));
+        list.forEach(i => addItemRow(i.name, i.t1, i.t2));
+    }
+    
     function updateEne(el) { el.parentElement.parentElement.querySelector('.c-curr').value = (el.value > 0) ? (parseInt(el.value) + calculateBonus()) : ""; queueSave(); }
-    function addNewColumn() { const n = prompt("ชื่อช่องพิเศษ:"); if(n) { extraCols.push(n); saveToStorage(); loadFromStorage(); } }
-    function deleteExtraCol(i) { if(confirm("ลบคอลัมน์?")) { extraCols.splice(i, 1); saveToStorage(); loadFromStorage(); } }
     function calculateBonus() { const last = localStorage.getItem(`AION_LastUpdate_ID_${currentID}`); if(!last) return 0; let bonus = 0; let check = new Date(last); check.setMinutes(0,0,0); let now = new Date(); while(check < now) { check.setHours(check.getHours()+1); if(check > now) break; if(MILESTONES.includes(check.getHours())) bonus += 15; } return bonus; }
     function changeID(s) { currentID += s; if(currentID < 1) currentID = 1; loadFromStorage(); }
+    function addNewColumn() { const n = prompt("ชื่อช่องพิเศษ:"); if(n) { extraCols.push(n); saveToStorage(); loadFromStorage(); } }
     let saveTimeout; function queueSave() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToStorage, 800); }
-    function startVipCountdown() { const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0; const exp = new Date(); exp.setDate(exp.getDate()+d); exp.setHours(exp.getHours()+h); localStorage.setItem(`AION_VipExpire_ID_${currentID}`, exp.toISOString()); updateTimerDisplay(); saveToStorage(); }
-    function updateTimerDisplay() { clearInterval(vipInterval); const expStr = localStorage.getItem(`AION_VipExpire_ID_${currentID}`); if(!expStr) return; const exp = new Date(expStr); document.getElementById('expireDateLabel').innerText = "หมดอายุ: " + exp.toLocaleString('th-TH'); vipInterval = setInterval(() => { const diff = exp - new Date(); if(diff<=0) { document.getElementById('countdownLabel').innerText="หมดอายุแล้ว"; return; } const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000); document.getElementById('countdownLabel').innerText = `${dd} วัน ${hh}:${mm}:${ss}`; }, 1000); }
-    window.onload = () => { setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString('th-TH'), 1000); loadFromStorage(); };
+    function changeTab(view) { document.getElementById('charView').classList.toggle('active', view === 'char'); document.getElementById('itemView').classList.toggle('active', view === 'item'); document.getElementById('tabChar').classList.toggle('active', view === 'char'); document.getElementById('tabItem').classList.toggle('active', view === 'item'); }
+
+    window.onload = () => { 
+        setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString('th-TH'), 1000); 
+        loadFromStorage(); 
+    };
 </script>
 </body>
 </html>
