@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker</title>
+    <title>AION 2 - Real-time Countdown Tracker</title>
     <style>
         :root { --bg: #0b0c10; --card: #1f2833; --text: #c5c6c7; --bright: #66fcf1; --green: #93c47d; --blue: #3d85c6; --orange: #e69138; --red: #ff0000; --yellow: #ffff00; }
         body { background: var(--bg); color: var(--text); font-family: 'Tahoma', sans-serif; padding: 20px; font-size: 13px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
         table { border-collapse: collapse; width: 100%; background: #000; margin-bottom: 25px; border: 1px solid #444; }
         th, td { border: 1px solid #444; padding: 10px; text-align: center; font-weight: bold; }
-        
         .bg-white-th { background: #fff; color: #000; font-size: 16px; }
         .bg-green { background: var(--green); color: #000; }
         .bg-blue { background: var(--blue); color: #fff; }
@@ -19,15 +18,12 @@
         .text-red { color: var(--red); }
         .text-blue-light { color: #5dade2; }
         .text-bright { color: var(--bright); font-size: 1.1em; }
-        
         [contenteditable="true"] { background: #111; color: #00ff00; outline: none; border-radius: 3px; min-width: 30px; display: inline-block; padding: 2px 5px; }
         [contenteditable="true"]:focus { background: #333; box-shadow: 0 0 5px #00ff00; }
         .locked-cell { background: #000; cursor: not-allowed; } 
-        
         .money-box { margin: 20px auto; max-width: 400px; border: 2px solid var(--green); background: #111; padding: 15px; text-align: center; border-radius: 10px; }
         .money-title { color: var(--green); font-size: 18px; margin-bottom: 10px; font-weight: bold; }
         .money-value { font-size: 24px; color: #fff; }
-
         .header-main { background: #222; color: var(--bright); }
         .name { color: #ffeb3b; text-align: left; }
         .title { color: var(--bright); border-left: 5px solid var(--bright); padding-left: 10px; margin: 20px 0 10px; text-transform: uppercase; }
@@ -35,10 +31,9 @@
 </head>
 <body>
 
-<h2 style="text-align:center; color:var(--bright);">AION 2 - VIP DASHBOARD</h2>
+<h2 style="text-align:center; color:var(--bright);">AION 2 - REAL-TIME COUNTDOWN</h2>
 
 <div class="grid">
-    <!-- 1. สรุปรอบลงดัน -->
     <div>
         <h3 class="title">สรุปรอบลงดัน</h3>
         <table>
@@ -69,7 +64,6 @@
         </table>
     </div>
 
-    <!-- 2. ตารางตัวละคร -->
     <div>
         <h3 class="title">ตารางตัวละคร</h3>
         <table>
@@ -106,44 +100,70 @@
 
 <script>
     const editables = document.querySelectorAll('[contenteditable="true"]');
-    
-    function updateDashboard() {
-        // 1. คำนวณรอบลงดัน (84 - รอบปัจจุบัน)
+    let expireTime = localStorage.getItem('v_expire_timestamp');
+
+    function initVIP() {
+        if (!expireTime) {
+            updateExpireTime();
+        }
+        tick();
+    }
+
+    function updateExpireTime() {
+        const d = parseInt(document.getElementById('v_day').innerText) || 0;
+        const h = parseInt(document.getElementById('v_hr').innerText) || 0;
+        const now = new Date().getTime();
+        expireTime = now + (d * 24 * 60 * 60 * 1000) + (h * 60 * 60 * 1000);
+        localStorage.setItem('v_expire_timestamp', expireTime);
+        
+        const dateObj = new Date(expireTime);
+        document.getElementById('v_expire_date').innerText = dateObj.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + " น.";
+    }
+
+    function tick() {
+        const now = new Date().getTime();
+        const diff = expireTime - now;
+
+        if (diff > 0) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+            // อัปเดตตัวเลขบนหน้าจอ (ไม่ให้ทับตอนกำลังพิมพ์)
+            if (document.activeElement !== document.getElementById('v_day')) document.getElementById('v_day').innerText = days;
+            if (document.activeElement !== document.getElementById('v_hr')) document.getElementById('v_hr').innerText = hours;
+            document.getElementById('v_min').innerText = mins.toString().padStart(2, '0');
+            document.getElementById('v_sec').innerText = secs.toString().padStart(2, '0');
+        } else {
+            document.getElementById('v_expire_date').innerText = "หมดอายุแล้ว";
+        }
+
+        // คำนวณรอบดัน
         const expected = 84;
         const currentUsed = parseInt(document.getElementById('d_total').innerText) || 0;
         document.getElementById('d_rem').innerText = expected - currentUsed;
 
-        // 2. คำนวณวันหมดอายุ VIP
-        const vDay = parseInt(document.getElementById('v_day').innerText) || 0;
-        const vHr = parseInt(document.getElementById('v_hr').innerText) || 0;
-        
-        const now = new Date();
-        // บวกเวลาเพิ่มตามจำนวนวันและชั่วโมง
-        const expireDate = new Date(now.getTime() + (vDay * 24 * 60 * 60 * 1000) + (vHr * 60 * 60 * 1000));
-        
-        // รูปแบบการแสดงผลภาษาไทย
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        };
-        document.getElementById('v_expire_date').innerText = expireDate.toLocaleDateString('th-TH', options) + " น.";
-
-        // 3. บันทึกข้อมูลลงเครื่อง
-        editables.forEach(c => localStorage.setItem(c.id, c.innerText));
+        // เซฟค่าอื่นๆ
+        editables.forEach(c => {
+            if (c.id !== 'v_day' && c.id !== 'v_hr') localStorage.setItem(c.id, c.innerText);
+        });
     }
 
     editables.forEach(c => {
         const saved = localStorage.getItem(c.id);
-        if (saved !== null) c.innerText = saved;
-        c.addEventListener('input', updateDashboard);
+        if (saved !== null && c.id !== 'v_day' && c.id !== 'v_hr') c.innerText = saved;
+        
+        c.addEventListener('input', () => {
+            if (c.id === 'v_day' || c.id === 'v_hr') {
+                updateExpireTime();
+            }
+            tick();
+        });
     });
 
-    // เรียกทำงานทันทีที่โหลดหน้าจอ
-    updateDashboard();
+    setInterval(tick, 1000);
+    window.onload = initVIP;
 </script>
 
 </body>
