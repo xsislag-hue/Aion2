@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - VIP Expire Calculator</title>
+    <title>AION 2 Tracker</title>
     <style>
         :root { --bg: #0b0c10; --card: #1f2833; --text: #c5c6c7; --bright: #66fcf1; --green: #93c47d; --blue: #3d85c6; --orange: #e69138; --red: #ff0000; --yellow: #ffff00; }
         body { background: var(--bg); color: var(--text); font-family: 'Tahoma', sans-serif; padding: 20px; font-size: 13px; }
@@ -51,18 +51,20 @@
             <tr><td class="bg-yellow">จำนวนรอบเหลือที่ต้องลงให้ครบรอบดันที่คาดหวัง</td><td id="d_rem" class="text-blue-light locked-cell">15</td></tr>
         </table>
         
-        <h3 class="title">สถานะ VIP</h3>
+        <h3 class="title">สถานะ VIP (นับถอยหลังอัตโนมัติ)</h3>
         <table>
             <tr>
-                <td width="70%">VIP ที่เหลือ (กรอกตัวเลข)</td>
-                <td>
-                    <span contenteditable="true" id="v_day">23</span> วัน 
-                    <span contenteditable="true" id="v_hr">6</span> ชม.
+                <td width="50%">VIP คงเหลือปัจจุบัน</td>
+                <td style="font-size: 1.2em;">
+                    <span contenteditable="true" id="v_day" title="คลิกเพื่อแก้ไขวัน">23</span> วัน 
+                    <span contenteditable="true" id="v_hr" title="คลิกเพื่อแก้ไขชั่วโมง">6</span> ชม.
+                    <span id="v_min" style="color: #888;">00</span> น.
+                    <span id="v_sec" style="color: #555; font-size: 0.8em;">00</span> วิ.
                 </td>
             </tr>
             <tr style="background: #111;">
-                <td style="color: var(--bright);">VIP จะหมดอายุตรงกับวันที่</td>
-                <td id="v_expire_date" class="text-bright">กำลังคำนวณ...</td>
+                <td style="color: var(--bright);">VIP จะหมดอายุในวันที่</td>
+                <td id="v_expire_date" class="text-bright">-</td>
             </tr>
         </table>
     </div>
