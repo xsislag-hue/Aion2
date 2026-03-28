@@ -3,14 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker</title>
+    <title>Aion 2 Tracker Template</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background-color: #000; overflow: hidden; }
-        iframe { width: 100%; height: 100vh; border: none; }
+        body { background-color: #000; color: #fff; font-family: sans-serif; padding: 20px; font-size: 14px; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        table { border-collapse: collapse; background: #111; margin-bottom: 20px; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: center; min-width: 80px; }
+        th { background-color: #222; }
+        .bg-green { background-color: #93c47d; color: #000; }
+        .bg-blue { background-color: #3d85c6; color: #fff; }
+        .bg-orange { background-color: #e69138; color: #000; }
+        /* ช่องที่แก้ไขได้ */
+        [contenteditable="true"] { background: #1a1a1a; color: #00ff00; outline: none; border: 1px inset #333; }
+        [contenteditable="true"]:focus { background: #333; border: 1px solid #00ff00; }
+        .instruction { text-align: center; color: #aaa; margin-bottom: 20px; border: 1px dashed #555; padding: 10px; }
     </style>
 </head>
 <body>
-    <!-- ลิงก์ Google Sheets บันทึกข้อมูลเล่น AION 2 ของคุณ -->
-    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQULNlABB0PJAJxVftLujkwty92OpSP4Tt025j9o9IIYKCzfKHeLfEfUDwZmjtmCT2KXOAFJFne-Dpl/pubhtml?widget=true&amp;headers=false"></iframe>
+
+    <div class="instruction">
+        <strong>📌 วิธีใช้:</strong> พิมพ์ข้อมูลลงในช่องสีดำได้เลย ระบบจะ <strong>บันทึกข้อมูลอัตโนมัติ</strong> ไว้ในเครื่องของคุณ <br>
+        (คนอื่นจะไม่เห็นข้อมูลที่คุณพิมพ์ และข้อมูลจะไม่หายไปแม้จะปิดเบราว์เซอร์)
+    </div>
+
+    <div class="container">
+        <!-- ส่วนที่ 1: สรุปรอบ -->
+        <div>
+            <table>
+                <tr><th colspan="2">รอบลงดันปัจจุบัน</th></tr>
+                <tr><td class="bg-green">Expedition Conquest</td><td contenteditable="true" id="val1">69</td></tr>
+                <tr><td class="bg-blue">Transcendent</td><td contenteditable="true" id="val2">0</td></tr>
+                <tr><td style="color:red">รอบที่คาดหวัง</td><td contenteditable="true" id="val3">84</td></tr>
+            </table>
+        </div>
+
+        <!-- ส่วนที่ 2: ตารางตัวละคร -->
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ตัวละคร</th><th>Energy</th><th>Ascention</th><th>Raid</th><th>Nightmare</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td contenteditable="true" id="c1_n">Xyze (เทมพลา)</td>
+                        <td contenteditable="true" id="c1_e">820</td>
+                        <td contenteditable="true" id="c1_a">ลงแล้ว</td>
+                        <td contenteditable="true" id="c1_r">ลงแล้ว</td>
+                        <td contenteditable="true" id="c1_nm">8/14</td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true" id="c2_n">Zxye (ธนู)</td>
+                        <td contenteditable="true" id="c2_e">120</td>
+                        <td contenteditable="true" id="c2_a">-</td>
+                        <td contenteditable="true" id="c2_r">1</td>
+                        <td contenteditable="true" id="c2_nm">14/14</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันบันทึกและโหลดข้อมูลอัตโนมัติ
+        const cells = document.querySelectorAll('[contenteditable="true"]');
+        
+        // 1. โหลดข้อมูลที่เคยพิมพ์ไว้
+        cells.forEach(cell => {
+            const savedValue = localStorage.getItem(cell.id);
+            if (savedValue !== null) {
+                cell.innerText = savedValue;
+            }
+        });
+
+        // 2. บันทึกทุกครั้งที่มีการพิมพ์
+        cells.forEach(cell => {
+            cell.addEventListener('input', () => {
+                localStorage.setItem(cell.id, cell.innerText);
+            });
+        });
+    </script>
 </body>
 </html>
+
