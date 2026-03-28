@@ -3,168 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 - Real-time Countdown Tracker</title>
+    <title>AION 2 Management - Dynamic Rows</title>
     <style>
-        :root { --bg: #0b0c10; --card: #1f2833; --text: #c5c6c7; --bright: #66fcf1; --green: #93c47d; --blue: #3d85c6; --orange: #e69138; --red: #ff0000; --yellow: #ffff00; }
-        body { background: var(--bg); color: var(--text); font-family: 'Tahoma', sans-serif; padding: 20px; font-size: 13px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
-        table { border-collapse: collapse; width: 100%; background: #000; margin-bottom: 25px; border: 1px solid #444; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: center; font-weight: bold; }
-        .bg-white-th { background: #fff; color: #000; font-size: 16px; }
-        .bg-green { background: var(--green); color: #000; }
-        .bg-blue { background: var(--blue); color: #fff; }
-        .bg-orange { background: var(--orange); color: #000; }
-        .bg-yellow { background: var(--yellow); color: #000; }
-        .text-red { color: var(--red); }
-        .text-blue-light { color: #5dade2; }
-        .text-bright { color: var(--bright); font-size: 1.1em; }
-        [contenteditable="true"] { background: #111; color: #00ff00; outline: none; border-radius: 3px; min-width: 30px; display: inline-block; padding: 2px 5px; }
-        [contenteditable="true"]:focus { background: #333; box-shadow: 0 0 5px #00ff00; }
-        .locked-cell { background: #000; cursor: not-allowed; } 
-        .money-box { margin: 20px auto; max-width: 400px; border: 2px solid var(--green); background: #111; padding: 15px; text-align: center; border-radius: 10px; }
-        .money-title { color: var(--green); font-size: 18px; margin-bottom: 10px; font-weight: bold; }
-        .money-value { font-size: 24px; color: #fff; }
-        .header-main { background: #222; color: var(--bright); }
-        .name { color: #ffeb3b; text-align: left; }
-        .title { color: var(--bright); border-left: 5px solid var(--bright); padding-left: 10px; margin: 20px 0 10px; text-transform: uppercase; }
+        :root { --primary: #1a73e8; --secondary: #6b7280; --bg: #f8f9fa; --border: #e0e0e0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; width: 100%; max-width: 1000px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .view-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; background: #e5e7eb; color: var(--secondary); font-weight: bold; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f1f3f4; padding: 12px; border: 1px solid var(--border); font-size: 14px; text-align: left; }
+        td { border: 1px solid var(--border); }
+        .input-cell, .select-cell { width: 100%; padding: 12px; border: none; outline: none; font-size: 14px; box-sizing: border-box; background: transparent; }
+        .input-cell:focus { background: #f0f7ff; }
+        .pagination { display: flex; justify-content: center; gap: 15px; margin-top: 25px; align-items: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; background: var(--primary); color: white; cursor: pointer; font-weight: 500; }
+        .btn-add { background: #16a34a; margin-top: 15px; }
+        .btn-delete { background: #dc2626; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+        .save-status { text-align: center; font-size: 13px; color: #16a34a; margin-top: 15px; height: 15px; }
+        .view-content { display: none; }
+        .view-content.active { display: block; }
     </style>
 </head>
 <body>
 
-<h2 style="text-align:center; color:var(--bright);">AION 2 - REAL-TIME COUNTDOWN</h2>
-
-<div class="grid">
-    <div>
-        <h3 class="title">สรุปรอบลงดัน</h3>
-        <table>
-            <tr><th colspan="2" class="bg-white-th">รอบลงดันปัจจุบัน</th></tr>
-            <tr><td class="bg-green" width="70%">Expedition Conquest</td><td contenteditable="true" id="d1">69</td></tr>
-            <tr><td class="bg-blue">Trancendent</td><td contenteditable="true" id="d2">0</td></tr>
-            <tr><td style="color:#fff">รอบลงดันรวมที่คาดหวัง</td><td id="d3" class="text-red locked-cell">84</td></tr>
-            <tr><td class="bg-orange">รวมรอบลงดันที่ใช้ปัจจุบัน</td><td contenteditable="true" id="d_total" style="color:var(--yellow)">69</td></tr>
-            <tr><td style="color:#fff">คงเหลือรอบที่ต้องลง (รวมทุกตัวละคร)</td><td contenteditable="true" id="d4">4</td></tr>
-            <tr><td class="bg-yellow">จำนวนรอบเหลือที่ต้องลงให้ครบรอบดันที่คาดหวัง</td><td id="d_rem" class="text-blue-light locked-cell">15</td></tr>
-        </table>
-        
-        <h3 class="title">สถานะ VIP (นับถอยหลังอัตโนมัติ)</h3>
-        <table>
-            <tr>
-                <td width="50%">VIP คงเหลือปัจจุบัน</td>
-                <td style="font-size: 1.2em;">
-                    <span contenteditable="true" id="v_day" title="คลิกเพื่อแก้ไขวัน">23</span> วัน 
-                    <span contenteditable="true" id="v_hr" title="คลิกเพื่อแก้ไขชั่วโมง">6</span> ชม.
-                    <span id="v_min" style="color: #888;">00</span> น.
-                    <span id="v_sec" style="color: #555; font-size: 0.8em;">00</span> วิ.
-                </td>
-            </tr>
-            <tr style="background: #111;">
-                <td style="color: var(--bright);">VIP จะหมดอายุในวันที่</td>
-                <td id="v_expire_date" class="text-bright">-</td>
-            </tr>
-        </table>
+<div class="container">
+    <div class="header">
+        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">ID: <span id="currentPageDisplay">1</span></div>
+        <div id="clock" style="color: #666; font-family: monospace;"></div>
     </div>
 
-    <div>
-        <h3 class="title">ตารางตัวละคร</h3>
-        <table>
-            <tr class="header-main"><th>ตัวละคร</th><th>Energy</th><th>Ascen</th><th>Raid</th><th>Nightmare</th></tr>
-            <tr><td contenteditable="true" id="c1_n" class="name">Xyze (เทมพลา)</td><td contenteditable="true" id="c1_e">820</td><td contenteditable="true" id="c1_a">ลงแล้ว</td><td contenteditable="true" id="c1_r">ลงแล้ว</td><td contenteditable="true" id="c1_nm">8/14</td></tr>
-            <tr><td contenteditable="true" id="c2_n" class="name">Zxye (ธนู)</td><td contenteditable="true" id="c2_e">120</td><td contenteditable="true" id="c2_a">-</td><td contenteditable="true" id="c2_r">1</td><td contenteditable="true" id="c2_nm">14/14</td></tr>
-            <tr><td contenteditable="true" id="c3_n" class="name">Yz (ซอ)</td><td contenteditable="true" id="c3_e">0</td><td contenteditable="true" id="c3_a">-</td><td contenteditable="true" id="c3_r">-</td><td contenteditable="true" id="c3_nm">-</td></tr>
-            <tr><td contenteditable="true" id="c4_n" class="name">Yz (ดาบคู่)</td><td contenteditable="true" id="c4_e">0</td><td contenteditable="true" id="c4_a">-</td><td contenteditable="true" id="c4_r">-</td><td contenteditable="true" id="c4_nm">-</td></tr>
-        </table>
+    <div class="view-tabs">
+        <button class="tab-btn active" onclick="switchView('char')">👥 ตัวละคร</button>
+        <button class="tab-btn" onclick="switchView('item')">🎒 ไอเทม</button>
     </div>
-</div>
 
-<h3 class="title">คลังไอเทม (ITEM)</h3>
-<table>
-    <tr class="header-main">
-        <th>ประเภท</th><th>เขาเล็ก</th><th>เขากลาง</th><th>เขาใหญ่</th><th>เขาแดง</th><th>โอไดล์ทอง</th><th>หินเหลือง</th><th>หินขาว</th><th>หินทอง</th>
-    </tr>
-    <tr>
-        <td class="bg-blue">เทรดได้</td>
-        <td contenteditable="true" id="i1">0</td><td contenteditable="true" id="i2">0</td><td contenteditable="true" id="i3">25</td><td contenteditable="true" id="i4">1</td>
-        <td contenteditable="true" id="i5">8</td><td contenteditable="true" id="i6">2</td><td contenteditable="true" id="i7">13</td><td contenteditable="true" id="i8">0</td>
-    </tr>
-    <tr>
-        <td class="bg-orange">เทรดไม่ได้</td>
-        <td contenteditable="true" id="j1">24</td><td contenteditable="true" id="j2">31</td><td contenteditable="true" id="j3">5</td><td contenteditable="true" id="j4">0</td>
-        <td contenteditable="true" id="j5">0</td><td contenteditable="true" id="j6">0</td><td contenteditable="true" id="j7">12</td><td contenteditable="true" id="j8">2</td>
-    </tr>
-</table>
+    <div id="charView" class="view-content active">
+        <table id="charTable">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">ชื่อตัวละคร</th>
+                    <th style="width: 30%;">อาชีพ</th>
+                    <th style="width: 20%;">Energy ⚡</th>
+                    <th style="width: 10%;">ลบ</th>
+                </tr>
+            </thead>
+            <tbody id="charTableBody"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addNewCharRow()">➕ เพิ่มแถวตัวละคร</button>
+    </div>
 
-<div class="money-box">
-    <div class="money-title">💰 จำนวนเงินในตัว (M)</div>
-    <div class="money-value"><span contenteditable="true" id="m1">2.3</span> <span style="color: var(--green);">M</span></div>
+    <div id="itemView" class="view-content">
+        <table id="itemTable">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">ชื่อไอเทม</th>
+                    <th style="width: 30%;">จำนวน (เทรดได้)</th>
+                    <th style="width: 30%;">จำนวน (เทรดไม่ได้)</th>
+                    <th style="width: 10%;">ลบ</th>
+                </tr>
+            </thead>
+            <tbody id="itemTableBody"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addNewItemRow()">➕ เพิ่มรายการไอเทม</button>
+    </div>
+
+    <div class="save-status" id="status"></div>
+
+    <div class="pagination">
+        <button class="btn" id="prevBtn" onclick="changePage(-1)">← หน้าก่อนหน้า</button>
+        <b id="pageNumber">หน้า 1</b>
+        <button class="btn" id="nextBtn" onclick="changePage(1)">หน้าถัดไป →</button>
+    </div>
 </div>
 
 <script>
-    const editables = document.querySelectorAll('[contenteditable="true"]');
-    let expireTime = localStorage.getItem('v_expire_timestamp');
+    let currentId = 1;
+    const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
+    const classes = ["Ranger", "Gladiator", "Templar", "Assassin", "Sorcerer", "Spiritmaster", "Cleric", "Chanter"];
 
-    function initVIP() {
-        if (!expireTime) {
-            updateExpireTime();
-        }
-        tick();
+    function switchView(view) {
+        document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(view + 'View').classList.add('active');
+        event.currentTarget.classList.add('active');
     }
 
-    function updateExpireTime() {
-        const d = parseInt(document.getElementById('v_day').innerText) || 0;
-        const h = parseInt(document.getElementById('v_hr').innerText) || 0;
-        const now = new Date().getTime();
-        expireTime = now + (d * 24 * 60 * 60 * 1000) + (h * 60 * 60 * 1000);
-        localStorage.setItem('v_expire_timestamp', expireTime);
-        
-        const dateObj = new Date(expireTime);
-        document.getElementById('v_expire_date').innerText = dateObj.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + " น.";
-    }
-
-    function tick() {
-        const now = new Date().getTime();
-        const diff = expireTime - now;
-
-        if (diff > 0) {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const secs = Math.floor((diff % (1000 * 60)) / 1000);
-
-            // อัปเดตตัวเลขบนหน้าจอ (ไม่ให้ทับตอนกำลังพิมพ์)
-            if (document.activeElement !== document.getElementById('v_day')) document.getElementById('v_day').innerText = days;
-            if (document.activeElement !== document.getElementById('v_hr')) document.getElementById('v_hr').innerText = hours;
-            document.getElementById('v_min').innerText = mins.toString().padStart(2, '0');
-            document.getElementById('v_sec').innerText = secs.toString().padStart(2, '0');
-        } else {
-            document.getElementById('v_expire_date').innerText = "หมดอายุแล้ว";
-        }
-
-        // คำนวณรอบดัน
-        const expected = 84;
-        const currentUsed = parseInt(document.getElementById('d_total').innerText) || 0;
-        document.getElementById('d_rem').innerText = expected - currentUsed;
-
-        // เซฟค่าอื่นๆ
-        editables.forEach(c => {
-            if (c.id !== 'v_day' && c.id !== 'v_hr') localStorage.setItem(c.id, c.innerText);
-        });
-    }
-
-    editables.forEach(c => {
-        const saved = localStorage.getItem(c.id);
-        if (saved !== null && c.id !== 'v_day' && c.id !== 'v_hr') c.innerText = saved;
-        
-        c.addEventListener('input', () => {
-            if (c.id === 'v_day' || c.id === 'v_hr') {
-                updateExpireTime();
-            }
-            tick();
-        });
-    });
-
-    setInterval(tick, 1000);
-    window.onload = initVIP;
-</script>
-
-</body>
-</html>
+    function addNewCharRow(
