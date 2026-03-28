@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Ultimate Tracker - Full Version</title>
+    <title>AION 2 Tracker - VIP Expire Calculator</title>
     <style>
         :root { --bg: #0b0c10; --card: #1f2833; --text: #c5c6c7; --bright: #66fcf1; --green: #93c47d; --blue: #3d85c6; --orange: #e69138; --red: #ff0000; --yellow: #ffff00; }
         body { background: var(--bg); color: var(--text); font-family: 'Tahoma', sans-serif; padding: 20px; font-size: 13px; }
@@ -11,7 +11,6 @@
         table { border-collapse: collapse; width: 100%; background: #000; margin-bottom: 25px; border: 1px solid #444; }
         th, td { border: 1px solid #444; padding: 10px; text-align: center; font-weight: bold; }
         
-        /* Summary Table Colors */
         .bg-white-th { background: #fff; color: #000; font-size: 16px; }
         .bg-green { background: var(--green); color: #000; }
         .bg-blue { background: var(--blue); color: #fff; }
@@ -19,41 +18,56 @@
         .bg-yellow { background: var(--yellow); color: #000; }
         .text-red { color: var(--red); }
         .text-blue-light { color: #5dade2; }
+        .text-bright { color: var(--bright); font-size: 1.1em; }
         
-        /* Character & Item Tables */
+        [contenteditable="true"] { background: #111; color: #00ff00; outline: none; border-radius: 3px; min-width: 30px; display: inline-block; padding: 2px 5px; }
+        [contenteditable="true"]:focus { background: #333; box-shadow: 0 0 5px #00ff00; }
+        .locked-cell { background: #000; cursor: not-allowed; } 
+        
+        .money-box { margin: 20px auto; max-width: 400px; border: 2px solid var(--green); background: #111; padding: 15px; text-align: center; border-radius: 10px; }
+        .money-title { color: var(--green); font-size: 18px; margin-bottom: 10px; font-weight: bold; }
+        .money-value { font-size: 24px; color: #fff; }
+
         .header-main { background: #222; color: var(--bright); }
-        [contenteditable="true"] { background: #111; color: #00ff00; outline: none; border-radius: 3px; }
         .name { color: #ffeb3b; text-align: left; }
         .title { color: var(--bright); border-left: 5px solid var(--bright); padding-left: 10px; margin: 20px 0 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-<h2 style="text-align:center; color:var(--bright);">AION 2 - FULL DASHBOARD</h2>
+<h2 style="text-align:center; color:var(--bright);">AION 2 - VIP DASHBOARD</h2>
 
 <div class="grid">
-    <!-- 1. สรุปรอบลงดัน (6 แถวครบถ้วน) -->
+    <!-- 1. สรุปรอบลงดัน -->
     <div>
         <h3 class="title">สรุปรอบลงดัน</h3>
         <table>
             <tr><th colspan="2" class="bg-white-th">รอบลงดันปัจจุบัน</th></tr>
             <tr><td class="bg-green" width="70%">Expedition Conquest</td><td contenteditable="true" id="d1">69</td></tr>
             <tr><td class="bg-blue">Trancendent</td><td contenteditable="true" id="d2">0</td></tr>
-            <tr><td style="color:#fff">รอบลงดันรวมที่คาดหวัง</td><td contenteditable="true" id="d3" class="text-red">84</td></tr>
-            <tr><td class="bg-orange">รวมรอบลงดันที่ใช้ปัจจุบัน</td><td id="total_curr" style="color:var(--yellow)">69</td></tr>
+            <tr><td style="color:#fff">รอบลงดันรวมที่คาดหวัง</td><td id="d3" class="text-red locked-cell">84</td></tr>
+            <tr><td class="bg-orange">รวมรอบลงดันที่ใช้ปัจจุบัน</td><td contenteditable="true" id="d_total" style="color:var(--yellow)">69</td></tr>
             <tr><td style="color:#fff">คงเหลือรอบที่ต้องลง (รวมทุกตัวละคร)</td><td contenteditable="true" id="d4">4</td></tr>
-            <tr><td class="bg-yellow">จำนวนรอบเหลือที่ต้องลงให้ครบรอบดันที่คาดหวัง</td><td id="rem_needed" class="text-blue-light">15</td></tr>
+            <tr><td class="bg-yellow">จำนวนรอบเหลือที่ต้องลงให้ครบรอบดันที่คาดหวัง</td><td id="d_rem" class="text-blue-light locked-cell">15</td></tr>
         </table>
         
-        <h3 class="title">สถานะ VIP & การเงิน</h3>
+        <h3 class="title">สถานะ VIP</h3>
         <table>
-            <tr><td>VIP คงเหลือ</td><td contenteditable="true" id="v1">23 วัน 6 ชั่วโมง</td></tr>
-            <tr><td>วันเวลาที่ VIP จะหมด</td><td contenteditable="true" id="v1">วันจันทร์ที่ 20 เมษายน เวลา 21:52 น.</td></tr>
-            <tr><td class="bg-green">จำนวนเงินในไอดี (M)</td><td contenteditable="true" id="m1">2.3 M</td></tr>
+            <tr>
+                <td width="70%">VIP ที่เหลือ (กรอกตัวเลข)</td>
+                <td>
+                    <span contenteditable="true" id="v_day">23</span> วัน 
+                    <span contenteditable="true" id="v_hr">6</span> ชม.
+                </td>
+            </tr>
+            <tr style="background: #111;">
+                <td style="color: var(--bright);">VIP จะหมดอายุตรงกับวันที่</td>
+                <td id="v_expire_date" class="text-bright">กำลังคำนวณ...</td>
+            </tr>
         </table>
     </div>
 
-    <!-- 2. ตารางตัวละคร (4 ตัวครบ) -->
+    <!-- 2. ตารางตัวละคร -->
     <div>
         <h3 class="title">ตารางตัวละคร</h3>
         <table>
@@ -61,53 +75,73 @@
             <tr><td contenteditable="true" id="c1_n" class="name">Xyze (เทมพลา)</td><td contenteditable="true" id="c1_e">820</td><td contenteditable="true" id="c1_a">ลงแล้ว</td><td contenteditable="true" id="c1_r">ลงแล้ว</td><td contenteditable="true" id="c1_nm">8/14</td></tr>
             <tr><td contenteditable="true" id="c2_n" class="name">Zxye (ธนู)</td><td contenteditable="true" id="c2_e">120</td><td contenteditable="true" id="c2_a">-</td><td contenteditable="true" id="c2_r">1</td><td contenteditable="true" id="c2_nm">14/14</td></tr>
             <tr><td contenteditable="true" id="c3_n" class="name">Yz (ซอ)</td><td contenteditable="true" id="c3_e">0</td><td contenteditable="true" id="c3_a">-</td><td contenteditable="true" id="c3_r">-</td><td contenteditable="true" id="c3_nm">-</td></tr>
-            <tr><td contenteditable="true" id="c4_n" class="name">Xzye (กลา)</td><td contenteditable="true" id="c4_e">0</td><td contenteditable="true" id="c4_a">-</td><td contenteditable="true" id="c4_r">-</td><td contenteditable="true" id="c4_nm">-</td></tr>
+            <tr><td contenteditable="true" id="c4_n" class="name">Yz (ดาบคู่)</td><td contenteditable="true" id="c4_e">0</td><td contenteditable="true" id="c4_a">-</td><td contenteditable="true" id="c4_r">-</td><td contenteditable="true" id="c4_nm">-</td></tr>
         </table>
     </div>
 </div>
 
-<!-- 3. ตารางไอเทม (ITEM) ครบทุกแถวทุกคอลัมน์ -->
-<h3 class="title">(ITEM)</h3>
-<table style="font-size: 12px;">
+<h3 class="title">คลังไอเทม (ITEM)</h3>
+<table>
     <tr class="header-main">
-        <th>ประเภท</th><th>เขาเล็ก</th><th>เขากลาง</th><th>เขาใหญ่</th><th>เขาแดง</th><th>โอไดล์ทอง</th><th>หินกลมเหลือง</th><th>Amp แดง/th><th>Amp ทอง</th>
+        <th>ประเภท</th><th>เขาเล็ก</th><th>เขากลาง</th><th>เขาใหญ่</th><th>เขาแดง</th><th>โอไดล์ทอง</th><th>หินเหลือง</th><th>หินขาว</th><th>หินทอง</th>
     </tr>
     <tr>
         <td class="bg-blue">เทรดได้</td>
         <td contenteditable="true" id="i1">0</td><td contenteditable="true" id="i2">0</td><td contenteditable="true" id="i3">25</td><td contenteditable="true" id="i4">1</td>
-        <td contenteditable="true" id="i5">8</td><td contenteditable="true" id="i6">2</td><td contenteditable="true" id="i7">13</td><td contenteditable="true" id="i8">0</td><td contenteditable="true" id="i9">0</td>
+        <td contenteditable="true" id="i5">8</td><td contenteditable="true" id="i6">2</td><td contenteditable="true" id="i7">13</td><td contenteditable="true" id="i8">0</td>
     </tr>
     <tr>
         <td class="bg-orange">เทรดไม่ได้</td>
         <td contenteditable="true" id="j1">24</td><td contenteditable="true" id="j2">31</td><td contenteditable="true" id="j3">5</td><td contenteditable="true" id="j4">0</td>
-        <td contenteditable="true" id="j5">0</td><td contenteditable="true" id="j6">0</td><td contenteditable="true" id="j7">12</td><td contenteditable="true" id="j8">2</td><td contenteditable="true" id="j9">1</td>
+        <td contenteditable="true" id="j5">0</td><td contenteditable="true" id="j6">0</td><td contenteditable="true" id="j7">12</td><td contenteditable="true" id="j8">2</td>
     </tr>
 </table>
+
+<div class="money-box">
+    <div class="money-title">💰 จำนวนเงินในตัว (M)</div>
+    <div class="money-value"><span contenteditable="true" id="m1">2.3</span> <span style="color: var(--green);">M</span></div>
+</div>
 
 <script>
     const editables = document.querySelectorAll('[contenteditable="true"]');
     
-    function update() {
-        const d1 = parseInt(document.getElementById('d1').innerText) || 0;
-        const d2 = parseInt(document.getElementById('d2').innerText) || 0;
-        const d3 = parseInt(document.getElementById('d3').innerText) || 0;
-        
-        const totalUsed = d1 + d2;
-        document.getElementById('total_curr').innerText = totalUsed;
-        
-        const remaining = d3 - totalUsed;
-        document.getElementById('rem_needed').innerText = remaining > 0 ? remaining : 0;
+    function updateDashboard() {
+        // 1. คำนวณรอบลงดัน (84 - รอบปัจจุบัน)
+        const expected = 84;
+        const currentUsed = parseInt(document.getElementById('d_total').innerText) || 0;
+        document.getElementById('d_rem').innerText = expected - currentUsed;
 
+        // 2. คำนวณวันหมดอายุ VIP
+        const vDay = parseInt(document.getElementById('v_day').innerText) || 0;
+        const vHr = parseInt(document.getElementById('v_hr').innerText) || 0;
+        
+        const now = new Date();
+        // บวกเวลาเพิ่มตามจำนวนวันและชั่วโมง
+        const expireDate = new Date(now.getTime() + (vDay * 24 * 60 * 60 * 1000) + (vHr * 60 * 60 * 1000));
+        
+        // รูปแบบการแสดงผลภาษาไทย
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        };
+        document.getElementById('v_expire_date').innerText = expireDate.toLocaleDateString('th-TH', options) + " น.";
+
+        // 3. บันทึกข้อมูลลงเครื่อง
         editables.forEach(c => localStorage.setItem(c.id, c.innerText));
     }
 
     editables.forEach(c => {
         const saved = localStorage.getItem(c.id);
         if (saved !== null) c.innerText = saved;
-        c.addEventListener('input', update);
+        c.addEventListener('input', updateDashboard);
     });
 
-    update();
+    // เรียกทำงานทันทีที่โหลดหน้าจอ
+    updateDashboard();
 </script>
 
 </body>
