@@ -3,91 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Management - Dynamic Rows</title>
+    <title>AION 2 Tracker - dual Energy System</title>
     <style>
-        :root { --primary: #1a73e8; --secondary: #6b7280; --bg: #f8f9fa; --border: #e0e0e0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; width: 100%; max-width: 1000px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .view-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; background: #e5e7eb; color: var(--secondary); font-weight: bold; }
-        .tab-btn.active { background: var(--primary); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #f1f3f4; padding: 12px; border: 1px solid var(--border); font-size: 14px; text-align: left; }
-        td { border: 1px solid var(--border); }
-        .input-cell, .select-cell { width: 100%; padding: 12px; border: none; outline: none; font-size: 14px; box-sizing: border-box; background: transparent; }
+        :root { --primary: #1a73e8; --success: #16a34a; --danger: #dc2626; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 15px; }
+        .container { background: white; width: 100%; max-width: 950px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .id-section { display: flex; align-items: center; gap: 10px; }
+        .id-note { border: none; border-bottom: 1px solid #ccc; padding: 5px; font-size: 16px; color: #555; outline: none; width: 200px; }
+        .id-note:focus { border-bottom: 2px solid var(--primary); }
+        .tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tab { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; background: #e5e7eb; font-weight: bold; }
+        .tab.active { background: var(--primary); color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th { background: #f1f3f4; padding: 10px; border: 1px solid #ddd; font-size: 13px; text-align: left; }
+        td { border: 1px solid #ddd; padding: 0; }
+        .input-cell { width: 100%; padding: 12px; border: none; outline: none; box-sizing: border-box; background: transparent; font-size: 14px; }
         .input-cell:focus { background: #f0f7ff; }
+        .readonly-cell { background: #f9fafb; color: #1a73e8; font-weight: bold; text-align: center; }
         .pagination { display: flex; justify-content: center; gap: 15px; margin-top: 25px; align-items: center; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; background: var(--primary); color: white; cursor: pointer; font-weight: 500; }
-        .btn-add { background: #16a34a; margin-top: 15px; }
-        .btn-delete { background: #dc2626; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
-        .save-status { text-align: center; font-size: 13px; color: #16a34a; margin-top: 15px; height: 15px; }
-        .view-content { display: none; }
-        .view-content.active { display: block; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-blue { background: var(--primary); }
+        .btn-add { background: var(--success); margin-top: 10px; }
+        .btn-del { background: var(--danger); padding: 5px 10px; font-size: 11px; margin: 5px; }
+        .status { text-align: center; color: var(--success); font-size: 12px; height: 18px; margin-top: 10px; font-weight: bold; }
+        .content { display: none; }
+        .content.active { display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">ID: <span id="currentPageDisplay">1</span></div>
-        <div id="clock" style="color: #666; font-family: monospace;"></div>
+        <div class="id-section">
+            <div style="font-size: 22px; font-weight: bold; color: var(--primary);">ID: <span id="idLabel">1</span></div>
+            <input type="text" id="idNote" class="id-note" placeholder="กรอกชื่ออ้างอิงไอดี..." oninput="queueSave()">
+        </div>
+        <div id="clock" style="font-family: monospace; color: #666;"></div>
     </div>
 
-    <div class="view-tabs">
-        <button class="tab-btn active" onclick="switchView('char')">👥 ตัวละคร</button>
-        <button class="tab-btn" onclick="switchView('item')">🎒 ไอเทม</button>
+    <div class="tab-bar">
+        <button id="tabChar" class="tab active" onclick="changeTab('char')">👥 ตัวละคร</button>
+        <button id="tabItem" class="tab" onclick="changeTab('item')">🎒 ไอเทม</button>
     </div>
 
-    <div id="charView" class="view-content active">
-        <table id="charTable">
+    <div id="charView" class="content active">
+        <table>
             <thead>
                 <tr>
-                    <th style="width: 30%;">ชื่อตัวละคร</th>
-                    <th style="width: 30%;">อาชีพ</th>
-                    <th style="width: 20%;">Energy ⚡</th>
-                    <th style="width: 10%;">ลบ</th>
+                    <th>ชื่อตัวละคร</th>
+                    <th>อาชีพ</th>
+                    <th style="width: 110px;">Energy (กรอก)</th>
+                    <th style="width: 110px;">Energy (ปัจจุบัน)</th>
+                    <th style="width: 60px;">ลบ</th>
                 </tr>
             </thead>
-            <tbody id="charTableBody"></tbody>
+            <tbody id="charBody"></tbody>
         </table>
-        <button class="btn btn-add" onclick="addNewCharRow()">➕ เพิ่มแถวตัวละคร</button>
+        <button class="btn btn-add" onclick="addCharRow()">➕ เพิ่มตัวละคร</button>
     </div>
 
-    <div id="itemView" class="view-content">
-        <table id="itemTable">
+    <div id="itemView" class="content">
+        <table>
             <thead>
                 <tr>
-                    <th style="width: 30%;">ชื่อไอเทม</th>
-                    <th style="width: 30%;">จำนวน (เทรดได้)</th>
-                    <th style="width: 30%;">จำนวน (เทรดไม่ได้)</th>
-                    <th style="width: 10%;">ลบ</th>
+                    <th>ชื่อไอเทม</th>
+                    <th>เทรดได้</th>
+                    <th>เทรดไม่ได้</th>
+                    <th style="width: 60px;">ลบ</th>
                 </tr>
             </thead>
-            <tbody id="itemTableBody"></tbody>
+            <tbody id="itemBody"></tbody>
         </table>
-        <button class="btn btn-add" onclick="addNewItemRow()">➕ เพิ่มรายการไอเทม</button>
+        <button class="btn btn-add" onclick="addItemRow()">➕ เพิ่มไอเทม</button>
     </div>
 
-    <div class="save-status" id="status"></div>
+    <div id="saveText" class="status"></div>
 
     <div class="pagination">
-        <button class="btn" id="prevBtn" onclick="changePage(-1)">← หน้าก่อนหน้า</button>
-        <b id="pageNumber">หน้า 1</b>
-        <button class="btn" id="nextBtn" onclick="changePage(1)">หน้าถัดไป →</button>
+        <button class="btn btn-blue" id="btnPrev" onclick="changeID(-1)">← ก่อนหน้า</button>
+        <span id="pageText" style="font-weight: bold;">หน้า 1</span>
+        <button class="btn btn-blue" onclick="changeID(1)">ถัดไป →</button>
     </div>
 </div>
 
 <script>
-    let currentId = 1;
+    let currentID = 1;
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
-    const classes = ["Ranger", "Gladiator", "Templar", "Assassin", "Sorcerer", "Spiritmaster", "Cleric", "Chanter"];
+    const CLASSES = ["Ranger", "Gladiator", "Templar", "Assassin", "Sorcerer", "Spiritmaster", "Cleric", "Chanter"];
+    const DEFAULT_ITEMS = ["เขาเล็ก", "เขากลาง", "เขาใหญ่", "เขาแดง", "โอไดล์ทอง", "หินเหลือง", "Amp แดง", "Amp ทอง"];
 
-    function switchView(view) {
-        document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(view + 'View').classList.add('active');
-        event.currentTarget.classList.add('active');
+    function changeTab(view) {
+        document.getElementById('charView').classList.toggle('active', view === 'char');
+        document.getElementById('itemView').classList.toggle('active', view === 'item');
+        document.getElementById('tabChar').classList.toggle('active', view === 'char');
+        document.getElementById('tabItem').classList.toggle('active', view === 'item');
     }
 
-    function addNewCharRow(
+    function addCharRow(name="", job="", energy="", currentEnergy="") {
+        const body = document.getElementById('charBody');
+        const row = body.insertRow();
+        let options = CLASSES.map(c => `<option value="${c}" ${job===c?'selected':''}>${c}</option>`).join('');
+        row.innerHTML = `
+            <td><input type="text" class="input-cell c-name" value="${name}" oninput="queueSave()" placeholder="..."></td>
+            <td><select class="input-cell c-job" onchange="queueSave()"><option value="">เลือก...</option>${options}</select></td>
+            <td><input type="number" class="input-cell c-ene" value="${energy}" oninput="updateCurrentAndSave(this)" placeholder="0"></td>
+            <td><input type="text" class="input-cell c-curr readonly-cell" value="${currentEnergy}" readonly></td>
+            <td align="center"><button class="btn btn-del" onclick="this.parentElement.parentElement.remove(); queueSave();">ลบ</button></td>
+        `;
+    }
+
+    function updateCurrentAndSave(inputEl) {
+        const row = inputEl.parentElement.parentElement;
+        const baseEne = parseInt(inputEl.value) || 0;
+        // ในขณะพิมพ์จะยังไม่คำนวณโบนัสใหม่จนกว่าจะ Save/Load หรือใช้ค่าเดิม
+        row.querySelector('.c-curr').value = baseEne; 
+        queueSave();
+    }
+
+    function addItemRow(name="", t1="", t2="") {
+        const body = document.getElementById('itemBody');
+        const row = body.insertRow();
+        row.innerHTML = `
+            <td><input type="text" class="input-cell i-name" value="${name}" oninput="queueSave()" placeholder="..."></td>
+            <td><input type="number" class="input-cell i-t1" value="${t1}" oninput="queueSave()" placeholder="0"></td>
+            <td><input type="number" class="input-cell i-t2" value="${t2}" oninput="queueSave()" placeholder="0"></td>
+            <td align="center"><button class="btn btn-del" onclick="this.parentElement.parentElement.remove(); queueSave();">ลบ</button></td>
+        `;
+    }
+
+    let saveTimeout;
+    function queueSave() {
+        clearTimeout(saveTimeout);
+        document.getElementById('saveText').innerText = "กำลังพิมพ์...";
+        saveTimeout = setTimeout(saveToStorage, 800);
+    }
+
+    function saveToStorage() {
+        const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
+            name: r.querySelector('.c-name').value,
+            job: r.querySelector('.c-job').value,
+            energy: r.querySelector('.c-ene').value
+        }));
+        const items = Array.from(document.querySelectorAll('#itemBody tr')).map(r => ({
+            name: r.querySelector('.i-name').value,
+            t1: r.querySelector('.i-t1').value,
+            t2: r.querySelector('.i-t2').value
+        }));
+
+        localStorage.setItem(`AION_Note_ID_${currentID}`, document.getElementById('idNote').value);
+        localStorage.setItem(`AION_Chars_ID_${currentID}`, JSON.stringify(chars));
+        localStorage.setItem(`AION_Items_ID_${currentID}`, JSON.stringify(items));
+        localStorage.setItem(`AION_LastUpdate_ID_${currentID}`, new Date().toISOString());
+
+        document.getElementById('saveText').innerText = "✓ บันทึกอัตโนมัติเรียบร้อย";
+        setTimeout(() => document.getElementById('saveText').innerText = "", 1500);
+    }
+
+    function loadFromStorage() {
+        document.getElementById('idLabel').innerText = currentID;
+        document.getElementById('pageText').innerText = `หน้า ${currentID}`;
+        document.getElementById('btnPrev').disabled = (currentID === 1);
+        
+        document.getElementById('charBody').innerHTML = "";
+        document.getElementById('itemBody').innerHTML = "";
+        document.getElementById('idNote').value = localStorage.getItem(`AION_Note_ID_${currentID}`) || "";
+
+        // คำนวณ Energy Bonus
+        const lastUpdate = localStorage.getItem(`AION_LastUpdate_ID_${currentID}`);
+        let bonus = 0;
+        if (lastUpdate) {
+            let checkTime = new Date(lastUpdate);
+            let now = new Date();
+            while (checkTime < now) {
+                checkTime.setHours(checkTime.getHours() + 1);
+                if (checkTime > now) break;
+                if (MILESTONES.includes(checkTime.getHours()) && checkTime.getMinutes() === 0) bonus += 15;
+            }
+        }
+
+        const savedChars = JSON.parse(localStorage.getItem(`AION_Chars_ID_${currentID}`)) || [];
+        if (savedChars.length > 0) {
+            savedChars.forEach(c => {
+                const total = (parseInt(c.energy) || 0) + bonus;
+                addCharRow(c.name, c.job, c.energy, total);
+            });
+        } else {
+            for(let i=0; i<4; i++) addCharRow(); // เริ่มต้นที่ 4 แถว
+        }
+
+        const savedItems = JSON.parse(localStorage.getItem(`AION_Items_ID_${currentID}`)) || [];
+        if (savedItems.length > 0) {
+            savedItems.forEach(i => addItemRow(i.name, i.t1, i.t2));
+        } else {
+            DEFAULT_ITEMS.forEach(n => addItemRow(n));
+        }
+
+        if (bonus > 0) saveToStorage();
+    }
+
+    function changeID(step) {
+        currentID += step;
+        if (currentID < 1) currentID = 1;
+        loadFromStorage();
+    }
+
+    window.onload = () => {
+        setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString('th-TH'), 1000);
+        loadFromStorage();
+    };
+</script>
+
+</body>
+</html>
