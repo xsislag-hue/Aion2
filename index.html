@@ -95,7 +95,7 @@
                 </div>
             </div>
             <div class="stat-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <div style="color:var(--text-dim); font-size:14px; font-weight:600;">⚔️ รอบดันเจี้ยนรวม</div>
+                <div style="color:var(--text-dim); font-size:18px; font-weight:600;">⚔️ รอบดันเจี้ยนรวมที่ลงได้</div>
                 <div style="font-size:48px; font-weight:700; color:var(--primary);"><span id="totalRunsDisplay">0</span> <span style="font-size:20px;">รอบ</span></div>
             </div>
         </div>
@@ -199,10 +199,10 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
 
     let currentID = 1, idList = [1], idNames = {}, vipInterval;
-    const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22]; // รอบเติม Energy
-    const REWARD_HOURS = [4, 12, 20]; // รอบเติม Reward
+    const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
+    const REWARD_HOURS = [4, 12, 20];
 
-    // --- ⚡ LOGIC REFILL: แก้ไขเฉพาะจุดนี้ตามที่เทสผ่าน ---
+    // --- ⚡ LOGIC REFILL: หัวใจสำคัญของการเด้งตัวเลข ---
     async function checkAutoRefill(data) {
         if (!data || !data.lastUpdate) return false;
 
@@ -212,10 +212,8 @@
 
         const countPasses = (hoursArray, lastDate, nowDate) => {
             let passes = 0;
-            let checkTime = new Date(lastDate);
-            checkTime.setMinutes(0, 0, 0); 
-            
-            let current = new Date(checkTime);
+            let current = new Date(lastDate);
+            current.setMinutes(0, 0, 0); 
             current.setHours(current.getHours() + 1);
 
             while (current <= nowDate) {
@@ -227,7 +225,6 @@
             return passes;
         };
 
-        // 1. เติม Energy เข้าช่อง Base (+10/+15) Cap 840
         const energyPasses = countPasses(MILESTONES, lastUpdateTime, now);
         if (energyPasses > 0) {
             const addPerRound = (data.isVip ? 15 : 10);
@@ -240,7 +237,6 @@
             changed = true;
         }
 
-        // 2. เติม Reward (+1) Cap 21
         const rewardPasses = countPasses(REWARD_HOURS, lastUpdateTime, now);
         if (rewardPasses > 0) {
             data.chars.forEach(c => {
@@ -310,8 +306,10 @@
     async function loadFromCloud() {
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
-        const updated = await checkAutoRefill(data);
-        if (updated) { data = updated; await set(ref(db, `users/${userName}/id_${currentID}`), data); }
+        if (data) {
+            const updated = await checkAutoRefill(data);
+            if (updated) { data = updated; await set(ref(db, `users/${userName}/id_${currentID}`), data); }
+        }
         renderLoadedData(data);
     }
 
@@ -371,7 +369,8 @@
         const r = e.closest('tr'); if(!r) return;
         const ene = parseInt(r.querySelector('.c-ene-total').value)||0;
         let f = Math.floor(ene/80), b = parseInt(r.querySelector('.c-boss').value), rw = parseInt(r.querySelector('.c-reward').value);
-        if(!isNaN(b)) f = Math.min(f, b); if(!isNaN(rw)) f = Math.min(f, rw);
+        if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); 
+        if(!isNaN(rw) && r.querySelector('.c-reward').value !== "") f = Math.min(f, rw);
         r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; updateTotalRuns(); queueSave();
     }
     window.calcSum = () => {
@@ -393,15 +392,28 @@
     
     // --- ⏰ TIMERS ---
     setInterval(() => {
-        const now = new Date(); document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+        const now = new Date();
+        const hrs = now.getHours();
+        const mins = now.getMinutes();
+        const secs = now.getSeconds();
+
+        document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
         
-        let nextE = MILESTONES.find(m => m > now.getHours()) ?? MILESTONES[0];
-        let targetE = new Date(now); if (now.getHours() >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
+        // --- ⚡ ACTIVE TRIGGER: เด้งตัวเลขทันทีเมื่อแตะนาทีที่ 0 วินาทีที่ 0 ---
+        if (mins === 0 && secs === 0) {
+            if (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs)) {
+                console.log("Auto-Refilling now...");
+                loadFromCloud(); // เรียกฟังก์ชันโหลดและเติมเงินทันที
+            }
+        }
+
+        let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
+        let targetE = new Date(now); if (hrs >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
         targetE.setHours(nextE, 0, 0, 0); const de = targetE - now; 
         document.getElementById('energyNextTimer').innerText = `${Math.floor(de/3600000)}:${String(Math.floor((de%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((de%60000)/1000)).padStart(2,'0')}`;
 
-        let nextR = REWARD_HOURS.find(r => r > now.getHours()) ?? REWARD_HOURS[0];
-        let targetR = new Date(now); if (now.getHours() >= REWARD_HOURS[REWARD_HOURS.length-1]) targetR.setDate(targetR.getDate() + 1);
+        let nextR = REWARD_HOURS.find(r => r > hrs) ?? REWARD_HOURS[0];
+        let targetR = new Date(now); if (hrs >= REWARD_HOURS[REWARD_HOURS.length-1]) targetR.setDate(targetR.getDate() + 1);
         targetR.setHours(nextR, 0, 0, 0); const dr = targetR - now; 
         document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor(dr/3600000)}:${String(Math.floor((dr%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((dr%60000)/1000)).padStart(2,'0')} น.`;
     }, 1000);
