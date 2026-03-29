@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - Cloud Edition</title>
+    <title>AION 2 Tracker - Multi-User Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -58,13 +58,17 @@
         .tabs-container { display: flex; background: #111827; padding: 6px; border-radius: 12px; margin-bottom: 25px; width: fit-content; border: 1px solid var(--border); }
         .tab-btn { padding: 10px 25px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-weight: 600; border-radius: 10px; transition: 0.3s; }
         .tab-btn.active { background: #334155; color: white; }
+        #currentUserLabel { color: var(--gold); font-weight: bold; background: #1e293b; padding: 5px 15px; border-radius: 20px; font-size: 14px; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="global-summary-bar">
-        <div style="color: var(--gold); font-weight: 600; font-size: 14px;">💰 ยอดเงิน KINAH รวมทุก ID (Cloud):</div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <span id="currentUserLabel">👤 User: Loading...</span>
+            <div style="color: var(--gold); font-weight: 600; font-size: 14px;">💰 Kinah รวมของฉัน:</div>
+        </div>
         <div class="global-total-amount"><span id="globalKinahTotal">0</span> <span style="font-size:16px; font-weight:normal; color:var(--text-dim);">Kinah</span></div>
     </div>
 
@@ -191,7 +195,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAAEYitAhzkIopt6VUTX79SCkRgsorhvgk",
@@ -207,24 +211,23 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // --- ดึงชื่อ User จาก URL ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const userName = urlParams.get('user') || 'default';
+    document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
+
     let currentID = 1;
     let idList = [1];
     let vipInterval;
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
-    // --- CORE DATABASE FUNCTIONS ---
-
     async function initIDSystem() {
-        const idRef = ref(db, 'idList');
+        const idRef = ref(db, `users/${userName}/config/idList`);
         onValue(idRef, (snapshot) => {
             const data = snapshot.val();
-            if (data) {
-                idList = Array.isArray(data) ? data : Object.values(data);
-            } else {
-                idList = [1];
-                set(idRef, [1]);
-            }
+            if (data) idList = data;
+            else { idList = [1]; set(idRef, [1]); }
             renderIDTabs();
             loadFromCloud();
         });
@@ -250,90 +253,62 @@
             t2: r.querySelector('.i-t2').value
         }));
 
-        const summary = {
-            con: document.getElementById('s-con').value,
-            tra: document.getElementById('s-tra').value,
-            target: document.getElementById('s-target').value
-        };
-
-        const vipExp = localStorage.getItem(`AION_VipExpire_ID_${currentID}`) || "";
-
         const data = {
-            chars: chars,
-            items: items,
-            summary: summary,
+            chars, items,
+            summary: {
+                con: document.getElementById('s-con').value,
+                tra: document.getElementById('s-tra').value,
+                target: document.getElementById('s-target').value
+            },
             money: getKinahValue(),
             note: document.getElementById('idNote').value,
             isVip: document.getElementById('pageVipToggle').checked,
-            vipExpire: vipExp
+            vipExpire: localStorage.getItem(`AION_VipExpire_ID_${currentID}_${userName}`) || ""
         };
 
-        await set(ref(db, `userData/id_${currentID}`), data);
+        await set(ref(db, `users/${userName}/id_${currentID}`), data);
         updateGlobalKinah();
-        showStatus("☁️ บันทึกขึ้น Cloud แล้ว");
+        showStatus("☁️ Cloud Saved");
     }
 
     function loadFromCloud() {
-        onValue(ref(db, `userData/id_${currentID}`), (snapshot) => {
+        onValue(ref(db, `users/${userName}/id_${currentID}`), (snapshot) => {
             const data = snapshot.val();
             if (!data) {
-                // ถ้าไม่มีข้อมูล ให้ Reset ตาราง
-                document.getElementById('charBody').innerHTML = "";
-                for(let i=0;i<3;i++) addCharRow();
+                document.getElementById('charBody').innerHTML = ""; for(let i=0;i<3;i++) addCharRow();
                 document.getElementById('moneyKinah').value = "";
                 document.getElementById('idNote').value = "";
                 return;
             }
-
             document.getElementById('idLabel').innerText = currentID;
             document.getElementById('idNote').value = data.note || "";
             document.getElementById('moneyKinah').value = data.money ? Number(data.money).toLocaleString() : "";
             document.getElementById('pageVipToggle').checked = data.isVip || false;
-            
-            // โหลดตัวละคร
-            document.getElementById('charBody').innerHTML = "";
-            if (data.chars) data.chars.forEach(d => addCharRow(d));
-            
-            // โหลดไอเทม
-            document.getElementById('itemBody').innerHTML = "";
-            if (data.items) data.items.forEach(d => addItemRow(d));
-
-            // โหลดสรุปดันเจี้ยน
+            document.getElementById('charBody').innerHTML = ""; if (data.chars) data.chars.forEach(d => addCharRow(d));
+            document.getElementById('itemBody').innerHTML = ""; if (data.items) data.items.forEach(d => addItemRow(d));
             if (data.summary) {
                 document.getElementById('s-con').value = data.summary.con || "";
                 document.getElementById('s-tra').value = data.summary.tra || "";
                 document.getElementById('s-target').value = data.summary.target || "";
             }
-
-            if(data.vipExpire) localStorage.setItem(`AION_VipExpire_ID_${currentID}`, data.vipExpire);
-            
-            calcSum(); 
-            updateVipDisplay(); 
-            updateTotalRuns(); 
-            togglePageVip();
-            updateGlobalKinah();
+            if(data.vipExpire) localStorage.setItem(`AION_VipExpire_ID_${currentID}_${userName}`, data.vipExpire);
+            calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(); updateGlobalKinah();
         }, { onlyOnce: true });
     }
 
-    // --- UI FUNCTIONS ---
-
     window.formatKinah = function(input) {
         let value = input.value.replace(/\D/g, "");
-        if (value === "") { input.value = ""; return; }
-        input.value = Number(value).toLocaleString();
+        input.value = value ? Number(value).toLocaleString() : "";
         updateGlobalKinah();
     }
-
     function getKinahValue() { return document.getElementById('moneyKinah').value.replace(/,/g, "") || "0"; }
 
     async function updateGlobalKinah() {
         let total = 0;
-        const snapshot = await get(ref(db, 'userData'));
+        const snapshot = await get(ref(db, `users/${userName}`));
         const allData = snapshot.val();
         if (allData) {
-            Object.values(allData).forEach(user => {
-                total += parseInt(user.money || 0);
-            });
+            Object.keys(allData).forEach(key => { if(key.startsWith('id_')) total += parseInt(allData[key].money || 0); });
         }
         document.getElementById('globalKinahTotal').innerText = total.toLocaleString();
     }
@@ -341,36 +316,27 @@
     window.renderIDTabs = function() {
         const wrapper = document.getElementById('idTabsList');
         wrapper.innerHTML = idList.map(id => {
-            const note = `ID ${id}`; // ในอนาคตดึงชื่อจาก DB ได้
             return `<div class="id-tab ${id === currentID ? 'active' : ''}" onclick="switchID(${id})">
-                <span>${id === currentID ? '💎' : ''} ${note}</span>
+                <span>${id === currentID ? '💎' : ''} ID ${id}</span>
                 <button class="btn-del-id" onclick="event.stopPropagation(); deleteID(${id})">×</button>
             </div>`;
         }).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     }
 
-    window.switchID = function(id) {
-        currentID = id;
-        renderIDTabs();
-        loadFromCloud();
-    }
-
+    window.switchID = function(id) { currentID = id; renderIDTabs(); loadFromCloud(); }
     window.addNewID = function() {
         const newID = Math.max(...idList, 0) + 1;
-        idList.push(newID);
-        set(ref(db, 'idList'), idList);
+        idList.push(newID); set(ref(db, `users/${userName}/config/idList`), idList);
         switchID(newID);
     }
-
     window.deleteID = async function(id) {
-        if (idList.length <= 1) return alert("ลบไม่ได้");
-        if (confirm(`ลบ ID ${id}? ข้อมูลในคลาวด์จะหายถาวร!`)) {
+        if (idList.length <= 1) return;
+        if (confirm(`ลบ ID ${id} ของคุณ?`)) {
             idList = idList.filter(item => item !== id);
-            await set(ref(db, 'idList'), idList);
-            await remove(ref(db, `userData/id_${id}`));
+            await set(ref(db, `users/${userName}/config/idList`), idList);
+            await remove(ref(db, `users/${userName}/id_${id}`));
             if (currentID === id) currentID = idList[0];
-            renderIDTabs();
-            loadFromCloud();
+            renderIDTabs(); loadFromCloud();
         }
     }
 
@@ -380,8 +346,6 @@
         document.getElementById('btn-char').classList.toggle('active', tab === 'char');
         document.getElementById('btn-item').classList.toggle('active', tab === 'item');
     }
-
-    // --- CHARACTER & ITEM ROWS ---
 
     window.addCharRow = function(d = {}) {
         const row = document.getElementById('charBody').insertRow();
@@ -410,37 +374,28 @@
                 </label>`; 
     }
     window.toggleCheck = function(el) { el.closest('.check-container').classList.toggle('checked', el.checked); queueSave(); }
-
     window.updateMultiEne = function(el) {
         const r = el.closest('tr');
         r.querySelector('.c-ene-total').value = (parseInt(r.querySelector('.c-base').value) || 0) + (parseInt(r.querySelector('.c-bonus').value) || 0);
         calcFinal(el);
     }
-
     window.calcFinal = function(el) {
-        const r = el.closest('tr'); 
-        if(!r || r.querySelector('.c-name').value.trim() === "") { if(r) r.querySelector('.c-final').value = "-"; return; }
+        const r = el.closest('tr'); if(!r || r.querySelector('.c-name').value.trim() === "") { if(r) r.querySelector('.c-final').value = "-"; return; }
         const total = (parseInt(r.querySelector('.c-ene-total').value)||0);
-        const boss = parseInt(r.querySelector('.c-boss').value); 
-        const rew = parseInt(r.querySelector('.c-reward').value);
+        const boss = parseInt(r.querySelector('.c-boss').value); const rew = parseInt(r.querySelector('.c-reward').value);
         let final = Math.floor(total/80);
         if(!isNaN(boss) && boss !== "" && boss !== null) final = Math.min(final, boss);
         if(!isNaN(rew) && rew !== "" && rew !== null) final = Math.min(final, rew);
         r.querySelector('.c-final').value = final > 0 ? final + " รอบ" : "-"; 
         updateTotalRuns(); queueSave();
     }
-
     window.calcSum = function() {
-        const con = parseInt(document.getElementById('s-con').value) || 0;
-        const tra = parseInt(document.getElementById('s-tra').value) || 0;
-        const target = parseInt(document.getElementById('s-target').value) || 0;
-        const played = con + tra;
+        const played = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0);
         document.getElementById('s-play').value = played;
-        const diff = target - played;
+        const diff = (parseInt(document.getElementById('s-target').value)||0) - played;
         document.getElementById('s-diff').value = diff > 0 ? diff : "ครบ";
         queueSave();
     }
-
     window.addItemRow = function(d = {}) {
         const row = document.getElementById('itemBody').insertRow();
         row.innerHTML = `<td><input type="text" class="input-cell i-name" value="${d.name||''}" oninput="queueSave()"></td>
@@ -453,13 +408,10 @@
     window.calcItem = function(el) {
         const r = el.closest('tr'); r.querySelector('.i-total').value = (parseInt(r.querySelector('.i-t1').value)||0) + (parseInt(r.querySelector('.i-t2').value)||0); queueSave();
     }
-
     function updateTotalRuns() {
         let t = 0; document.querySelectorAll('.c-final').forEach(i => t += (parseInt(i.value)||0));
         document.getElementById('totalRunsDisplay').innerText = t;
     }
-
-    // --- TIMERS & VIP ---
 
     window.togglePageVip = function() { 
         const isVip = document.getElementById('pageVipToggle').checked;
@@ -469,75 +421,53 @@
     }
 
     window.calcVipExpire = function() {
-        const d = parseInt(document.getElementById('vipDays').value)||0; const h = parseInt(document.getElementById('vipHours').value)||0;
-        if(d===0 && h===0) return; 
-        const newExp = Date.now() + (d*86400000) + (h*3600000);
-        localStorage.setItem(`AION_VipExpire_ID_${currentID}`, newExp);
+        const d = (parseInt(document.getElementById('vipDays').value)||0), h = (parseInt(document.getElementById('vipHours').value)||0);
+        if(d===0 && h===0) return;
+        localStorage.setItem(`AION_VipExpire_ID_${currentID}_${userName}`, Date.now() + (d*86400000) + (h*3600000));
         updateVipDisplay(); queueSave();
     }
 
     function updateVipDisplay() {
-        const exp = localStorage.getItem(`AION_VipExpire_ID_${currentID}`); if(vipInterval) clearInterval(vipInterval);
+        const exp = localStorage.getItem(`AION_VipExpire_ID_${currentID}_${userName}`); if(vipInterval) clearInterval(vipInterval);
         if(!exp) { document.getElementById('countdownLabel').innerText = "00 วัน 00:00:00"; return; }
         const expD = new Date(parseInt(exp));
         document.getElementById('expireFullDate').innerText = "หมดอายุ: " + expD.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
         vipInterval = setInterval(() => {
             const diff = expD - Date.now();
             if(diff <= 0) { document.getElementById('countdownLabel').innerText = "VIP หมดอายุ"; return; }
-            const dd = Math.floor(diff/86400000); const hh = Math.floor((diff%86400000)/3600000); const mm = Math.floor((diff%3600000)/60000); const ss = Math.floor((diff%60000)/1000);
+            const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000);
             document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         }, 1000);
     }
 
-    // --- UTILS ---
-
-    window.confirmRefillEne = function() { if(confirm("⚡ ยืนยันเติม Energy ทุกตัว?")) refillEnergyAll(); }
-    window.confirmRefillRew = function() { if(confirm("🎁 ยืนยันเพิ่ม Reward ทุกตัว?")) refillRewardAll(); }
-
-    function refillEnergyAll() {
-        const add = document.getElementById('pageVipToggle').checked ? 15 : 10;
-        document.querySelectorAll('#charBody tr').forEach(row => { 
-            const inp = row.querySelector('.c-base');
-            if(row.querySelector('.c-name').value) { inp.value = (parseInt(inp.value)||0)+add; updateMultiEne(inp); }
-        });
-        queueSave();
-    }
-    function refillRewardAll() {
-        document.querySelectorAll('#charBody tr').forEach(row => { 
-            const inp = row.querySelector('.c-reward');
-            if(row.querySelector('.c-name').value) { inp.value = (parseInt(inp.value)||0)+1; calcFinal(inp); }
+    window.confirmRefillEne = function() { if(confirm("⚡ เติม Energy?")) refill('ene'); }
+    window.confirmRefillRew = function() { if(confirm("🎁 เพิ่ม Reward?")) refill('rew'); }
+    function refill(type) {
+        document.querySelectorAll('#charBody tr').forEach(row => {
+            const name = row.querySelector('.c-name').value;
+            if(name) {
+                if(type==='ene') { const inp = row.querySelector('.c-base'); inp.value = (parseInt(inp.value)||0) + (document.getElementById('pageVipToggle').checked?15:10); updateMultiEne(inp); }
+                else { const inp = row.querySelector('.c-reward'); inp.value = (parseInt(inp.value)||0) + 1; calcFinal(inp); }
+            }
         });
         queueSave();
     }
 
     function showStatus(txt) { const s = document.getElementById('saveStatus'); s.innerText = txt; s.style.display = "block"; setTimeout(()=>s.style.display="none", 2000); }
-    function formatDiff(ms) { const hh = Math.floor(ms/3600000); const mm = Math.floor((ms%3600000)/60000); const ss = Math.floor((ms%60000)/1000); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
-    
-    let saveTimeout; 
-    window.queueSave = function() { 
-        clearTimeout(saveTimeout); 
-        saveTimeout = setTimeout(saveToCloud, 1000); 
-    }
+    function formatDiff(ms) { const hh = Math.floor(ms/3600000), mm = Math.floor((ms%3600000)/60000), ss = Math.floor((ms%60000)/1000); return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+    let saveTimeout; window.queueSave = function() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1000); }
 
-    function initSystemTimers() {
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-            let nextE = MILESTONES.find(m => m > now.getHours()) || 1;
-            let targetE = new Date(now); if (nextE === 1 && now.getHours() >= 22) targetE.setDate(targetE.getDate() + 1);
-            targetE.setHours(nextE, 0, 0, 0);
-            document.getElementById('energyNextTimer').innerText = formatDiff(targetE - now);
-            let nextR = REWARD_HOURS.find(r => r > now.getHours()) || 4;
-            let targetR = new Date(now); if (nextR === 4 && now.getHours() >= 20) targetR.setDate(targetR.getDate() + 1);
-            targetR.setHours(nextR, 0, 0, 0);
-            document.getElementById('nextRewardLabel').innerText = `Reward +1 ในเวลาอีก: ${formatDiff(targetR - now)} น.`;
-        }, 1000);
-    }
+    setInterval(() => {
+        const now = new Date(); document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+        let nextE = MILESTONES.find(m => m > now.getHours()) || 1;
+        let targetE = new Date(now); if (nextE === 1 && now.getHours() >= 22) targetE.setDate(targetE.getDate() + 1);
+        targetE.setHours(nextE, 0, 0, 0); document.getElementById('energyNextTimer').innerText = formatDiff(targetE - now);
+        let nextR = REWARD_HOURS.find(r => r > now.getHours()) || 4;
+        let targetR = new Date(now); if (nextR === 4 && now.getHours() >= 20) targetR.setDate(targetR.getDate() + 1);
+        targetR.setHours(nextR, 0, 0, 0); document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${formatDiff(targetR - now)} น.`;
+    }, 1000);
 
-    window.onload = () => { 
-        initSystemTimers(); 
-        initIDSystem(); 
-    };
+    window.onload = initIDSystem;
 </script>
 </body>
 </html>
