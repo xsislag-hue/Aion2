@@ -27,7 +27,6 @@
         .id-tab { padding: 10px 18px; background: #0f172a; border: 1px solid var(--border); border-radius: 12px; color: var(--text-dim); cursor: pointer; font-size: 14px; transition: 0.3s; display: flex; align-items: center; gap: 10px; min-width: 140px; justify-content: space-between; }
         .id-tab.active { background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; border-color: transparent; box-shadow: 0 4px 15px var(--primary-glow); font-weight: 600; transform: translateY(-2px); }
         .btn-del-id { color: #94a3b8; font-size: 18px; background: none; border: none; cursor: pointer; line-height: 1; }
-        .id-tab.active .btn-del-id:hover { color: #ff4d4d; }
         .btn-add-id { width: 45px; height: 45px; border-radius: 12px; border: 2px dashed var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-size: 24px; transition: 0.3s; }
 
         .table-wrapper { width: 100%; overflow: hidden; margin-bottom: 25px; border-radius: 12px; border: 1px solid var(--border); }
@@ -36,9 +35,6 @@
         td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; height: 52px; vertical-align: middle; }
         
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
-        select.input-cell { background-color: transparent; color: var(--text-main); cursor: pointer; text-align-last: center; }
-        select.input-cell option { background-color: #1e293b !important; color: #ffffff !important; }
-
         .readonly-cell { background: rgba(59, 130, 246, 0.05) !important; color: #60a5fa; font-weight: 600; }
         .result-cell { background: rgba(251, 146, 60, 0.05) !important; color: #fb923c; font-weight: bold; font-size: 18px; }
 
@@ -54,9 +50,25 @@
         .btn-add { background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
         .hidden { display: none; }
         #saveStatus { position: fixed; bottom: 20px; right: 20px; padding: 12px 25px; background: var(--primary); color: white; border-radius: 12px; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .tabs-container { display: flex; background: #111827; padding: 6px; border-radius: 12px; margin-bottom: 25px; width: fit-content; border: 1px solid var(--border); }
+        
+        /* Tab Styling */
+        .tabs-container { display: flex; background: #111827; padding: 6px; border-radius: 12px; margin-bottom: 25px; width: fit-content; border: 1px solid var(--border); gap: 8px; }
         .tab-btn { padding: 10px 25px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-weight: 600; border-radius: 10px; transition: 0.3s; }
         .tab-btn.active { background: #334155; color: white; }
+
+        /* Global Tab Specific */
+        .tab-btn-global {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white !important;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+        .tab-btn-global.active {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            transform: scale(1.05);
+        }
+        .global-item-name { background: rgba(251, 191, 36, 0.05); border-left: 4px solid #fbbf24; font-weight: 600; color: #fff; text-align: left !important; padding-left: 20px !important; }
+        .trade-val { color: #10b981; font-size: 20px; font-weight: 700; text-align: center; }
     </style>
 </head>
 <body>
@@ -83,6 +95,7 @@
     <div class="tabs-container">
         <button class="tab-btn active" id="btn-char" onclick="switchTab('char')">👤 จัดการตัวละคร</button>
         <button class="tab-btn" id="btn-item" onclick="switchTab('item')">📦 คลังเก็บไอเทม</button>
+        <button class="tab-btn tab-btn-global" id="btn-global" onclick="switchTab('global')">📊 สรุปคลังรวม (Tradeable)</button>
     </div>
 
     <div id="charPage" style="flex: 1;">
@@ -162,7 +175,7 @@
     </div>
 
     <div id="itemPage" class="hidden" style="flex: 1;">
-        <div style="font-weight:bold; color:var(--gold); margin-bottom:15px; font-size:18px;">📦 คลังไอเทมรวม</div>
+        <div style="font-weight:bold; color:var(--gold); margin-bottom:15px; font-size:18px;">📦 คลังไอเทมของ ID นี้</div>
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -172,6 +185,31 @@
             </table>
         </div>
         <button class="btn-add" onclick="addItemRow()">+ เพิ่มไอเทมใหม่</button>
+    </div>
+
+    <div id="globalPage" class="hidden" style="flex: 1;">
+        <div style="background: linear-gradient(90deg, #1e293b, #0f172a); padding: 20px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-size: 22px; font-weight: 800; color: #fbbf24;">🌍 Global Tradeable Inventory</div>
+                <div style="color: var(--text-dim); font-size: 14px;">สรุปเฉพาะไอเทมที่ <b>"เทรดได้"</b> และ Kinah จากทุกไอดีรวมกัน</div>
+            </div>
+            <button class="btn-add" style="background: #3b82f6;" onclick="updateGlobalData()">🔄 รีเฟรชข้อมูลรวม</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
+            <div class="stat-card">
+                <div style="color:var(--gold); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">💰 Kinah แยกตาม ID</div>
+                <div id="kinahBreakdownList" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+            <div class="table-wrapper" style="border: 1px solid #fbbf24;">
+                <table>
+                    <thead>
+                        <tr><th style="text-align:left; padding-left:20px;">รายการไอเทมที่เทรดได้</th><th style="width:40%">จำนวนรวมทุกไอดี</th></tr>
+                    </thead>
+                    <tbody id="globalItemBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -199,27 +237,25 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
 
     let currentID = 1, idList = [1], idNames = {}, vipInterval;
-    let saveTimeout;
-    let isLoading = false; // ตัวแปรล็อกสถานะการโหลด
+    let saveTimeout, isLoading = false;
 
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
-    // --- 💾 DATABASE CORE ---
+    // --- ID SYSTEM ---
     async function initIDSystem() {
-        onValue(ref(db, `users/${userName}/config/idList`), (snapshot) => {
-            idList = snapshot.val() || [1];
+        onValue(ref(db, `users/${userName}/config/idList`), (snap) => {
+            idList = snap.val() || [1];
             loadAllIDNames();
         });
     }
 
     async function loadAllIDNames() {
-        const snapshot = await get(ref(db, `users/${userName}`));
-        const allData = snapshot.val() || {};
+        const snap = await get(ref(db, `users/${userName}`));
+        const allData = snap.val() || {};
         idNames = {};
         idList.forEach(id => {
-            const idData = allData[`id_${id}`];
-            idNames[id] = (idData && idData.note) ? idData.note : `ID ${id}`;
+            idNames[id] = allData[`id_${id}`]?.note || `ID ${id}`;
         });
         renderIDTabs();
         loadFromCloud();
@@ -229,96 +265,92 @@
         const tabsContainer = document.getElementById('idTabsList');
         tabsContainer.innerHTML = idList.map(id => {
             const isActive = (id === currentID);
-            return `
-                <div class="id-tab ${isActive ? 'active' : ''}" onclick="switchID(${id})">
-                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">
-                        ${isActive ? '💎 ' : ''}${idNames[id] || 'ID ' + id}
-                    </span>
-                    <button class="btn-del-id" onclick="event.stopPropagation(); deleteID(${id})">×</button>
-                </div>`;
+            return `<div class="id-tab ${isActive ? 'active' : ''}" onclick="switchID(${id})">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">
+                    ${isActive ? '💎 ' : ''}${idNames[id] || 'ID ' + id}
+                </span>
+                <button class="btn-del-id" onclick="event.stopPropagation(); deleteID(${id})">×</button>
+            </div>`;
         }).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     }
 
-    window.switchID = (id) => { 
-        if (currentID === id || isLoading) return; 
-        
-        clearTimeout(saveTimeout); // หยุดการบันทึกของ ID เก่าทันทีที่กดเปลี่ยน
-        
-        currentID = id; 
-        renderIDTabs(); 
-        loadFromCloud(); 
+    window.switchID = (id) => { if (currentID === id || isLoading) return; clearTimeout(saveTimeout); currentID = id; renderIDTabs(); loadFromCloud(); }
+    window.updateIDTabName = (val) => { idNames[currentID] = val || `ID ${currentID}`; renderIDTabs(); }
+    window.addNewID = () => { const n = Math.max(...idList, 0) + 1; idList.push(n); set(ref(db, `users/${userName}/config/idList`), idList); currentID = n; loadAllIDNames(); }
+    window.deleteID = async (id) => { if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { idList = idList.filter(i => i !== id); await set(ref(db, `users/${userName}/config/idList`), idList); await remove(ref(db, `users/${userName}/id_${id}`)); if (currentID === id) currentID = idList[0]; loadAllIDNames(); } }
+
+    // --- GLOBAL DATA LOGIC (New Added) ---
+    window.updateGlobalData = async () => {
+        const snap = await get(ref(db, `users/${userName}`));
+        const allData = snap.val() || {};
+        const globalStore = {}; 
+        let kinahTotal = 0;
+        const kinahList = document.getElementById('kinahBreakdownList');
+        kinahList.innerHTML = "";
+
+        Object.keys(allData).forEach(key => {
+            if(key.startsWith('id_')) {
+                const data = allData[key];
+                const idNum = key.replace('id_', '');
+                const note = data.note || `ID ${idNum}`;
+                const m = parseInt(data.money) || 0;
+                kinahTotal += m;
+
+                kinahList.innerHTML += `<div style="display:flex; justify-content:space-between; background:#0f172a; padding:8px 12px; border-radius:8px;">
+                    <span style="color:var(--text-dim);">${note}:</span>
+                    <span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span>
+                </div>`;
+
+                if(data.items) {
+                    data.items.forEach(it => {
+                        const name = (it.name || "").trim();
+                        const val = parseInt(it.t1) || 0; // Tradeable Only
+                        if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val;
+                    });
+                }
+            }
+        });
+        document.getElementById('globalKinahTotal').innerText = kinahTotal.toLocaleString();
+        const itemBody = document.getElementById('globalItemBody');
+        itemBody.innerHTML = "";
+        const sortedItems = Object.keys(globalStore).sort();
+        if(sortedItems.length === 0) {
+            itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
+        } else {
+            sortedItems.forEach(name => {
+                itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td class="trade-val">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`;
+            });
+        }
     }
 
-    window.updateIDTabName = (val) => { 
-        idNames[currentID] = val || `ID ${currentID}`; 
-        renderIDTabs(); 
-    }
-
-    window.addNewID = () => { 
-        const n = Math.max(...idList, 0) + 1; 
-        idList.push(n); 
-        set(ref(db, `users/${userName}/config/idList`), idList); 
-        currentID = n; 
-        loadAllIDNames(); 
-    }
-
-    window.deleteID = async (id) => { 
-        if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { 
-            idList = idList.filter(i => i !== id); 
-            await set(ref(db, `users/${userName}/config/idList`), idList); 
-            await remove(ref(db, `users/${userName}/id_${id}`)); 
-            if (currentID === id) currentID = idList[0]; 
-            loadAllIDNames(); 
-        } 
-    }
-
-    // --- ⚡ LOGIC REFILL ---
+    // --- REFILL & DATABASE CORE ---
     async function checkAutoRefill(data) {
         if (!data || !data.lastUpdate) return false;
         const lastUpdateTime = new Date(data.lastUpdate);
         const now = new Date();
         let changed = false;
-
         const countPasses = (hoursArray, lastDate, nowDate) => {
-            let passes = 0;
-            let current = new Date(lastDate);
-            current.setMinutes(0, 0, 0); 
-            current.setHours(current.getHours() + 1);
-            while (current <= nowDate) {
-                if (hoursArray.includes(current.getHours())) passes++;
-                current.setHours(current.getHours() + 1);
-            }
+            let passes = 0; let current = new Date(lastDate);
+            current.setMinutes(0, 0, 0); current.setHours(current.getHours() + 1);
+            while (current <= nowDate) { if (hoursArray.includes(current.getHours())) passes++; current.setHours(current.getHours() + 1); }
             return passes;
         };
-
         const energyPasses = countPasses(MILESTONES, lastUpdateTime, now);
         if (energyPasses > 0) {
             const addPerRound = (data.isVip ? 15 : 10);
-            data.chars.forEach(c => {
-                if (c.name) {
-                    let cur = parseInt(c.base) || 0;
-                    c.base = Math.min(840, cur + (addPerRound * energyPasses));
-                }
-            });
+            data.chars.forEach(c => { if (c.name) { let cur = parseInt(c.base) || 0; c.base = Math.min(840, cur + (addPerRound * energyPasses)); } });
             changed = true;
         }
-
         const rewardPasses = countPasses(REWARD_HOURS, lastUpdateTime, now);
         if (rewardPasses > 0) {
-            data.chars.forEach(c => {
-                if (c.name) {
-                    let cur = parseInt(c.reward) || 0;
-                    c.reward = Math.min(21, cur + rewardPasses);
-                }
-            });
+            data.chars.forEach(c => { if (c.name) { let cur = parseInt(c.reward) || 0; c.reward = Math.min(21, cur + rewardPasses); } });
             changed = true;
         }
         return changed ? data : false;
     }
 
     async function saveToCloud() {
-        if (isLoading) return; // ห้ามบันทึกขณะโหลดข้อมูล
-
+        if (isLoading) return;
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
             base: r.querySelector('.c-base').value, bonus: r.querySelector('.c-bonus').value,
@@ -343,7 +375,7 @@
     }
 
     async function loadFromCloud() {
-        isLoading = true; // ล็อกสถานะเริ่มโหลด
+        isLoading = true;
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
         if (data) {
@@ -351,7 +383,7 @@
             if (updated) { data = updated; await set(ref(db, `users/${userName}/id_${currentID}`), data); }
         }
         renderLoadedData(data);
-        setTimeout(() => { isLoading = false; }, 500); // ปลดล็อกหลังโหลดเสร็จ 0.5 วินาที
+        setTimeout(() => { isLoading = false; }, 500);
     }
 
     function renderLoadedData(data) {
@@ -359,24 +391,20 @@
         document.getElementById('idNote').value = data?.note || "";
         document.getElementById('moneyKinah').value = data?.money ? Number(data.money).toLocaleString() : "";
         document.getElementById('pageVipToggle').checked = data?.isVip || false;
-        
         const charBody = document.getElementById('charBody'); charBody.innerHTML = "";
         if (data?.chars) data.chars.forEach(d => addCharRow(d)); else for(let i=0;i<3;i++) addCharRow();
-
         const itemBody = document.getElementById('itemBody'); itemBody.innerHTML = "";
         if (data?.items) data.items.forEach(d => addItemRow(d));
-
         if (data?.summary) {
             document.getElementById('s-con').value = data.summary.con || "";
             document.getElementById('s-tra').value = data.summary.tra || "";
             document.getElementById('s-target').value = data.summary.target || "";
         }
         if(data?.vipExpire) localStorage.setItem(`VIP_${userName}_${currentID}`, data.vipExpire);
-        
         calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(false); updateGlobalKinah();
     }
 
-    // --- UI HELPERS ---
+    // --- ROW HELPERS ---
     window.addCharRow = (d = {}) => {
         const row = document.getElementById('charBody').insertRow();
         row.innerHTML = `
@@ -406,20 +434,9 @@
 
     function createCheck(cls, chk) { return `<label class="check-container ${chk?'checked':''}"><input type="checkbox" class="${cls}" ${chk?'checked':''} onchange="this.closest('.check-container').classList.toggle('checked', this.checked); queueSave();"><span class="check-mark"></span></label>`; }
     window.updateMultiEne = (e) => { const r = e.closest('tr'); r.querySelector('.c-ene-total').value = (parseInt(r.querySelector('.c-base').value)||0) + (parseInt(r.querySelector('.c-bonus').value)||0); calcFinal(e); }
-    window.calcFinal = (e) => {
-        const r = e.closest('tr'); if(!r) return;
-        const ene = parseInt(r.querySelector('.c-ene-total').value)||0;
-        let f = Math.floor(ene/80), b = parseInt(r.querySelector('.c-boss').value), rw = parseInt(r.querySelector('.c-reward').value);
-        if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); 
-        if(!isNaN(rw) && r.querySelector('.c-reward').value !== "") f = Math.min(f, rw);
-        r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; updateTotalRuns(); queueSave();
-    }
-    window.calcSum = () => {
-        const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0);
-        document.getElementById('s-play').value = p;
-        const d = (parseInt(document.getElementById('s-target').value)||0) - p;
-        document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave();
-    }
+    window.calcFinal = (e) => { const r = e.closest('tr'); if(!r) return; const ene = parseInt(r.querySelector('.c-ene-total').value)||0; let f = Math.floor(ene/80), b = parseInt(r.querySelector('.c-boss').value), rw = parseInt(r.querySelector('.c-reward').value); if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); if(!isNaN(rw) && r.querySelector('.c-reward').value !== "") f = Math.min(f, rw); r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; updateTotalRuns(); queueSave(); }
+    window.calcSum = () => { const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0); document.getElementById('s-play').value = p; const d = (parseInt(document.getElementById('s-target').value)||0) - p; document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave(); }
+    
     window.addItemRow = (d = {}) => {
         const row = document.getElementById('itemBody').insertRow();
         row.innerHTML = `<td><input type="text" class="input-cell i-name" value="${d.name||''}" oninput="queueSave()"></td>
@@ -430,74 +447,46 @@
         calcItem(row.querySelector('.i-t1'));
     }
     window.calcItem = (e) => { const r = e.closest('tr'); r.querySelector('.i-total').value = (parseInt(r.querySelector('.i-t1').value)||0) + (parseInt(r.querySelector('.i-t2').value)||0); queueSave(); }
-    
-    // --- ⏰ TIMERS ---
-    setInterval(() => {
-        const now = new Date();
-        const hrs = now.getHours();
-        const mins = now.getMinutes();
-        const secs = now.getSeconds();
-        document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-        
-        if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
 
+    // --- TIMERS ---
+    setInterval(() => {
+        const now = new Date(); const hrs = now.getHours(); const mins = now.getMinutes(); const secs = now.getSeconds();
+        document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+        if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
         let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
         let targetE = new Date(now); if (hrs >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
-        targetE.setHours(nextE, 0, 0, 0); const de = targetE - now; 
+        targetE.setHours(nextE, 0, 0, 0); const de = targetE - now;
         document.getElementById('energyNextTimer').innerText = `${Math.floor(de/3600000)}:${String(Math.floor((de%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((de%60000)/1000)).padStart(2,'0')}`;
-
         let nextR = REWARD_HOURS.find(r => r > hrs) ?? REWARD_HOURS[0];
         let targetR = new Date(now); if (hrs >= REWARD_HOURS[REWARD_HOURS.length-1]) targetR.setDate(targetR.getDate() + 1);
-        targetR.setHours(nextR, 0, 0, 0); const dr = targetR - now; 
+        targetR.setHours(nextR, 0, 0, 0); const dr = targetR - now;
         document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor(dr/3600000)}:${String(Math.floor((dr%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((dr%60000)/1000)).padStart(2,'0')} น.`;
     }, 1000);
 
+    // --- TABS & VIP ---
     window.switchTab = (t) => {
         document.getElementById('charPage').classList.toggle('hidden', t !== 'char');
         document.getElementById('itemPage').classList.toggle('hidden', t !== 'item');
+        document.getElementById('globalPage').classList.toggle('hidden', t !== 'global');
         document.getElementById('btn-char').classList.toggle('active', t === 'char');
         document.getElementById('btn-item').classList.toggle('active', t === 'item');
+        document.getElementById('btn-global').classList.toggle('active', t === 'global');
+        if(t === 'global') updateGlobalData();
     }
-    window.togglePageVip = (save = true) => { 
-        const v = document.getElementById('pageVipToggle').checked;
-        document.getElementById('energyValueText').innerText = v ? "+15" : "+10";
-        document.getElementById('sliderBtn').style.background = v ? "var(--success)" : "#475569";
-        if (save) queueSave(); 
-    }
-    window.calcVipExpire = () => {
-        const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0;
-        if(d===0 && h===0) return;
-        localStorage.setItem(`VIP_${userName}_${currentID}`, Date.now() + (d*86400000) + (h*3600000));
-        updateVipDisplay(); queueSave();
-    }
+    window.togglePageVip = (save = true) => { const v = document.getElementById('pageVipToggle').checked; document.getElementById('energyValueText').innerText = v ? "+15" : "+10"; document.getElementById('sliderBtn').style.background = v ? "var(--success)" : "#475569"; if (save) queueSave(); }
+    window.calcVipExpire = () => { const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0; if(d===0 && h===0) return; localStorage.setItem(`VIP_${userName}_${currentID}`, Date.now() + (d*86400000) + (h*3600000)); updateVipDisplay(); queueSave(); }
     function updateVipDisplay() {
         const exp = localStorage.getItem(`VIP_${userName}_${currentID}`); if(vipInterval) clearInterval(vipInterval);
         if(!exp) { document.getElementById('countdownLabel').innerText = "00 วัน 00:00:00"; return; }
         const target = new Date(parseInt(exp));
         document.getElementById('expireFullDate').innerText = "หมดอายุ: " + target.toLocaleString('th-TH', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
-        vipInterval = setInterval(() => {
-            const diff = target - Date.now();
-            if(diff <= 0) { document.getElementById('countdownLabel').innerText = "VIP หมดอายุ"; return; }
-            const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000);
-            document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-        }, 1000);
+        vipInterval = setInterval(() => { const diff = target - Date.now(); if(diff <= 0) { document.getElementById('countdownLabel').innerText = "VIP หมดอายุ"; return; } const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000); document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }, 1000);
     }
     window.formatKinah = (i) => { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","); updateGlobalKinah(); }
-    async function updateGlobalKinah() {
-        const snap = await get(ref(db, `users/${userName}`)); let t = 0; const val = snap.val();
-        if(val) Object.keys(val).forEach(k => { if(k.startsWith('id_')) t += parseInt(val[k].money || 0); });
-        document.getElementById('globalKinahTotal').innerText = t.toLocaleString();
-    }
+    async function updateGlobalKinah() { const snap = await get(ref(db, `users/${userName}`)); let t = 0; const val = snap.val(); if(val) Object.keys(val).forEach(k => { if(k.startsWith('id_')) t += parseInt(val[k].money || 0); }); document.getElementById('globalKinahTotal').innerText = t.toLocaleString(); }
     function updateTotalRuns() { let t = 0; document.querySelectorAll('.c-final').forEach(i => t += (parseInt(i.value)||0)); document.getElementById('totalRunsDisplay').innerText = t; }
     function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = "block"; setTimeout(()=>s.style.display="none", 2000); }
-    
-    // ปรับปรุงระบบคิวบันทึก
-    window.queueSave = () => { 
-        if (isLoading) return; // ถ้ากำลังโหลดข้อมูลใหม่ ห้ามสั่งคิวบันทึก
-        clearTimeout(saveTimeout); 
-        saveTimeout = setTimeout(saveToCloud, 1000); 
-    }
-
+    window.queueSave = () => { if(isLoading) return; clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1000); }
     window.onload = initIDSystem;
 </script>
 </body>
