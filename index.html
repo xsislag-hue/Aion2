@@ -35,6 +35,11 @@
         td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; height: 52px; vertical-align: middle; }
         
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
+        
+        /* แก้ไข Dropdown อาชีพ */
+        select.input-cell { background-color: #1e293b; color: var(--text-main); cursor: pointer; text-align-last: center; appearance: none; }
+        select.input-cell option { background-color: #1e293b; color: #ffffff; padding: 10px; }
+
         .readonly-cell { background: rgba(59, 130, 246, 0.05) !important; color: #60a5fa; font-weight: 600; }
         .result-cell { background: rgba(251, 146, 60, 0.05) !important; color: #fb923c; font-weight: bold; font-size: 18px; }
 
@@ -51,24 +56,13 @@
         .hidden { display: none; }
         #saveStatus { position: fixed; bottom: 20px; right: 20px; padding: 12px 25px; background: var(--primary); color: white; border-radius: 12px; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Tab Styling */
         .tabs-container { display: flex; background: #111827; padding: 6px; border-radius: 12px; margin-bottom: 25px; width: fit-content; border: 1px solid var(--border); gap: 8px; }
         .tab-btn { padding: 10px 25px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-weight: 600; border-radius: 10px; transition: 0.3s; }
         .tab-btn.active { background: #334155; color: white; }
 
-        /* Global Tab Specific */
-        .tab-btn-global {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white !important;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-        }
-        .tab-btn-global.active {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-            transform: scale(1.05);
-        }
+        .tab-btn-global { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white !important; }
+        .tab-btn-global.active { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important; transform: scale(1.05); }
         .global-item-name { background: rgba(251, 191, 36, 0.05); border-left: 4px solid #fbbf24; font-weight: 600; color: #fff; text-align: left !important; padding-left: 20px !important; }
-        .trade-val { color: #10b981; font-size: 20px; font-weight: 700; text-align: center; }
     </style>
 </head>
 <body>
@@ -143,7 +137,7 @@
                     <tr>
                         <th style="width:11%">ชื่อตัวละคร</th><th style="width:11%">อาชีพ</th>
                         <th style="width:14%">Energy (ปกติ + โบนัส)</th><th style="width:8%">Energy รวม</th>
-                        <th style="width:8%">Final Boss</th><th style="width:8%">Reward</th><th style="width:8%">ลงได้จริง</th>
+                        <th style="width:8%">Final Boss</th><th style="width:12%">Reward (ปกติ + โบนัส)</th><th style="width:8%">ลงได้จริง</th>
                         <th style="width:8%">Buy Energy</th><th style="width:8%">Craft Energy</th><th style="width:8%">Ascension</th><th style="width:8%">Raid</th>
                         <th style="width:45px"></th>
                     </tr>
@@ -195,7 +189,6 @@
             </div>
             <button class="btn-add" style="background: #3b82f6;" onclick="updateGlobalData()">🔄 รีเฟรชข้อมูลรวม</button>
         </div>
-
         <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
             <div class="stat-card">
                 <div style="color:var(--gold); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">💰 Kinah แยกตาม ID</div>
@@ -279,51 +272,31 @@
     window.addNewID = () => { const n = Math.max(...idList, 0) + 1; idList.push(n); set(ref(db, `users/${userName}/config/idList`), idList); currentID = n; loadAllIDNames(); }
     window.deleteID = async (id) => { if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { idList = idList.filter(i => i !== id); await set(ref(db, `users/${userName}/config/idList`), idList); await remove(ref(db, `users/${userName}/id_${id}`)); if (currentID === id) currentID = idList[0]; loadAllIDNames(); } }
 
-    // --- GLOBAL DATA LOGIC (New Added) ---
+    // --- GLOBAL DATA ---
     window.updateGlobalData = async () => {
         const snap = await get(ref(db, `users/${userName}`));
         const allData = snap.val() || {};
-        const globalStore = {}; 
-        let kinahTotal = 0;
+        const globalStore = {}; let kinahTotal = 0;
         const kinahList = document.getElementById('kinahBreakdownList');
         kinahList.innerHTML = "";
-
         Object.keys(allData).forEach(key => {
             if(key.startsWith('id_')) {
                 const data = allData[key];
                 const idNum = key.replace('id_', '');
-                const note = data.note || `ID ${idNum}`;
-                const m = parseInt(data.money) || 0;
-                kinahTotal += m;
-
+                const m = parseInt(data.money) || 0; kinahTotal += m;
                 kinahList.innerHTML += `<div style="display:flex; justify-content:space-between; background:#0f172a; padding:8px 12px; border-radius:8px;">
-                    <span style="color:var(--text-dim);">${note}:</span>
-                    <span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span>
-                </div>`;
-
-                if(data.items) {
-                    data.items.forEach(it => {
-                        const name = (it.name || "").trim();
-                        const val = parseInt(it.t1) || 0; // Tradeable Only
-                        if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val;
-                    });
-                }
+                    <span style="color:var(--text-dim);">${data.note || 'ID '+idNum}:</span><span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span></div>`;
+                if(data.items) data.items.forEach(it => { const name = (it.name || "").trim(); const val = parseInt(it.t1) || 0; if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val; });
             }
         });
         document.getElementById('globalKinahTotal').innerText = kinahTotal.toLocaleString();
-        const itemBody = document.getElementById('globalItemBody');
-        itemBody.innerHTML = "";
+        const itemBody = document.getElementById('globalItemBody'); itemBody.innerHTML = "";
         const sortedItems = Object.keys(globalStore).sort();
-        if(sortedItems.length === 0) {
-            itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
-        } else {
-            sortedItems.forEach(name => {
-                itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td class="trade-val">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`;
-            });
-        }
+        if(sortedItems.length === 0) itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
+        else sortedItems.forEach(name => { itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td style="color:#10b981; font-size:20px; font-weight:700; text-align:center;">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`; });
     }
 
-    // --- REFILL & DATABASE CORE ---
+    // --- REFILL LOGIC ---
     async function checkAutoRefill(data) {
         if (!data || !data.lastUpdate) return false;
         const lastUpdateTime = new Date(data.lastUpdate);
@@ -335,15 +308,23 @@
             while (current <= nowDate) { if (hoursArray.includes(current.getHours())) passes++; current.setHours(current.getHours() + 1); }
             return passes;
         };
+        
         const energyPasses = countPasses(MILESTONES, lastUpdateTime, now);
         if (energyPasses > 0) {
             const addPerRound = (data.isVip ? 15 : 10);
             data.chars.forEach(c => { if (c.name) { let cur = parseInt(c.base) || 0; c.base = Math.min(840, cur + (addPerRound * energyPasses)); } });
             changed = true;
         }
+        
         const rewardPasses = countPasses(REWARD_HOURS, lastUpdateTime, now);
         if (rewardPasses > 0) {
-            data.chars.forEach(c => { if (c.name) { let cur = parseInt(c.reward) || 0; c.reward = Math.min(21, cur + rewardPasses); } });
+            data.chars.forEach(c => { 
+                if (c.name) { 
+                    // เติมเฉพาะช่องปกติ (ช่องหน้า)
+                    let cur = parseInt(c.reward) || 0; 
+                    c.reward = Math.min(21, cur + rewardPasses); 
+                } 
+            });
             changed = true;
         }
         return changed ? data : false;
@@ -354,7 +335,9 @@
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
             base: r.querySelector('.c-base').value, bonus: r.querySelector('.c-bonus').value,
-            boss: r.querySelector('.c-boss').value, reward: r.querySelector('.c-reward').value,
+            boss: r.querySelector('.c-boss').value, 
+            reward: r.querySelector('.c-reward').value, // ตัวหน้า
+            rewardBonus: r.querySelector('.c-reward-bonus').value, // ตัวหลัง (โบนัส)
             buyChecked: r.querySelector('.c-buy').checked, craftChecked: r.querySelector('.c-craft').checked, 
             ascChecked: r.querySelector('.c-asc').checked, raidChecked: r.querySelector('.c-raid').checked
         }));
@@ -404,7 +387,7 @@
         calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(false); updateGlobalKinah();
     }
 
-    // --- ROW HELPERS ---
+    // --- UI HELPERS ---
     window.addCharRow = (d = {}) => {
         const row = document.getElementById('charBody').insertRow();
         row.innerHTML = `
@@ -423,7 +406,7 @@
             <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-base" style="width:50px" value="${d.base||''}" oninput="updateMultiEne(this)">+<input type="number" class="input-cell c-bonus" style="width:50px;color:var(--success)" value="${d.bonus||''}" oninput="updateMultiEne(this)"></div></td>
             <td class="readonly-cell"><input type="text" class="input-cell c-ene-total" readonly></td>
             <td><input type="number" class="input-cell c-boss" value="${d.boss||''}" oninput="calcFinal(this)"></td>
-            <td><input type="number" class="input-cell c-reward" value="${d.reward||''}" oninput="calcFinal(this)"></td>
+            <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-reward" style="width:40px" value="${d.reward||''}" oninput="calcFinal(this)">+<input type="number" class="input-cell c-reward-bonus" style="width:40px;color:var(--gold)" value="${d.rewardBonus||''}" oninput="calcFinal(this)"></div></td>
             <td class="result-cell"><input type="text" class="input-cell c-final" readonly></td>
             <td>${createCheck('c-buy', d.buyChecked)}</td><td>${createCheck('c-craft', d.craftChecked)}</td>
             <td>${createCheck('c-asc', d.ascChecked)}</td><td>${createCheck('c-raid', d.raidChecked)}</td>
@@ -433,8 +416,28 @@
     }
 
     function createCheck(cls, chk) { return `<label class="check-container ${chk?'checked':''}"><input type="checkbox" class="${cls}" ${chk?'checked':''} onchange="this.closest('.check-container').classList.toggle('checked', this.checked); queueSave();"><span class="check-mark"></span></label>`; }
-    window.updateMultiEne = (e) => { const r = e.closest('tr'); r.querySelector('.c-ene-total').value = (parseInt(r.querySelector('.c-base').value)||0) + (parseInt(r.querySelector('.c-bonus').value)||0); calcFinal(e); }
-    window.calcFinal = (e) => { const r = e.closest('tr'); if(!r) return; const ene = parseInt(r.querySelector('.c-ene-total').value)||0; let f = Math.floor(ene/80), b = parseInt(r.querySelector('.c-boss').value), rw = parseInt(r.querySelector('.c-reward').value); if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); if(!isNaN(rw) && r.querySelector('.c-reward').value !== "") f = Math.min(f, rw); r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; updateTotalRuns(); queueSave(); }
+    
+    window.updateMultiEne = (e) => { 
+        const r = e.closest('tr'); 
+        r.querySelector('.c-ene-total').value = (parseInt(r.querySelector('.c-base').value)||0) + (parseInt(r.querySelector('.c-bonus').value)||0); 
+        calcFinal(e); 
+    }
+
+    window.calcFinal = (e) => { 
+        const r = e.closest('tr'); if(!r) return; 
+        const ene = parseInt(r.querySelector('.c-ene-total').value)||0; 
+        let f = Math.floor(ene/80); 
+        const b = parseInt(r.querySelector('.c-boss').value); 
+        // รวม Reward ปกติ + โบนัส
+        const rwTotal = (parseInt(r.querySelector('.c-reward').value)||0) + (parseInt(r.querySelector('.c-reward-bonus').value)||0);
+        
+        if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); 
+        if(r.querySelector('.c-reward').value !== "" || r.querySelector('.c-reward-bonus').value !== "") f = Math.min(f, rwTotal); 
+        
+        r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; 
+        updateTotalRuns(); queueSave(); 
+    }
+    
     window.calcSum = () => { const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0); document.getElementById('s-play').value = p; const d = (parseInt(document.getElementById('s-target').value)||0) - p; document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave(); }
     
     window.addItemRow = (d = {}) => {
