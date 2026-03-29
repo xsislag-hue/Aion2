@@ -202,10 +202,79 @@
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
-    // --- ⚡ LOGIC REFILL: หัวใจสำคัญของการเด้งตัวเลข ---
+    // --- 💾 DATABASE CORE ---
+    async function initIDSystem() {
+        onValue(ref(db, `users/${userName}/config/idList`), (snapshot) => {
+            idList = snapshot.val() || [1];
+            loadAllIDNames();
+        });
+    }
+
+    async function loadAllIDNames() {
+        const snapshot = await get(ref(db, `users/${userName}`));
+        const allData = snapshot.val() || {};
+        idNames = {};
+        idList.forEach(id => {
+            const idData = allData[`id_${id}`];
+            idNames[id] = (idData && idData.note) ? idData.note : `ID ${id}`;
+        });
+        renderIDTabs();
+        loadFromCloud();
+    }
+
+    // --- ส่วนจัดการ Tabs ใหม่ ---
+    window.renderIDTabs = () => {
+        const tabsContainer = document.getElementById('idTabsList');
+        tabsContainer.innerHTML = idList.map(id => {
+            const isActive = (id === currentID);
+            const activeClass = isActive ? 'active' : '';
+            const diamond = isActive ? '💎 ' : '';
+            const name = idNames[id] || `ID ${id}`;
+            
+            return `
+                <div class="id-tab ${activeClass}" onclick="switchID(${id})">
+                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">
+                        ${diamond}${name}
+                    </span>
+                    <button class="btn-del-id" onclick="event.stopPropagation(); deleteID(${id})">×</button>
+                </div>
+            `;
+        }).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
+    }
+
+    window.switchID = (id) => { 
+        if (currentID === id) return; 
+        currentID = id; 
+        renderIDTabs(); // อัปเดต UI ทันที
+        loadFromCloud(); 
+    }
+
+    window.updateIDTabName = (val) => { 
+        idNames[currentID] = val || `ID ${currentID}`; 
+        renderIDTabs(); 
+    }
+
+    window.addNewID = () => { 
+        const n = Math.max(...idList, 0) + 1; 
+        idList.push(n); 
+        set(ref(db, `users/${userName}/config/idList`), idList); 
+        currentID = n; 
+        loadAllIDNames(); 
+    }
+
+    window.deleteID = async (id) => { 
+        if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { 
+            idList = idList.filter(i => i !== id); 
+            await set(ref(db, `users/${userName}/config/idList`), idList); 
+            await remove(ref(db, `users/${userName}/id_${id}`)); 
+            if (currentID === id) currentID = idList[0]; 
+            loadAllIDNames(); 
+        } 
+    }
+
+    // --- ⚡ LOGIC REFILL ---
     async function checkAutoRefill(data) {
         if (!data || !data.lastUpdate) return false;
-
         const lastUpdateTime = new Date(data.lastUpdate);
         const now = new Date();
         let changed = false;
@@ -215,11 +284,8 @@
             let current = new Date(lastDate);
             current.setMinutes(0, 0, 0); 
             current.setHours(current.getHours() + 1);
-
             while (current <= nowDate) {
-                if (hoursArray.includes(current.getHours())) {
-                    passes++;
-                }
+                if (hoursArray.includes(current.getHours())) passes++;
                 current.setHours(current.getHours() + 1);
             }
             return passes;
@@ -247,37 +313,8 @@
             });
             changed = true;
         }
-
         return changed ? data : false;
     }
-
-    // --- 💾 DATABASE CORE ---
-    async function initIDSystem() {
-        onValue(ref(db, `users/${userName}/config/idList`), (snapshot) => {
-            idList = snapshot.val() || [1];
-            loadAllIDNames();
-        });
-    }
-
-    async function loadAllIDNames() {
-        const snapshot = await get(ref(db, `users/${userName}`));
-        const allData = snapshot.val() || {};
-        idNames = {};
-        idList.forEach(id => {
-            const idData = allData[`id_${id}`];
-            idNames[id] = (idData && idData.note) ? idData.note : `ID ${id}`;
-        });
-        renderIDTabs();
-        loadFromCloud();
-    }
-
-    window.updateIDTabName = (val) => { idNames[currentID] = val || `ID ${currentID}`; renderIDTabs(); }
-    window.renderIDTabs = () => {
-        document.getElementById('idTabsList').innerHTML = idList.map(id => `<div class="id-tab ${id === currentID ? 'active' : ''}" onclick="switchID(${id})"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${id===currentID?'💎':''} ${idNames[id]||'ID '+id}</span><button class="btn-del-id" onclick="event.stopPropagation();deleteID(${id})">×</button></div>`).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
-    }
-    window.switchID = (id) => { currentID = id; loadFromCloud(); }
-    window.addNewID = () => { const n = Math.max(...idList, 0) + 1; idList.push(n); set(ref(db, `users/${userName}/config/idList`), idList); currentID = n; loadAllIDNames(); }
-    window.deleteID = async (id) => { if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { idList = idList.filter(i => i !== id); await set(ref(db, `users/${userName}/config/idList`), idList); await remove(ref(db, `users/${userName}/id_${id}`)); if (currentID === id) currentID = idList[0]; loadAllIDNames(); } }
 
     async function saveToCloud() {
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
@@ -335,7 +372,7 @@
         calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(false); updateGlobalKinah();
     }
 
-    // --- 🖼️ UI HELPERS ---
+    // --- UI HELPERS ---
     window.addCharRow = (d = {}) => {
         const row = document.getElementById('charBody').insertRow();
         row.innerHTML = `
@@ -396,16 +433,9 @@
         const hrs = now.getHours();
         const mins = now.getMinutes();
         const secs = now.getSeconds();
-
         document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
         
-        // --- ⚡ ACTIVE TRIGGER: เด้งตัวเลขทันทีเมื่อแตะนาทีที่ 0 วินาทีที่ 0 ---
-        if (mins === 0 && secs === 0) {
-            if (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs)) {
-                console.log("Auto-Refilling now...");
-                loadFromCloud(); // เรียกฟังก์ชันโหลดและเติมเงินทันที
-            }
-        }
+        if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
 
         let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
         let targetE = new Date(now); if (hrs >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
@@ -418,7 +448,6 @@
         document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor(dr/3600000)}:${String(Math.floor((dr%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((dr%60000)/1000)).padStart(2,'0')} น.`;
     }, 1000);
 
-    // --- 📱 MISC UI ---
     window.switchTab = (t) => {
         document.getElementById('charPage').classList.toggle('hidden', t !== 'char');
         document.getElementById('itemPage').classList.toggle('hidden', t !== 'item');
