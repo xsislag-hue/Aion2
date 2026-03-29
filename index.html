@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - Auto-Sync Edition</title>
+    <title>AION 2 Tracker - Smart Auto-Refill</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -36,6 +36,7 @@
         th { background: #1f2937; padding: 12px 5px; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); color: var(--gold); text-align: center; font-size: var(--fs-header); }
         td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; height: 52px; vertical-align: middle; }
         
+        /* Fixed Input & Select Styles */
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
         select.input-cell { background-color: transparent; color: var(--text-main); cursor: pointer; text-align-last: center; }
         select.input-cell option { background-color: #1e293b !important; color: #ffffff !important; }
@@ -206,79 +207,59 @@
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22]; // เวลาเติม Energy
     const REWARD_HOURS = [4, 12, 20]; // เวลาเติม Reward
 
-    // --- ระบบ AUTO SYNC ตามเวลาจริง ---
+    // --- AUTO REFILL LOGIC WITH CAPS ---
 
     async function checkAutoRefill(data) {
-        if (!data || !data.lastUpdate) {
-            // ถ้าเป็นการสร้างข้อมูลใหม่ ให้บันทึกเวลาปัจจุบันไว้ก่อน
-            return false;
-        }
+        if (!data || !data.lastUpdate) return false;
 
         const lastUpdateTime = new Date(data.lastUpdate);
         const now = new Date();
         let changed = false;
 
-        // 1. คำนวณ Energy ที่ควรเพิ่ม (ทุกช่วง MILESTONES)
-        MILESTONES.forEach(hour => {
-            let checkTime = new Date(lastUpdateTime);
-            checkTime.setHours(hour, 0, 0, 0);
-            
-            // ถ้าจุดเช็กเวลาอยู่ระหว่าง "เวลาบันทึกล่าสุด" กับ "ตอนนี้"
-            if (checkTime > lastUpdateTime && checkTime <= now) {
-                const addEne = data.isVip ? 15 : 10;
-                data.chars.forEach(c => {
-                    if (c.name) {
-                        c.base = (parseInt(c.base) || 0) + addEne;
-                    }
-                });
-                changed = true;
-            }
-            
-            // กรณีข้ามวัน
-            let checkNextDay = new Date(checkTime);
-            checkNextDay.setDate(checkNextDay.getDate() + 1);
-            if (checkNextDay > lastUpdateTime && checkNextDay <= now) {
-                const addEne = data.isVip ? 15 : 10;
-                data.chars.forEach(c => {
-                    if (c.name) {
-                        c.base = (parseInt(c.base) || 0) + addEne;
-                    }
-                });
-                changed = true;
-            }
-        });
+        // ฟังก์ชันช่วยหาว่าข้ามช่วงเวลาที่กำหนดไปกี่ครั้ง
+        const countPasses = (hoursArray, lastDate, nowDate) => {
+            let passes = 0;
+            let current = new Date(lastDate);
+            current.setMinutes(0, 0, 0);
 
-        // 2. คำนวณ Reward ที่ควรเพิ่ม (ทุกช่วง REWARD_HOURS)
-        REWARD_HOURS.forEach(hour => {
-            let checkTime = new Date(lastUpdateTime);
-            checkTime.setHours(hour, 0, 0, 0);
-
-            if (checkTime > lastUpdateTime && checkTime <= now) {
-                data.chars.forEach(c => {
-                    if (c.name) {
-                        c.reward = (parseInt(c.reward) || 0) + 1;
-                    }
-                });
-                changed = true;
+            while (current <= nowDate) {
+                if (hoursArray.includes(current.getHours()) && current > lastDate && current <= nowDate) {
+                    passes++;
+                }
+                current.setHours(current.getHours() + 1);
             }
+            return passes;
+        };
 
-            // กรณีข้ามวัน
-            let checkNextDay = new Date(checkTime);
-            checkNextDay.setDate(checkNextDay.getDate() + 1);
-            if (checkNextDay > lastUpdateTime && checkNextDay <= now) {
-                data.chars.forEach(c => {
-                    if (c.name) {
-                        c.reward = (parseInt(c.reward) || 0) + 1;
-                    }
-                });
-                changed = true;
-            }
-        });
+        // 1. เติม Energy (Cap 840)
+        const energyPasses = countPasses(MILESTONES, lastUpdateTime, now);
+        if (energyPasses > 0) {
+            const addEne = (data.isVip ? 15 : 10) * energyPasses;
+            data.chars.forEach(c => {
+                if (c.name) {
+                    let cur = parseInt(c.base) || 0;
+                    c.base = Math.min(840, cur + addEne);
+                }
+            });
+            changed = true;
+        }
+
+        // 2. เติม Reward (Cap 21)
+        const rewardPasses = countPasses(REWARD_HOURS, lastUpdateTime, now);
+        if (rewardPasses > 0) {
+            data.chars.forEach(c => {
+                if (c.name) {
+                    let cur = parseInt(c.reward) || 0;
+                    c.reward = Math.min(21, cur + rewardPasses);
+                }
+            });
+            changed = true;
+        }
 
         return changed ? data : false;
     }
 
-    // --- ID SYSTEM ---
+    // --- FIREBASE & CORE SYSTEM ---
 
     async function initIDSystem() {
         const idListRef = ref(db, `users/${userName}/config/idList`);
@@ -341,8 +322,6 @@
         }
     }
 
-    // --- SAVE & LOAD ---
-
     async function saveToCloud() {
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
@@ -360,22 +339,22 @@
             summary: { con: document.getElementById('s-con').value, tra: document.getElementById('s-tra').value, target: document.getElementById('s-target').value },
             isVip: document.getElementById('pageVipToggle').checked,
             vipExpire: localStorage.getItem(`VIP_${userName}_${currentID}`) || "",
-            lastUpdate: new Date().toISOString() // บันทึกเวลาที่แก้ไขล่าสุด
+            lastUpdate: new Date().toISOString()
         };
         await set(ref(db, `users/${userName}/id_${currentID}`), data);
         updateGlobalKinah();
-        showStatus("✓ บันทึกข้อมูลเรียบร้อย");
+        showStatus("✓ บันทึกข้อมูลแล้ว");
     }
 
     async function loadFromCloud() {
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
 
-        // ตรวจสอบว่าต้องเพิ่ม Energy/Reward ตามเวลาที่หายไปไหม
+        // ตรวจสอบ Auto Refill ย้อนหลัง
         const updatedData = await checkAutoRefill(data);
         if (updatedData) {
             data = updatedData;
-            await set(ref(db, `users/${userName}/id_${currentID}`), data); // เซฟค่าที่อัปเดตใหม่กลับขึ้น Cloud
+            await set(ref(db, `users/${userName}/id_${currentID}`), data);
         }
 
         renderLoadedData(data);
@@ -407,7 +386,7 @@
         calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(false); updateGlobalKinah();
     }
 
-    // --- UI LOGIC ---
+    // --- UI HELPERS ---
 
     window.formatKinah = function(i) { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","); updateGlobalKinah(); }
     async function updateGlobalKinah() {
@@ -506,33 +485,29 @@
     function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = "block"; setTimeout(()=>s.style.display="none", 2000); }
     let saveTimeout; window.queueSave = function() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1000); }
 
-    // --- REALTIME CLOCK & NEXT REFILL TIMERS ---
+    // --- TIMERS & REALTIME SYNC ---
 
     setInterval(() => {
         const now = new Date(); document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
         
-        // Timer Energy
-        let nextE = MILESTONES.find(m => m > now.getHours());
-        if (nextE === undefined) nextE = MILESTONES[0];
+        let nextE = MILESTONES.find(m => m > now.getHours()) ?? MILESTONES[0];
         let targetE = new Date(now);
         if (now.getHours() >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
         targetE.setHours(nextE, 0, 0, 0);
         const de = targetE - now; 
         document.getElementById('energyNextTimer').innerText = `${Math.floor(de/3600000)}:${String(Math.floor((de%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((de%60000)/1000)).padStart(2,'0')}`;
 
-        // Timer Reward
-        let nextR = REWARD_HOURS.find(r => r > now.getHours());
-        if (nextR === undefined) nextR = REWARD_HOURS[0];
+        let nextR = REWARD_HOURS.find(r => r > now.getHours()) ?? REWARD_HOURS[0];
         let targetR = new Date(now);
         if (now.getHours() >= REWARD_HOURS[REWARD_HOURS.length-1]) targetR.setDate(targetR.getDate() + 1);
         targetR.setHours(nextR, 0, 0, 0);
         const dr = targetR - now; 
         document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor(dr/3600000)}:${String(Math.floor((dr%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((dr%60000)/1000)).padStart(2,'0')} น.`;
 
-        // Check for exact second of refill (to update UI immediately)
+        // เช็กทุกต้นชั่วโมงเพื่อทำ Auto-Refill ทันที
         if (now.getMinutes() === 0 && now.getSeconds() === 0) {
             if (MILESTONES.includes(now.getHours()) || REWARD_HOURS.includes(now.getHours())) {
-                loadFromCloud(); // โหลดใหม่เพื่อให้ระบบคำนวณส่วนต่างแล้วอัปเดตจอ
+                loadFromCloud(); 
             }
         }
     }, 1000);
