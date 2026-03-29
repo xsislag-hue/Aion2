@@ -199,6 +199,9 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
 
     let currentID = 1, idList = [1], idNames = {}, vipInterval;
+    let saveTimeout;
+    let isLoading = false; // ตัวแปรล็อกสถานะการโหลด
+
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
@@ -222,30 +225,27 @@
         loadFromCloud();
     }
 
-    // --- ส่วนจัดการ Tabs ใหม่ ---
     window.renderIDTabs = () => {
         const tabsContainer = document.getElementById('idTabsList');
         tabsContainer.innerHTML = idList.map(id => {
             const isActive = (id === currentID);
-            const activeClass = isActive ? 'active' : '';
-            const diamond = isActive ? '💎 ' : '';
-            const name = idNames[id] || `ID ${id}`;
-            
             return `
-                <div class="id-tab ${activeClass}" onclick="switchID(${id})">
+                <div class="id-tab ${isActive ? 'active' : ''}" onclick="switchID(${id})">
                     <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">
-                        ${diamond}${name}
+                        ${isActive ? '💎 ' : ''}${idNames[id] || 'ID ' + id}
                     </span>
                     <button class="btn-del-id" onclick="event.stopPropagation(); deleteID(${id})">×</button>
-                </div>
-            `;
+                </div>`;
         }).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     }
 
     window.switchID = (id) => { 
-        if (currentID === id) return; 
+        if (currentID === id || isLoading) return; 
+        
+        clearTimeout(saveTimeout); // หยุดการบันทึกของ ID เก่าทันทีที่กดเปลี่ยน
+        
         currentID = id; 
-        renderIDTabs(); // อัปเดต UI ทันที
+        renderIDTabs(); 
         loadFromCloud(); 
     }
 
@@ -317,6 +317,8 @@
     }
 
     async function saveToCloud() {
+        if (isLoading) return; // ห้ามบันทึกขณะโหลดข้อมูล
+
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
             base: r.querySelector('.c-base').value, bonus: r.querySelector('.c-bonus').value,
@@ -337,10 +339,11 @@
         };
         await set(ref(db, `users/${userName}/id_${currentID}`), data);
         updateGlobalKinah();
-        showStatus("✓ บันทึกข้อมูลแล้ว");
+        showStatus("✓ บันทึก ID " + currentID + " แล้ว");
     }
 
     async function loadFromCloud() {
+        isLoading = true; // ล็อกสถานะเริ่มโหลด
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
         if (data) {
@@ -348,6 +351,7 @@
             if (updated) { data = updated; await set(ref(db, `users/${userName}/id_${currentID}`), data); }
         }
         renderLoadedData(data);
+        setTimeout(() => { isLoading = false; }, 500); // ปลดล็อกหลังโหลดเสร็จ 0.5 วินาที
     }
 
     function renderLoadedData(data) {
@@ -486,7 +490,13 @@
     }
     function updateTotalRuns() { let t = 0; document.querySelectorAll('.c-final').forEach(i => t += (parseInt(i.value)||0)); document.getElementById('totalRunsDisplay').innerText = t; }
     function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = "block"; setTimeout(()=>s.style.display="none", 2000); }
-    let saveTimeout; window.queueSave = () => { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1000); }
+    
+    // ปรับปรุงระบบคิวบันทึก
+    window.queueSave = () => { 
+        if (isLoading) return; // ถ้ากำลังโหลดข้อมูลใหม่ ห้ามสั่งคิวบันทึก
+        clearTimeout(saveTimeout); 
+        saveTimeout = setTimeout(saveToCloud, 1000); 
+    }
 
     window.onload = initIDSystem;
 </script>
