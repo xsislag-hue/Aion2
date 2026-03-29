@@ -36,7 +36,6 @@
         
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
         
-        /* แก้ไข Dropdown อาชีพ */
         select.input-cell { background-color: #1e293b; color: var(--text-main); cursor: pointer; text-align-last: center; appearance: none; }
         select.input-cell option { background-color: #1e293b; color: #ffffff; padding: 10px; }
 
@@ -235,7 +234,10 @@
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
-    // --- ID SYSTEM ---
+    // --- INITIALIZE ---
+    initIDSystem();
+    startClocks();
+
     async function initIDSystem() {
         onValue(ref(db, `users/${userName}/config/idList`), (snap) => {
             idList = snap.val() || [1];
@@ -272,28 +274,13 @@
     window.addNewID = () => { const n = Math.max(...idList, 0) + 1; idList.push(n); set(ref(db, `users/${userName}/config/idList`), idList); currentID = n; loadAllIDNames(); }
     window.deleteID = async (id) => { if (idList.length > 1 && confirm(`ลบข้อมูล ID ${id}?`)) { idList = idList.filter(i => i !== id); await set(ref(db, `users/${userName}/config/idList`), idList); await remove(ref(db, `users/${userName}/id_${id}`)); if (currentID === id) currentID = idList[0]; loadAllIDNames(); } }
 
-    // --- GLOBAL DATA ---
-    window.updateGlobalData = async () => {
-        const snap = await get(ref(db, `users/${userName}`));
-        const allData = snap.val() || {};
-        const globalStore = {}; let kinahTotal = 0;
-        const kinahList = document.getElementById('kinahBreakdownList');
-        kinahList.innerHTML = "";
-        Object.keys(allData).forEach(key => {
-            if(key.startsWith('id_')) {
-                const data = allData[key];
-                const idNum = key.replace('id_', '');
-                const m = parseInt(data.money) || 0; kinahTotal += m;
-                kinahList.innerHTML += `<div style="display:flex; justify-content:space-between; background:#0f172a; padding:8px 12px; border-radius:8px;">
-                    <span style="color:var(--text-dim);">${data.note || 'ID '+idNum}:</span><span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span></div>`;
-                if(data.items) data.items.forEach(it => { const name = (it.name || "").trim(); const val = parseInt(it.t1) || 0; if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val; });
-            }
-        });
-        document.getElementById('globalKinahTotal').innerText = kinahTotal.toLocaleString();
-        const itemBody = document.getElementById('globalItemBody'); itemBody.innerHTML = "";
-        const sortedItems = Object.keys(globalStore).sort();
-        if(sortedItems.length === 0) itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
-        else sortedItems.forEach(name => { itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td style="color:#10b981; font-size:20px; font-weight:700; text-align:center;">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`; });
+    window.switchTab = (tab) => {
+        document.getElementById('charPage').classList.toggle('hidden', tab !== 'char');
+        document.getElementById('itemPage').classList.toggle('hidden', tab !== 'item');
+        document.getElementById('globalPage').classList.toggle('hidden', tab !== 'global');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + tab).classList.add('active');
+        if(tab === 'global') updateGlobalData();
     }
 
     // --- REFILL LOGIC ---
@@ -302,6 +289,7 @@
         const lastUpdateTime = new Date(data.lastUpdate);
         const now = new Date();
         let changed = false;
+        
         const countPasses = (hoursArray, lastDate, nowDate) => {
             let passes = 0; let current = new Date(lastDate);
             current.setMinutes(0, 0, 0); current.setHours(current.getHours() + 1);
@@ -320,7 +308,6 @@
         if (rewardPasses > 0) {
             data.chars.forEach(c => { 
                 if (c.name) { 
-                    // เติมเฉพาะช่องปกติ (ช่องหน้า)
                     let cur = parseInt(c.reward) || 0; 
                     c.reward = Math.min(21, cur + rewardPasses); 
                 } 
@@ -330,14 +317,17 @@
         return changed ? data : false;
     }
 
+    // --- CLOUDS ---
+    window.queueSave = () => { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1500); }
+
     async function saveToCloud() {
         if (isLoading) return;
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
             base: r.querySelector('.c-base').value, bonus: r.querySelector('.c-bonus').value,
             boss: r.querySelector('.c-boss').value, 
-            reward: r.querySelector('.c-reward').value, // ตัวหน้า
-            rewardBonus: r.querySelector('.c-reward-bonus').value, // ตัวหลัง (โบนัส)
+            reward: r.querySelector('.c-reward').value,
+            rewardBonus: r.querySelector('.c-reward-bonus').value,
             buyChecked: r.querySelector('.c-buy').checked, craftChecked: r.querySelector('.c-craft').checked, 
             ascChecked: r.querySelector('.c-asc').checked, raidChecked: r.querySelector('.c-raid').checked
         }));
@@ -428,7 +418,6 @@
         const ene = parseInt(r.querySelector('.c-ene-total').value)||0; 
         let f = Math.floor(ene/80); 
         const b = parseInt(r.querySelector('.c-boss').value); 
-        // รวม Reward ปกติ + โบนัส
         const rwTotal = (parseInt(r.querySelector('.c-reward').value)||0) + (parseInt(r.querySelector('.c-reward-bonus').value)||0);
         
         if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); 
@@ -438,6 +427,7 @@
         updateTotalRuns(); queueSave(); 
     }
     
+    window.updateTotalRuns = () => { let t = 0; document.querySelectorAll('.c-final').forEach(el => t += parseInt(el.value)||0); document.getElementById('totalRunsDisplay').innerText = t; }
     window.calcSum = () => { const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0); document.getElementById('s-play').value = p; const d = (parseInt(document.getElementById('s-target').value)||0) - p; document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave(); }
     
     window.addItemRow = (d = {}) => {
@@ -451,46 +441,89 @@
     }
     window.calcItem = (e) => { const r = e.closest('tr'); r.querySelector('.i-total').value = (parseInt(r.querySelector('.i-t1').value)||0) + (parseInt(r.querySelector('.i-t2').value)||0); queueSave(); }
 
-    // --- TIMERS ---
-    setInterval(() => {
-        const now = new Date(); const hrs = now.getHours(); const mins = now.getMinutes(); const secs = now.getSeconds();
-        document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-        if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
-        let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
-        let targetE = new Date(now); if (hrs >= MILESTONES[MILESTONES.length-1]) targetE.setDate(targetE.getDate() + 1);
-        targetE.setHours(nextE, 0, 0, 0); const de = targetE - now;
-        document.getElementById('energyNextTimer').innerText = `${Math.floor(de/3600000)}:${String(Math.floor((de%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((de%60000)/1000)).padStart(2,'0')}`;
-        let nextR = REWARD_HOURS.find(r => r > hrs) ?? REWARD_HOURS[0];
-        let targetR = new Date(now); if (hrs >= REWARD_HOURS[REWARD_HOURS.length-1]) targetR.setDate(targetR.getDate() + 1);
-        targetR.setHours(nextR, 0, 0, 0); const dr = targetR - now;
-        document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor(dr/3600000)}:${String(Math.floor((dr%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((dr%60000)/1000)).padStart(2,'0')} น.`;
-    }, 1000);
+    window.formatKinah = (e) => { const v = e.value.replace(/\D/g, ""); e.value = v ? Number(v).toLocaleString() : ""; }
+    function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = 'block'; setTimeout(()=>s.style.display='none', 2000); }
 
-    // --- TABS & VIP ---
-    window.switchTab = (t) => {
-        document.getElementById('charPage').classList.toggle('hidden', t !== 'char');
-        document.getElementById('itemPage').classList.toggle('hidden', t !== 'item');
-        document.getElementById('globalPage').classList.toggle('hidden', t !== 'global');
-        document.getElementById('btn-char').classList.toggle('active', t === 'char');
-        document.getElementById('btn-item').classList.toggle('active', t === 'item');
-        document.getElementById('btn-global').classList.toggle('active', t === 'global');
-        if(t === 'global') updateGlobalData();
+    // --- VIP & TIMERS ---
+    window.togglePageVip = (save=true) => {
+        const isVip = document.getElementById('pageVipToggle').checked;
+        document.getElementById('sliderBtn').style.background = isVip ? '#10b981' : '#475569';
+        document.getElementById('energyValueText').innerText = isVip ? '+15' : '+10';
+        if(save) queueSave();
     }
-    window.togglePageVip = (save = true) => { const v = document.getElementById('pageVipToggle').checked; document.getElementById('energyValueText').innerText = v ? "+15" : "+10"; document.getElementById('sliderBtn').style.background = v ? "var(--success)" : "#475569"; if (save) queueSave(); }
-    window.calcVipExpire = () => { const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0; if(d===0 && h===0) return; localStorage.setItem(`VIP_${userName}_${currentID}`, Date.now() + (d*86400000) + (h*3600000)); updateVipDisplay(); queueSave(); }
+
+    window.calcVipExpire = () => {
+        const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0;
+        if(d===0 && h===0) return;
+        const exp = new Date(); exp.setDate(exp.getDate()+d); exp.setHours(exp.getHours()+h);
+        localStorage.setItem(`VIP_${userName}_${currentID}`, exp.toISOString());
+        updateVipDisplay(); queueSave();
+    }
+
     function updateVipDisplay() {
-        const exp = localStorage.getItem(`VIP_${userName}_${currentID}`); if(vipInterval) clearInterval(vipInterval);
-        if(!exp) { document.getElementById('countdownLabel').innerText = "00 วัน 00:00:00"; return; }
-        const target = new Date(parseInt(exp));
-        document.getElementById('expireFullDate').innerText = "หมดอายุ: " + target.toLocaleString('th-TH', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
-        vipInterval = setInterval(() => { const diff = target - Date.now(); if(diff <= 0) { document.getElementById('countdownLabel').innerText = "VIP หมดอายุ"; return; } const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000); document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }, 1000);
+        clearInterval(vipInterval);
+        vipInterval = setInterval(() => {
+            const expStr = localStorage.getItem(`VIP_${userName}_${currentID}`);
+            if(!expStr) { document.getElementById('countdownLabel').innerText = "ไม่ได้ตั้งค่า"; return; }
+            const diff = new Date(expStr) - new Date();
+            if(diff <= 0) { document.getElementById('countdownLabel').innerText = "หมดอายุแล้ว"; document.getElementById('pageVipToggle').checked = false; togglePageVip(false); return; }
+            const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000);
+            document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+            const dateObj = new Date(expStr);
+            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            document.getElementById('expireFullDate').innerText = `หมดอายุ: วัน${thaiDays[dateObj.getDay()]}ที่ ${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} เวลา ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')} น.`;
+        }, 1000);
     }
-    window.formatKinah = (i) => { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","); updateGlobalKinah(); }
-    async function updateGlobalKinah() { const snap = await get(ref(db, `users/${userName}`)); let t = 0; const val = snap.val(); if(val) Object.keys(val).forEach(k => { if(k.startsWith('id_')) t += parseInt(val[k].money || 0); }); document.getElementById('globalKinahTotal').innerText = t.toLocaleString(); }
-    function updateTotalRuns() { let t = 0; document.querySelectorAll('.c-final').forEach(i => t += (parseInt(i.value)||0)); document.getElementById('totalRunsDisplay').innerText = t; }
-    function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = "block"; setTimeout(()=>s.style.display="none", 2000); }
-    window.queueSave = () => { if(isLoading) return; clearTimeout(saveTimeout); saveTimeout = setTimeout(saveToCloud, 1000); }
-    window.onload = initIDSystem;
+
+    function startClocks() {
+        setInterval(() => {
+            const now = new Date(); 
+            const hrs = now.getHours(); const mins = now.getMinutes(); const secs = now.getSeconds();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+            if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
+            
+            let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
+            let diffE = new Date(); diffE.setHours(nextE,0,0,0); if(nextE <= hrs) diffE.setDate(diffE.getDate()+1);
+            let sE = Math.floor((diffE-now)/1000), hE = Math.floor(sE/3600), mE = Math.floor((sE%3600)/60);
+            document.getElementById('energyNextTimer').innerText = `${String(hE).padStart(2,'0')}:${String(mE).padStart(2,'0')}:${String(sE%60).padStart(2,'0')}`;
+
+            let nextR = REWARD_HOURS.find(r => r > hrs) ?? REWARD_HOURS[0];
+            let diffR = new Date(); diffR.setHours(nextR,0,0,0); if(nextR <= hrs) diffR.setDate(diffR.getDate()+1);
+            document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${String(Math.floor((diffR-now)/3600000)).padStart(2,'0')}:${String(Math.floor(((diffR-now)%3600000)/60000)).padStart(2,'0')} น.`;
+        }, 1000);
+    }
+
+    window.updateGlobalKinah = async () => {
+        const snap = await get(ref(db, `users/${userName}`));
+        const allData = snap.val() || {};
+        let total = 0;
+        Object.keys(allData).forEach(key => { if(key.startsWith('id_')) total += parseInt(allData[key].money) || 0; });
+        document.getElementById('globalKinahTotal').innerText = total.toLocaleString();
+    }
+
+    window.updateGlobalData = async () => {
+        const snap = await get(ref(db, `users/${userName}`));
+        const allData = snap.val() || {};
+        const globalStore = {}; let kinahTotal = 0;
+        const kinahList = document.getElementById('kinahBreakdownList');
+        kinahList.innerHTML = "";
+        Object.keys(allData).forEach(key => {
+            if(key.startsWith('id_')) {
+                const data = allData[key];
+                const idNum = key.replace('id_', '');
+                const m = parseInt(data.money) || 0; kinahTotal += m;
+                kinahList.innerHTML += `<div style="display:flex; justify-content:space-between; background:#0f172a; padding:8px 12px; border-radius:8px;">
+                    <span style="color:var(--text-dim);">${data.note || 'ID '+idNum}:</span><span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span></div>`;
+                if(data.items) data.items.forEach(it => { const name = (it.name || "").trim(); const val = parseInt(it.t1) || 0; if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val; });
+            }
+        });
+        document.getElementById('globalKinahTotal').innerText = kinahTotal.toLocaleString();
+        const itemBody = document.getElementById('globalItemBody'); itemBody.innerHTML = "";
+        const sortedItems = Object.keys(globalStore).sort();
+        if(sortedItems.length === 0) itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
+        else sortedItems.forEach(name => { itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td style="color:#10b981; font-size:20px; font-weight:700; text-align:center;">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`; });
+    }
 </script>
 </body>
 </html>
