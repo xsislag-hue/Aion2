@@ -314,6 +314,13 @@
             });
             changed = true;
         }
+
+        // --- จุดที่แก้ไขบัค: อัปเดตเวลาล่าสุดทุกครั้งที่มีการคำนวณใหม่ ---
+        if (changed) {
+            data.lastUpdate = now.toISOString();
+        }
+        // --------------------------------------------------------
+
         return changed ? data : false;
     }
 
@@ -466,63 +473,104 @@
             const expStr = localStorage.getItem(`VIP_${userName}_${currentID}`);
             if(!expStr) { document.getElementById('countdownLabel').innerText = "ไม่ได้ตั้งค่า"; return; }
             const diff = new Date(expStr) - new Date();
-            if(diff <= 0) { document.getElementById('countdownLabel').innerText = "หมดอายุแล้ว"; document.getElementById('pageVipToggle').checked = false; togglePageVip(false); return; }
-            const dd = Math.floor(diff/86400000), hh = Math.floor((diff%86400000)/3600000), mm = Math.floor((diff%3600000)/60000), ss = Math.floor((diff%60000)/1000);
-            document.getElementById('countdownLabel').innerText = `${dd} วัน ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-            const dateObj = new Date(expStr);
-            const thaiDays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            document.getElementById('expireFullDate').innerText = `หมดอายุ: วัน${thaiDays[dateObj.getDay()]}ที่ ${dateObj.getDate()} ${thaiMonths[dateObj.getMonth()]} เวลา ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')} น.`;
+            
+            // ส่วนที่เขียนเติมให้ครบ
+            if(diff <= 0) {
+                document.getElementById('countdownLabel').innerText = "หมดอายุแล้ว";
+                document.getElementById('expireFullDate').innerText = "หมดอายุ: --";
+                return;
+            }
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const m = Math.floor((diff / 1000 / 60) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            document.getElementById('countdownLabel').innerText = `${d.toString().padStart(2,'0')} วัน ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            
+            const expDate = new Date(expStr);
+            const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+            const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+            document.getElementById('expireFullDate').innerText = `หมดอายุ: วัน${thDays[expDate.getDay()]}ที่ ${expDate.getDate()} ${thMonths[expDate.getMonth()]} เวลา ${expDate.getHours().toString().padStart(2,'0')}:${expDate.getMinutes().toString().padStart(2,'0')} น.`;
         }, 1000);
     }
 
     function startClocks() {
         setInterval(() => {
-            const now = new Date(); 
-            const hrs = now.getHours(); const mins = now.getMinutes(); const secs = now.getSeconds();
+            const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-            if (mins === 0 && secs === 0 && (MILESTONES.includes(hrs) || REWARD_HOURS.includes(hrs))) loadFromCloud();
-            
-            let nextE = MILESTONES.find(m => m > hrs) ?? MILESTONES[0];
-            let diffE = new Date(); diffE.setHours(nextE,0,0,0); if(nextE <= hrs) diffE.setDate(diffE.getDate()+1);
-            let sE = Math.floor((diffE-now)/1000), hE = Math.floor(sE/3600), mE = Math.floor((sE%3600)/60);
-            document.getElementById('energyNextTimer').innerText = `${String(hE).padStart(2,'0')}:${String(mE).padStart(2,'0')}:${String(sE%60).padStart(2,'0')}`;
 
-            let nextR = REWARD_HOURS.find(r => r > hrs) ?? REWARD_HOURS[0];
-            let diffR = new Date(); diffR.setHours(nextR,0,0,0); if(nextR <= hrs) diffR.setDate(diffR.getDate()+1);
-            document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${String(Math.floor((diffR-now)/3600000)).padStart(2,'0')}:${String(Math.floor(((diffR-now)%3600000)/60000)).padStart(2,'0')} น.`;
+            const nextEne = new Date();
+            nextEne.setMinutes(0, 0, 0);
+            while(!MILESTONES.includes(nextEne.getHours()) || nextEne <= now) {
+                nextEne.setHours(nextEne.getHours() + 1);
+            }
+            const eDiff = nextEne - now;
+            document.getElementById('energyNextTimer').innerText = `${Math.floor((eDiff/(1000*60*60))%24).toString().padStart(2,'0')}:${Math.floor((eDiff/1000/60)%60).toString().padStart(2,'0')}:${Math.floor((eDiff/1000)%60).toString().padStart(2,'0')}`;
+
+            const nextRew = new Date();
+            nextRew.setMinutes(0, 0, 0);
+            while(!REWARD_HOURS.includes(nextRew.getHours()) || nextRew <= now) {
+                nextRew.setHours(nextRew.getHours() + 1);
+            }
+            const rDiff = nextRew - now;
+            document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor((rDiff/(1000*60*60))%24).toString().padStart(2,'0')}:${Math.floor((rDiff/1000/60)%60).toString().padStart(2,'0')}:${Math.floor((rDiff/1000)%60).toString().padStart(2,'0')} น.`;
         }, 1000);
-    }
-
-    window.updateGlobalKinah = async () => {
-        const snap = await get(ref(db, `users/${userName}`));
-        const allData = snap.val() || {};
-        let total = 0;
-        Object.keys(allData).forEach(key => { if(key.startsWith('id_')) total += parseInt(allData[key].money) || 0; });
-        document.getElementById('globalKinahTotal').innerText = total.toLocaleString();
     }
 
     window.updateGlobalData = async () => {
         const snap = await get(ref(db, `users/${userName}`));
         const allData = snap.val() || {};
-        const globalStore = {}; let kinahTotal = 0;
-        const kinahList = document.getElementById('kinahBreakdownList');
-        kinahList.innerHTML = "";
-        Object.keys(allData).forEach(key => {
-            if(key.startsWith('id_')) {
-                const data = allData[key];
-                const idNum = key.replace('id_', '');
-                const m = parseInt(data.money) || 0; kinahTotal += m;
-                kinahList.innerHTML += `<div style="display:flex; justify-content:space-between; background:#0f172a; padding:8px 12px; border-radius:8px;">
-                    <span style="color:var(--text-dim);">${data.note || 'ID '+idNum}:</span><span style="color:#fff; font-weight:bold;">${m.toLocaleString()}</span></div>`;
-                if(data.items) data.items.forEach(it => { const name = (it.name || "").trim(); const val = parseInt(it.t1) || 0; if(name && val > 0) globalStore[name] = (globalStore[name] || 0) + val; });
+        let totalKinah = 0;
+        let globalItems = {};
+        const breakdown = document.getElementById('kinahBreakdownList');
+        if(breakdown) breakdown.innerHTML = '';
+        
+        idList.forEach(id => {
+            const d = allData[`id_${id}`];
+            if(d) {
+                const k = parseInt(d.money) || 0;
+                totalKinah += k;
+                if(breakdown) {
+                    breakdown.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 12px; background:#1e293b; border-radius:8px; border:1px solid var(--border);">
+                        <span style="color:#e2e8f0;">${idNames[id] || 'ID ' + id}</span>
+                        <span style="color:var(--gold); font-weight:bold;">${k.toLocaleString()}</span>
+                    </div>`;
+                }
+                if(d.items) {
+                    d.items.forEach(item => {
+                        if(item.name && item.t1) {
+                            const qty = parseInt(item.t1) || 0;
+                            if(qty > 0) globalItems[item.name] = (globalItems[item.name] || 0) + qty;
+                        }
+                    });
+                }
             }
         });
-        document.getElementById('globalKinahTotal').innerText = kinahTotal.toLocaleString();
-        const itemBody = document.getElementById('globalItemBody'); itemBody.innerHTML = "";
-        const sortedItems = Object.keys(globalStore).sort();
-        if(sortedItems.length === 0) itemBody.innerHTML = `<tr><td colspan="2" style="padding:30px; color:var(--text-dim); text-align:center;">ไม่มีไอเทมเทรดได้</td></tr>`;
-        else sortedItems.forEach(name => { itemBody.innerHTML += `<tr><td class="global-item-name">${name}</td><td style="color:#10b981; font-size:20px; font-weight:700; text-align:center;">${globalStore[name].toLocaleString()} <span style="font-size:12px; color:var(--text-dim);">ชิ้น</span></td></tr>`; });
+        
+        const gTotal = document.getElementById('globalKinahTotal');
+        if(gTotal) gTotal.innerText = totalKinah.toLocaleString();
+        
+        const gBody = document.getElementById('globalItemBody');
+        if(gBody) gBody.innerHTML = '';
+        for(let [name, qty] of Object.entries(globalItems)) {
+            if(gBody) {
+                gBody.innerHTML += `<tr>
+                    <td class="global-item-name">${name}</td>
+                    <td style="color:#60a5fa; font-weight:bold; font-size:18px; text-align:center;">${qty.toLocaleString()}</td>
+                </tr>`;
+            }
+        }
+    }
+
+    window.updateGlobalKinah = async () => {
+        const snap = await get(ref(db, `users/${userName}`));
+        const allData = snap.val() || {};
+        let t = 0;
+        idList.forEach(id => {
+            const d = allData[`id_${id}`];
+            if(d) t += parseInt(d.money) || 0;
+        });
+        const gTotal = document.getElementById('globalKinahTotal');
+        if(gTotal) gTotal.innerText = t.toLocaleString();
     }
 </script>
 </body>
