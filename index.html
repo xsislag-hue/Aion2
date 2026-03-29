@@ -36,7 +36,22 @@
         th { background: #1f2937; padding: 12px 5px; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); color: var(--gold); text-align: center; font-size: var(--fs-header); }
         td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; height: 52px; vertical-align: middle; }
         
+        /* สไตล์ช่อง Input ทั่วไป */
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
+        
+        /* แก้ไขปัญหาอาชีพ ขาวชนขาว */
+        select.input-cell { 
+            background-color: transparent; 
+            color: var(--text-main); 
+            cursor: pointer;
+            text-align-last: center; /* จัดชื่ออาชีพให้อยู่ตรงกลาง */
+        }
+        select.input-cell option { 
+            background-color: #1e293b !important; /* บังคับพื้นหลังเข้ม */
+            color: #ffffff !important;           /* บังคับตัวอักษรขาว */
+        }
+        select.input-cell:focus { background-color: rgba(59, 130, 246, 0.1); }
+
         .readonly-cell { background: rgba(59, 130, 246, 0.05) !important; color: #60a5fa; font-weight: 600; }
         .result-cell { background: rgba(251, 146, 60, 0.05) !important; color: #fb923c; font-weight: bold; font-size: 18px; }
 
@@ -204,22 +219,17 @@
 
     let currentID = 1;
     let idList = [1];
-    let idNames = {}; // เก็บชื่อเล่นของแต่ละ ID
+    let idNames = {};
     let vipInterval;
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 12, 20];
 
-    // --- ID SYSTEM WITH CUSTOM NAMES ---
-
     async function initIDSystem() {
-        // ดึงรายการ ID
         const idListRef = ref(db, `users/${userName}/config/idList`);
         onValue(idListRef, (snapshot) => {
             const data = snapshot.val();
             idList = data ? data : [1];
             if(!data) set(idListRef, [1]);
-            
-            // ดึงชื่อของแต่ละ ID มาแสดงบนปุ่ม
             loadAllIDNames();
         });
     }
@@ -275,8 +285,6 @@
         }
     }
 
-    // --- DATABASE SAVE/LOAD ---
-
     async function saveToCloud() {
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
             name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
@@ -322,8 +330,6 @@
         }, { onlyOnce: true });
     }
 
-    // --- LOGIC & UI ---
-
     window.formatKinah = function(i) { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ","); updateGlobalKinah(); }
     async function updateGlobalKinah() {
         const snap = await get(ref(db, `users/${userName}`));
@@ -337,8 +343,15 @@
         row.innerHTML = `
             <td><input type="text" class="input-cell c-name" value="${d.name||''}" placeholder="ชื่อ..." oninput="queueSave()"></td>
             <td><select class="input-cell c-job" onchange="queueSave()">
-                <option value="">อาชีพ</option>
-                ${["Ranger", "Gladiator", "Templar", "Assassin", "Sorcerer", "Spiritmaster", "Cleric", "Chanter"].map(c => `<option value="${c}" ${d.job===c?'selected':''}>${c}</option>`).join('')}
+                <option value="">เลือกอาชีพ</option>
+                <option value="Ranger" ${d.job==='Ranger'?'selected':''}>Ranger</option>
+                <option value="Gladiator" ${d.job==='Gladiator'?'selected':''}>Gladiator</option>
+                <option value="Templar" ${d.job==='Templar'?'selected':''}>Templar</option>
+                <option value="Assassin" ${d.job==='Assassin'?'selected':''}>Assassin</option>
+                <option value="Sorcerer" ${d.job==='Sorcerer'?'selected':''}>Sorcerer</option>
+                <option value="Spiritmaster" ${d.job==='Spiritmaster'?'selected':''}>Spiritmaster</option>
+                <option value="Cleric" ${d.job==='Cleric'?'selected':''}>Cleric</option>
+                <option value="Chanter" ${d.job==='Chanter'?'selected':''}>Chanter</option>
             </select></td>
             <td><div style="display:flex; justify-content:center;"><input type="number" class="input-cell c-base" style="width:45px;" value="${d.base||''}" oninput="updateMultiEne(this)">+<input type="number" class="input-cell c-bonus" style="width:45px; color:var(--success)" value="${d.bonus||''}" oninput="updateMultiEne(this)"></div></td>
             <td class="readonly-cell"><input type="text" class="input-cell c-ene-total" value="${(parseInt(d.base)||0)+(parseInt(d.bonus)||0)}" readonly></td>
