@@ -404,7 +404,10 @@
             <td class="readonly-cell"><input type="text" class="input-cell c-ene-total" readonly></td>
             <td><input type="number" class="input-cell c-boss" value="${d.boss||''}" oninput="calcFinal(this)"></td>
             <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-reward" style="width:40px" value="${d.reward||''}" oninput="calcFinal(this)">+<input type="number" class="input-cell c-reward-bonus" style="width:40px;color:var(--gold)" value="${d.rewardBonus||''}" oninput="calcFinal(this)"></div></td>
-            <td class="result-cell"><input type="text" class="input-cell c-final" readonly></td>
+            <td class="result-cell" style="position:relative; padding-top: 4px;">
+    <input type="text" class="input-cell c-final" style="height: 50%; font-size: 16px; margin-bottom: 2px;" readonly>
+    <button onclick="playOneRound(this)" style="width: 80%; padding: 3px 0; font-size: 12px; font-family: 'Prompt'; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer; display: block; margin: 0 auto; transition: 0.2s;">-1 รอบ</button>
+</td>
             <td>${createCheck('c-buy', d.buyChecked)}</td><td>${createCheck('c-craft', d.craftChecked)}</td>
             <td>${createCheck('c-asc', d.ascChecked)}</td><td>${createCheck('c-raid', d.raidChecked)}</td>
             <td><button style="border:none;background:none;color:#4b5563;cursor:pointer;font-size:20px;" onclick="this.parentElement.parentElement.remove();queueSave();">×</button></td>
@@ -433,6 +436,55 @@
         r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; 
         updateTotalRuns(); queueSave(); 
     }
+window.playOneRound = (btn) => {
+    const r = btn.closest('tr');
+    if(!r) return;
+
+    // เช็คว่ามีรอบให้ลงจริงไหม ถ้าเป็น 0 หรือไม่มีค่า จะไม่ทำงาน
+    let currentRuns = parseInt(r.querySelector('.c-final').value) || 0;
+    if (currentRuns <= 0) return; 
+
+    // 1. จัดการ Energy (-80 ต่อ 1 รอบ) -> หักจากค่าปกติก่อน
+    let baseEne = parseInt(r.querySelector('.c-base').value) || 0;
+    let bonusEne = parseInt(r.querySelector('.c-bonus').value) || 0;
+    let eneToDeduct = 80;
+
+    if (baseEne >= eneToDeduct) {
+        baseEne -= eneToDeduct;
+    } else {
+        eneToDeduct -= baseEne;
+        baseEne = 0;
+        bonusEne = Math.max(0, bonusEne - eneToDeduct);
+    }
+    
+    // ใส่ค่ากลับคืนไป (แสดงผลเป็น 0 ถ้าถูกหักจนหมด เพื่อความชัดเจนแบบที่คุณต้องการ)
+    r.querySelector('.c-base').value = baseEne;
+    r.querySelector('.c-bonus').value = bonusEne;
+
+    // 2. จัดการ Final Boss (-1)
+    let boss = parseInt(r.querySelector('.c-boss').value);
+    if (!isNaN(boss) && boss > 0) {
+        r.querySelector('.c-boss').value = boss - 1;
+    }
+
+    // 3. จัดการ Reward (-1) -> หักจากค่าปกติก่อน
+    let rewardBase = parseInt(r.querySelector('.c-reward').value) || 0;
+    let rewardBonus = parseInt(r.querySelector('.c-reward-bonus').value) || 0;
+    let rwToDeduct = 1;
+
+    if (rewardBase >= rwToDeduct) {
+        rewardBase -= rwToDeduct;
+    } else if (rewardBonus >= rwToDeduct) {
+        rewardBonus -= rwToDeduct;
+        rewardBase = 0; // บังคับให้ base เป็น 0 เพื่อความชัวร์
+    }
+    
+    r.querySelector('.c-reward').value = rewardBase;
+    r.querySelector('.c-reward-bonus').value = rewardBonus;
+
+    // 4. สั่งให้รีเฟรชยอดรวมใหม่ และ Save ลง Firebase อัตโนมัติ
+    updateMultiEne(r.querySelector('.c-base'));
+};
     
     window.updateTotalRuns = () => { let t = 0; document.querySelectorAll('.c-final').forEach(el => t += parseInt(el.value)||0); document.getElementById('totalRunsDisplay').innerText = t; }
     window.calcSum = () => { const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0); document.getElementById('s-play').value = p; const d = (parseInt(document.getElementById('s-target').value)||0) - p; document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave(); }
