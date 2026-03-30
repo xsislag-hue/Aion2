@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AION 2 Tracker - Smart Auto-Refill</title>
+    <title>AION 2 Tracker - Weekly Reset Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root { 
             --primary: #3b82f6; --primary-glow: rgba(59, 130, 246, 0.5);
@@ -20,6 +21,9 @@
         body { font-family: var(--font-main); background: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; padding: 20px; font-size: 16px; margin: 0; }
         .container { background: var(--dark-card); width: 100%; max-width: 1750px; padding: 25px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid var(--border); position: relative; min-height: 90vh; display: flex; flex-direction: column; }
         
+        /* Reset Notification Badge */
+        .reset-notice { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: #60a5fa; padding: 8px 15px; border-radius: 10px; font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+
         .global-summary-bar { background: #0f172a; padding: 15px 20px; border-radius: 15px; border: 1px solid var(--gold); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .global-total-amount { font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 0 10px var(--gold-glow); }
 
@@ -67,6 +71,10 @@
 <body>
 
 <div class="container">
+    <div class="reset-notice">
+        <span>🔄</span> <b>ระบบแจ้งเตือน:</b> ข้อมูล (Boss, Checkbox, Play Count) จะรีเซ็ตอัตโนมัติทุก <b>วันพุธ เวลา 09:00 น.</b> เพื่อเริ่มสัปดาห์ใหม่
+    </div>
+
     <div class="global-summary-bar">
         <div style="display:flex; align-items:center; gap:15px;">
             <span id="currentUserLabel" style="color:var(--gold); font-weight:bold; background:#1e293b; padding:5px 15px; border-radius:20px; border:1px solid var(--border);">👤 User: Loading...</span>
@@ -283,6 +291,41 @@
         if(tab === 'global') updateGlobalData();
     }
 
+    // --- WEEKLY RESET LOGIC ---
+    function checkWeeklyReset(data) {
+        if (!data || !data.lastUpdate) return data;
+        const now = new Date();
+        const lastUpdate = new Date(data.lastUpdate);
+
+        // หาเวลาวันพุธที่ผ่านมา 09:00 น.
+        let lastWed = new Date(now);
+        let dayDiff = now.getDay() - 3; 
+        if (dayDiff < 0 || (dayDiff === 0 && now.getHours() < 9)) dayDiff += 7;
+        lastWed.setDate(now.getDate() - dayDiff);
+        lastWed.setHours(9, 0, 0, 0);
+
+        // หากการอัปเดตครั้งล่าสุด เกิตขึ้นก่อนวันพุธ 09:00 ล่าสุด
+        if (lastUpdate < lastWed && now >= lastWed) {
+            console.log("Weekly Reset Triggered for ID " + currentID);
+            if (data.chars) {
+                data.chars.forEach(c => {
+                    c.boss = 35; // รีเซ็ตบอสเป็น 35
+                    c.buyChecked = false; // รีเซ็ตติ๊กถูก
+                    c.craftChecked = false;
+                    c.ascChecked = false;
+                    c.raidChecked = false;
+                });
+            }
+            if (data.summary) {
+                data.summary.con = 0; // รีเซ็ต Play Count
+                data.summary.tra = 0;
+            }
+            data.lastUpdate = now.toISOString();
+            data.wasReset = true;
+        }
+        return data;
+    }
+
     // --- REFILL LOGIC ---
     async function checkAutoRefill(data) {
         if (!data || !data.lastUpdate) return false;
@@ -306,21 +349,11 @@
         
         const rewardPasses = countPasses(REWARD_HOURS, lastUpdateTime, now);
         if (rewardPasses > 0) {
-            data.chars.forEach(c => { 
-                if (c.name) { 
-                    let cur = parseInt(c.reward) || 0; 
-                    c.reward = Math.min(21, cur + rewardPasses); 
-                } 
-            });
+            data.chars.forEach(c => { if (c.name) { let cur = parseInt(c.reward) || 0; c.reward = Math.min(21, cur + rewardPasses); } });
             changed = true;
         }
 
-        // --- จุดที่แก้ไขบัค: อัปเดตเวลาล่าสุดทุกครั้งที่มีการคำนวณใหม่ ---
-        if (changed) {
-            data.lastUpdate = now.toISOString();
-        }
-        // --------------------------------------------------------
-
+        if (changed) { data.lastUpdate = now.toISOString(); }
         return changed ? data : false;
     }
 
@@ -359,8 +392,12 @@
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
         if (data) {
-            const updated = await checkAutoRefill(data);
-            if (updated) { data = updated; await set(ref(db, `users/${userName}/id_${currentID}`), data); }
+            data = checkWeeklyReset(data); // เช็ครีเซ็ตสัปดาห์ก่อน
+            const updated = await checkAutoRefill(data); // เช็ค Energy รายวันต่อ
+            if (updated || data.wasReset) { 
+                delete data.wasReset;
+                await set(ref(db, `users/${userName}/id_${currentID}`), data); 
+            }
         }
         renderLoadedData(data);
         setTimeout(() => { isLoading = false; }, 500);
@@ -384,7 +421,7 @@
         calcSum(); updateVipDisplay(); updateTotalRuns(); togglePageVip(false); updateGlobalKinah();
     }
 
-    // --- UI HELPERS ---
+    // --- UI HELPERS (Keep Original Logic) ---
     window.addCharRow = (d = {}) => {
         const row = document.getElementById('charBody').insertRow();
         row.innerHTML = `
@@ -404,10 +441,13 @@
             <td class="readonly-cell"><input type="text" class="input-cell c-ene-total" readonly></td>
             <td><input type="number" class="input-cell c-boss" value="${d.boss||''}" oninput="calcFinal(this)"></td>
             <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-reward" style="width:40px" value="${d.reward||''}" oninput="calcFinal(this)">+<input type="number" class="input-cell c-reward-bonus" style="width:40px;color:var(--gold)" value="${d.rewardBonus||''}" oninput="calcFinal(this)"></div></td>
-            <td class="result-cell" style="position:relative; padding-top: 4px;">
-    <input type="text" class="input-cell c-final" style="height: 50%; font-size: 16px; margin-bottom: 2px;" readonly>
-    <button onclick="playOneRound(this)" style="width: 80%; padding: 3px 0; font-size: 12px; font-family: 'Prompt'; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer; display: block; margin: 0 auto; transition: 0.2s;">-1 รอบ</button>
-</td>
+            <td class="result-cell" style="position:relative; padding: 4px 0;">
+                <input type="text" class="input-cell c-final" style="height: 25px; font-size: 14px; margin-bottom: 2px;" readonly>
+                <div style="display: flex; gap: 2px; justify-content: center; padding: 0 4px;">
+                    <button onclick="playOneRound(this)" style="flex: 1; padding: 2px 0; font-size: 11px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">-1</button>
+                    <button onclick="undoOneRound(this)" style="flex: 1; padding: 2px 0; font-size: 11px; background: var(--success); color: white; border: none; border-radius: 4px; cursor: pointer;">+1</button>
+                </div>
+            </td>
             <td>${createCheck('c-buy', d.buyChecked)}</td><td>${createCheck('c-craft', d.craftChecked)}</td>
             <td>${createCheck('c-asc', d.ascChecked)}</td><td>${createCheck('c-raid', d.raidChecked)}</td>
             <td><button style="border:none;background:none;color:#4b5563;cursor:pointer;font-size:20px;" onclick="this.parentElement.parentElement.remove();queueSave();">×</button></td>
@@ -415,214 +455,211 @@
         updateMultiEne(row.querySelector('.c-base'));
     }
 
+    window.addItemRow = (d = {}) => {
+        const row = document.getElementById('itemBody').insertRow();
+        row.innerHTML = `
+            <td><input type="text" class="input-cell i-name" value="${d.name||''}" placeholder="ชื่อไอเทม..." oninput="queueSave()"></td>
+            <td><input type="number" class="input-cell i-t1" value="${d.t1||''}" oninput="calcItemTotal(this)"></td>
+            <td><input type="number" class="input-cell i-t2" value="${d.t2||''}" oninput="calcItemTotal(this)"></td>
+            <td class="readonly-cell"><input type="text" class="input-cell i-total" value="0" readonly></td>
+            <td><button style="border:none;background:none;color:#4b5563;cursor:pointer;font-size:20px;" onclick="this.parentElement.parentElement.remove();queueSave();">×</button></td>
+        `;
+        calcItemTotal(row.querySelector('.i-t1'));
+    }
+
     function createCheck(cls, chk) { return `<label class="check-container ${chk?'checked':''}"><input type="checkbox" class="${cls}" ${chk?'checked':''} onchange="this.closest('.check-container').classList.toggle('checked', this.checked); queueSave();"><span class="check-mark"></span></label>`; }
     
     window.updateMultiEne = (e) => { 
         const r = e.closest('tr'); 
-        r.querySelector('.c-ene-total').value = (parseInt(r.querySelector('.c-base').value)||0) + (parseInt(r.querySelector('.c-bonus').value)||0); 
+        const baseInput = r.querySelector('.c-base');
+        const baseVal = parseInt(baseInput.value) || 0;
+        const bonusVal = parseInt(r.querySelector('.c-bonus').value) || 0;
+        baseInput.style.color = baseVal >= 840 ? "#ef4444" : "var(--text-main)";
+        baseInput.style.fontWeight = baseVal >= 840 ? "bold" : "normal";
+        r.querySelector('.c-ene-total').value = baseVal + bonusVal; 
         calcFinal(e); 
     }
 
     window.calcFinal = (e) => { 
         const r = e.closest('tr'); if(!r) return; 
-        const ene = parseInt(r.querySelector('.c-ene-total').value)||0; 
-        let f = Math.floor(ene/80); 
-        const b = parseInt(r.querySelector('.c-boss').value); 
-        const rwTotal = (parseInt(r.querySelector('.c-reward').value)||0) + (parseInt(r.querySelector('.c-reward-bonus').value)||0);
-        
-        if(!isNaN(b) && r.querySelector('.c-boss').value !== "") f = Math.min(f, b); 
-        if(r.querySelector('.c-reward').value !== "" || r.querySelector('.c-reward-bonus').value !== "") f = Math.min(f, rwTotal); 
-        
-        r.querySelector('.c-final').value = f > 0 ? f + " รอบ" : "-"; 
+        const eneTotal = parseInt(r.querySelector('.c-ene-total').value) || 0; 
+        let finalRuns = Math.floor(eneTotal / 80); 
+        const bossVal = r.querySelector('.c-boss').value;
+        if (bossVal !== "" && !isNaN(parseInt(bossVal))) finalRuns = Math.min(finalRuns, parseInt(bossVal));
+        const rwNormal = parseInt(r.querySelector('.c-reward').value) || 0;
+        const rwBonus = parseInt(r.querySelector('.c-reward-bonus').value) || 0;
+        if (r.querySelector('.c-reward').value !== "" || r.querySelector('.c-reward-bonus').value !== "") finalRuns = Math.min(finalRuns, rwNormal + rwBonus);
+        r.querySelector('.c-final').value = finalRuns > 0 ? finalRuns + " รอบ" : "-"; 
         updateTotalRuns(); queueSave(); 
     }
-window.playOneRound = (btn) => {
-    const r = btn.closest('tr');
-    if(!r) return;
 
-    // เช็คว่ามีรอบให้ลงจริงไหม ถ้าเป็น 0 หรือไม่มีค่า จะไม่ทำงาน
-    let currentRuns = parseInt(r.querySelector('.c-final').value) || 0;
-    if (currentRuns <= 0) return; 
+    window.playOneRound = (btn) => {
+        const r = btn.closest('tr'); if(!r) return;
+        const finalVal = r.querySelector('.c-final').value;
+        if (finalVal === "-" || parseInt(finalVal) <= 0) return; 
+        let baseEne = parseInt(r.querySelector('.c-base').value) || 0;
+        let bonusEne = parseInt(r.querySelector('.c-bonus').value) || 0;
+        if (baseEne >= 80) baseEne -= 80; else { let remainder = 80 - baseEne; baseEne = 0; bonusEne = Math.max(0, bonusEne - remainder); }
+        r.querySelector('.c-base').value = baseEne;
+        r.querySelector('.c-bonus').value = bonusEne;
+        let bossInput = r.querySelector('.c-boss');
+        if (bossInput.value !== "") bossInput.value = Math.max(0, (parseInt(bossInput.value) || 0) - 1);
+        let rwInput = r.querySelector('.c-reward');
+        let rwBonusInput = r.querySelector('.c-reward-bonus');
+        if (rwInput.value !== "" && parseInt(rwInput.value) > 0) rwInput.value = parseInt(rwInput.value) - 1;
+        else if (rwBonusInput.value !== "" && parseInt(rwBonusInput.value) > 0) rwBonusInput.value = parseInt(rwBonusInput.value) - 1;
+        updateMultiEne(r.querySelector('.c-base'));
+    };
 
-    // 1. จัดการ Energy (-80 ต่อ 1 รอบ) -> หักจากค่าปกติก่อน
-    let baseEne = parseInt(r.querySelector('.c-base').value) || 0;
-    let bonusEne = parseInt(r.querySelector('.c-bonus').value) || 0;
-    let eneToDeduct = 80;
+    window.undoOneRound = (btn) => {
+        const r = btn.closest('tr'); if(!r) return;
+        r.querySelector('.c-base').value = (parseInt(r.querySelector('.c-base').value) || 0) + 80;
+        let bossInput = r.querySelector('.c-boss');
+        if (bossInput.value !== "") bossInput.value = (parseInt(bossInput.value) || 0) + 1;
+        let rwInput = r.querySelector('.c-reward');
+        if (rwInput.value !== "") rwInput.value = (parseInt(rwInput.value) || 0) + 1;
+        updateMultiEne(r.querySelector('.c-base'));
+    };
 
-    if (baseEne >= eneToDeduct) {
-        baseEne -= eneToDeduct;
-    } else {
-        eneToDeduct -= baseEne;
-        baseEne = 0;
-        bonusEne = Math.max(0, bonusEne - eneToDeduct);
-    }
-    
-    // ใส่ค่ากลับคืนไป (แสดงผลเป็น 0 ถ้าถูกหักจนหมด เพื่อความชัดเจนแบบที่คุณต้องการ)
-    r.querySelector('.c-base').value = baseEne;
-    r.querySelector('.c-bonus').value = bonusEne;
-
-    // 2. จัดการ Final Boss (-1)
-    let boss = parseInt(r.querySelector('.c-boss').value);
-    if (!isNaN(boss) && boss > 0) {
-        r.querySelector('.c-boss').value = boss - 1;
-    }
-
-    // 3. จัดการ Reward (-1) -> หักจากค่าปกติก่อน
-    let rewardBase = parseInt(r.querySelector('.c-reward').value) || 0;
-    let rewardBonus = parseInt(r.querySelector('.c-reward-bonus').value) || 0;
-    let rwToDeduct = 1;
-
-    if (rewardBase >= rwToDeduct) {
-        rewardBase -= rwToDeduct;
-    } else if (rewardBonus >= rwToDeduct) {
-        rewardBonus -= rwToDeduct;
-        rewardBase = 0; // บังคับให้ base เป็น 0 เพื่อความชัวร์
-    }
-    
-    r.querySelector('.c-reward').value = rewardBase;
-    r.querySelector('.c-reward-bonus').value = rewardBonus;
-
-    // 4. สั่งให้รีเฟรชยอดรวมใหม่ และ Save ลง Firebase อัตโนมัติ
-    updateMultiEne(r.querySelector('.c-base'));
-};
-    
-    window.updateTotalRuns = () => { let t = 0; document.querySelectorAll('.c-final').forEach(el => t += parseInt(el.value)||0); document.getElementById('totalRunsDisplay').innerText = t; }
-    window.calcSum = () => { const p = (parseInt(document.getElementById('s-con').value)||0) + (parseInt(document.getElementById('s-tra').value)||0); document.getElementById('s-play').value = p; const d = (parseInt(document.getElementById('s-target').value)||0) - p; document.getElementById('s-diff').value = d > 0 ? d : "ครบ"; queueSave(); }
-    
-    window.addItemRow = (d = {}) => {
-        const row = document.getElementById('itemBody').insertRow();
-        row.innerHTML = `<td><input type="text" class="input-cell i-name" value="${d.name||''}" oninput="queueSave()"></td>
-            <td><input type="number" class="input-cell i-t1" value="${d.t1||''}" oninput="calcItem(this)"></td>
-            <td><input type="number" class="input-cell i-t2" value="${d.t2||''}" oninput="calcItem(this)"></td>
-            <td class="readonly-cell"><input type="text" class="input-cell i-total" readonly></td>
-            <td><button style="border:none;background:none;color:#4b5563;cursor:pointer;font-size:20px;" onclick="this.parentElement.parentElement.remove();queueSave();">×</button></td>`;
-        calcItem(row.querySelector('.i-t1'));
-    }
-    window.calcItem = (e) => { const r = e.closest('tr'); r.querySelector('.i-total').value = (parseInt(r.querySelector('.i-t1').value)||0) + (parseInt(r.querySelector('.i-t2').value)||0); queueSave(); }
-
-    window.formatKinah = (e) => { const v = e.value.replace(/\D/g, ""); e.value = v ? Number(v).toLocaleString() : ""; }
-    function showStatus(t) { const s = document.getElementById('saveStatus'); s.innerText = t; s.style.display = 'block'; setTimeout(()=>s.style.display='none', 2000); }
-
-    // --- VIP & TIMERS ---
-    window.togglePageVip = (save=true) => {
-        const isVip = document.getElementById('pageVipToggle').checked;
-        document.getElementById('sliderBtn').style.background = isVip ? '#10b981' : '#475569';
-        document.getElementById('energyValueText').innerText = isVip ? '+15' : '+10';
-        if(save) queueSave();
+    window.calcItemTotal = (e) => {
+        const r = e.closest('tr');
+        const t1 = parseInt(r.querySelector('.i-t1').value) || 0;
+        const t2 = parseInt(r.querySelector('.i-t2').value) || 0;
+        r.querySelector('.i-total').value = (t1 + t2).toLocaleString();
+        queueSave();
     }
 
-    window.calcVipExpire = () => {
-        const d = parseInt(document.getElementById('vipDays').value)||0, h = parseInt(document.getElementById('vipHours').value)||0;
-        if(d===0 && h===0) return;
-        const exp = new Date(); exp.setDate(exp.getDate()+d); exp.setHours(exp.getHours()+h);
-        localStorage.setItem(`VIP_${userName}_${currentID}`, exp.toISOString());
-        updateVipDisplay(); queueSave();
+    window.calcSum = () => {
+        const con = parseInt(document.getElementById('s-con').value) || 0;
+        const tra = parseInt(document.getElementById('s-tra').value) || 0;
+        const target = parseInt(document.getElementById('s-target').value) || 0;
+        const play = con + tra;
+        document.getElementById('s-play').value = play;
+        const diff = target - play;
+        const df = document.getElementById('s-diff');
+        df.value = diff > 0 ? diff : "ครบแล้ว";
+        df.style.color = diff > 0 ? "var(--danger)" : "var(--success)";
+        queueSave();
     }
 
-    function updateVipDisplay() {
-        clearInterval(vipInterval);
-        vipInterval = setInterval(() => {
-            const expStr = localStorage.getItem(`VIP_${userName}_${currentID}`);
-            if(!expStr) { document.getElementById('countdownLabel').innerText = "ไม่ได้ตั้งค่า"; return; }
-            const diff = new Date(expStr) - new Date();
-            
-            // ส่วนที่เขียนเติมให้ครบ
-            if(diff <= 0) {
-                document.getElementById('countdownLabel').innerText = "หมดอายุแล้ว";
-                document.getElementById('expireFullDate').innerText = "หมดอายุ: --";
-                return;
-            }
-            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-            const m = Math.floor((diff / 1000 / 60) % 60);
-            const s = Math.floor((diff / 1000) % 60);
-            document.getElementById('countdownLabel').innerText = `${d.toString().padStart(2,'0')} วัน ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-            
-            const expDate = new Date(expStr);
-            const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-            const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
-            document.getElementById('expireFullDate').innerText = `หมดอายุ: วัน${thDays[expDate.getDay()]}ที่ ${expDate.getDate()} ${thMonths[expDate.getMonth()]} เวลา ${expDate.getHours().toString().padStart(2,'0')}:${expDate.getMinutes().toString().padStart(2,'0')} น.`;
-        }, 1000);
+    window.updateTotalRuns = () => {
+        let total = 0;
+        document.querySelectorAll('.c-final').forEach(f => {
+            const val = parseInt(f.value);
+            if (!isNaN(val)) total += val;
+        });
+        document.getElementById('totalRunsDisplay').innerText = total;
     }
 
+    // --- CLOCKS & VIP ---
     function startClocks() {
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-
-            const nextEne = new Date();
-            nextEne.setMinutes(0, 0, 0);
-            while(!MILESTONES.includes(nextEne.getHours()) || nextEne <= now) {
-                nextEne.setHours(nextEne.getHours() + 1);
-            }
-            const eDiff = nextEne - now;
-            document.getElementById('energyNextTimer').innerText = `${Math.floor((eDiff/(1000*60*60))%24).toString().padStart(2,'0')}:${Math.floor((eDiff/1000/60)%60).toString().padStart(2,'0')}:${Math.floor((eDiff/1000)%60).toString().padStart(2,'0')}`;
-
-            const nextRew = new Date();
-            nextRew.setMinutes(0, 0, 0);
-            while(!REWARD_HOURS.includes(nextRew.getHours()) || nextRew <= now) {
-                nextRew.setHours(nextRew.getHours() + 1);
-            }
-            const rDiff = nextRew - now;
-            document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${Math.floor((rDiff/(1000*60*60))%24).toString().padStart(2,'0')}:${Math.floor((rDiff/1000/60)%60).toString().padStart(2,'0')}:${Math.floor((rDiff/1000)%60).toString().padStart(2,'0')} น.`;
+            updateEnergyCountdown(now);
+            updateRewardCountdown(now);
         }, 1000);
+        setInterval(updateVipDisplay, 1000);
+    }
+
+    window.togglePageVip = (shouldSave = true) => {
+        const isVip = document.getElementById('pageVipToggle').checked;
+        document.getElementById('sliderBtn').style.background = isVip ? 'var(--primary)' : '#475569';
+        if(shouldSave) queueSave();
+    }
+
+    window.calcVipExpire = () => {
+        const d = parseInt(document.getElementById('vipDays').value) || 0;
+        const h = parseInt(document.getElementById('vipHours').value) || 0;
+        if (d === 0 && h === 0) return;
+        const exp = new Date(); exp.setDate(exp.getDate() + d); exp.setHours(exp.getHours() + h);
+        localStorage.setItem(`VIP_${userName}_${currentID}`, exp.toISOString());
+        document.getElementById('pageVipToggle').checked = true;
+        togglePageVip(); updateVipDisplay();
+    }
+
+    function updateVipDisplay() {
+        const expStr = localStorage.getItem(`VIP_${userName}_${currentID}`);
+        if (!expStr) {
+            document.getElementById('countdownLabel').innerText = "ไม่มี VIP";
+            document.getElementById('expireFullDate').innerText = "หมดอายุ: --";
+            return;
+        }
+        const exp = new Date(expStr);
+        const diff = exp - new Date();
+        if (diff <= 0) {
+            document.getElementById('countdownLabel').innerText = "VIP หมดอายุแล้ว";
+            document.getElementById('pageVipToggle').checked = false;
+            togglePageVip(); localStorage.removeItem(`VIP_${userName}_${currentID}`);
+        } else {
+            const days = Math.floor(diff / 86400000);
+            const hours = Math.floor((diff / 3600000) % 24);
+            const mins = Math.floor((diff / 60000) % 60);
+            const secs = Math.floor((diff / 1000) % 60);
+            document.getElementById('countdownLabel').innerText = `${days} วัน ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+            document.getElementById('expireFullDate').innerText = "หมดอายุ: " + exp.toLocaleString('th-TH');
+        }
+    }
+
+    function updateEnergyCountdown(now) {
+        const nextH = MILESTONES.find(h => h > now.getHours()) || MILESTONES[0];
+        let nxt = new Date(now); nxt.setHours(nextH, 0, 0, 0);
+        if (nextH === MILESTONES[0] && now.getHours() >= 22) nxt.setDate(nxt.getDate() + 1);
+        const diff = nxt - now;
+        const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+        const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+        const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+        document.getElementById('energyNextTimer').innerText = `${h}:${m}:${s}`;
+        document.getElementById('energyValueText').innerText = document.getElementById('pageVipToggle').checked ? "+15" : "+10";
+    }
+
+    function updateRewardCountdown(now) {
+        const nextH = REWARD_HOURS.find(h => h > now.getHours()) || REWARD_HOURS[0];
+        let nxt = new Date(now); nxt.setHours(nextH, 0, 0, 0);
+        if (nextH === REWARD_HOURS[0] && now.getHours() >= 20) nxt.setDate(nxt.getDate() + 1);
+        const diff = nxt - now;
+        const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+        const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+        const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+        document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${h}:${m}:${s} น.`;
+    }
+
+    window.formatKinah = (el) => {
+        let val = el.value.replace(/,/g, "");
+        if(!isNaN(val) && val !== "") el.value = Number(val).toLocaleString();
+    }
+
+    window.updateGlobalKinah = async () => {
+        let total = 0; const snap = await get(ref(db, `users/${userName}`));
+        const all = snap.val() || {};
+        Object.keys(all).forEach(k => { if(k.startsWith('id_') && all[k].money) total += parseInt(all[k].money); });
+        document.getElementById('globalKinahTotal').innerText = total.toLocaleString();
     }
 
     window.updateGlobalData = async () => {
         const snap = await get(ref(db, `users/${userName}`));
-        const allData = snap.val() || {};
-        let totalKinah = 0;
-        let globalItems = {};
+        const all = snap.val() || {};
         const breakdown = document.getElementById('kinahBreakdownList');
-        if(breakdown) breakdown.innerHTML = '';
-        
+        const globalBody = document.getElementById('globalItemBody');
+        breakdown.innerHTML = ""; globalBody.innerHTML = "";
+        let itemsSum = {};
         idList.forEach(id => {
-            const d = allData[`id_${id}`];
-            if(d) {
-                const k = parseInt(d.money) || 0;
-                totalKinah += k;
-                if(breakdown) {
-                    breakdown.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 12px; background:#1e293b; border-radius:8px; border:1px solid var(--border);">
-                        <span style="color:#e2e8f0;">${idNames[id] || 'ID ' + id}</span>
-                        <span style="color:var(--gold); font-weight:bold;">${k.toLocaleString()}</span>
-                    </div>`;
-                }
-                if(d.items) {
-                    d.items.forEach(item => {
-                        if(item.name && item.t1) {
-                            const qty = parseInt(item.t1) || 0;
-                            if(qty > 0) globalItems[item.name] = (globalItems[item.name] || 0) + qty;
-                        }
-                    });
-                }
-            }
+            const d = all[`id_${id}`];
+            breakdown.innerHTML += `<div style="display:flex;justify-content:space-between;background:#1e293b;padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+                <span style="color:var(--text-dim)">${d?.note || 'ID '+id}</span><span style="color:var(--gold);font-weight:600;">${d?.money ? parseInt(d.money).toLocaleString() : "0"} Kinah</span>
+            </div>`;
+            if (d?.items) d.items.forEach(it => { if (it.name && it.t1) itemsSum[it.name] = (itemsSum[it.name] || 0) + (parseInt(it.t1) || 0); });
         });
-        
-        const gTotal = document.getElementById('globalKinahTotal');
-        if(gTotal) gTotal.innerText = totalKinah.toLocaleString();
-        
-        const gBody = document.getElementById('globalItemBody');
-        if(gBody) gBody.innerHTML = '';
-        for(let [name, qty] of Object.entries(globalItems)) {
-            if(gBody) {
-                gBody.innerHTML += `<tr>
-                    <td class="global-item-name">${name}</td>
-                    <td style="color:#60a5fa; font-weight:bold; font-size:18px; text-align:center;">${qty.toLocaleString()}</td>
-                </tr>`;
-            }
-        }
+        Object.keys(itemsSum).forEach(name => {
+            const r = globalBody.insertRow();
+            r.innerHTML = `<td class="global-item-name">${name}</td><td style="text-align:center;font-size:18px;color:var(--gold);font-weight:bold;">${itemsSum[name].toLocaleString()}</td>`;
+        });
     }
 
-    window.updateGlobalKinah = async () => {
-        const snap = await get(ref(db, `users/${userName}`));
-        const allData = snap.val() || {};
-        let t = 0;
-        idList.forEach(id => {
-            const d = allData[`id_${id}`];
-            if(d) t += parseInt(d.money) || 0;
-        });
-        const gTotal = document.getElementById('globalKinahTotal');
-        if(gTotal) gTotal.innerText = t.toLocaleString();
+    function showStatus(txt) {
+        const s = document.getElementById('saveStatus');
+        s.innerText = txt; s.style.display = 'block';
+        setTimeout(() => s.style.display = 'none', 2000);
     }
 </script>
 </body>
