@@ -35,7 +35,7 @@
 
         .table-wrapper { width: 100%; overflow: hidden; margin-bottom: 25px; border-radius: 12px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; background: #111827; }
-        th { background: #1f2937; padding: 12px 2px; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); color: var(--gold); text-align: center; font-size: var(--fs-header); }
+        th { background: #1f2937; padding: 12px 5px; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); color: var(--gold); text-align: center; font-size: var(--fs-header); }
         td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0; height: 52px; vertical-align: middle; }
         
         .input-cell { width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: var(--fs-table); text-align: center; color: var(--text-main); font-family: 'Prompt'; }
@@ -62,9 +62,6 @@
         .tabs-container { display: flex; background: #111827; padding: 6px; border-radius: 12px; margin-bottom: 25px; width: fit-content; border: 1px solid var(--border); gap: 8px; }
         .tab-btn { padding: 10px 25px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-weight: 600; border-radius: 10px; transition: 0.3s; }
         .tab-btn.active { background: #334155; color: white; }
-
-        .tab-btn-planner { color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
-        .tab-btn-planner.active { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border-color: #8b5cf6; }
 
         .tab-btn-global { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white !important; }
         .tab-btn-global.active { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important; transform: scale(1.05); }
@@ -98,7 +95,6 @@
 
     <div class="tabs-container">
         <button class="tab-btn active" id="btn-char" onclick="switchTab('char')">👤 จัดการตัวละคร</button>
-        <button class="tab-btn tab-btn-planner" id="btn-planner" onclick="switchTab('planner')">⚔️ จัดปาร์ตี้</button>
         <button class="tab-btn" id="btn-item" onclick="switchTab('item')">📦 คลังเก็บไอเทม</button>
         <button class="tab-btn tab-btn-global" id="btn-global" onclick="switchTab('global')">📊 สรุปคลังรวม (Tradeable)</button>
     </div>
@@ -146,18 +142,10 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:10%">ชื่อตัวละคร</th>
-                        <th style="width:9%">สถานะ</th>
-                        <th style="width:9%">อาชีพ</th>
-                        <th style="width:13%">Energy (ปกติ + โบนัส)</th>
-                        <th style="width:8%">Energy รวม</th>
-                        <th style="width:8%">Final Boss</th>
-                        <th style="width:10%">Reward (ปกติ + โบนัส)</th>
-                        <th style="width:8%">ลงได้จริง</th>
-                        <th style="width:7%">Buy Energy</th>
-                        <th style="width:7%">Craft Energy</th>
-                        <th style="width:7%">Ascension</th>
-                        <th style="width:7%">Raid</th>
+                        <th style="width:11%">ชื่อตัวละคร</th><th style="width:11%">อาชีพ</th>
+                        <th style="width:14%">Energy (ปกติ + โบนัส)</th><th style="width:8%">Energy รวม</th>
+                        <th style="width:8%">Final Boss</th><th style="width:12%">Reward (ปกติ + โบนัส)</th><th style="width:8%">ลงได้จริง</th>
+                        <th style="width:8%">Buy Energy</th><th style="width:8%">Craft Energy</th><th style="width:8%">Ascension</th><th style="width:8%">Raid</th>
                         <th style="width:45px"></th>
                     </tr>
                 </thead>
@@ -184,21 +172,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <div id="plannerPage" class="hidden" style="flex: 1;">
-        <div class="stat-card" style="margin-bottom: 20px; border-color: #8b5cf6;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="color: #a78bfa; margin: 0 0 5px 0;">⚔️ ระบบจัดปาร์ตี้อัจฉริยะ (Party Planner)</h3>
-                    <div style="font-size: 13px; color: var(--text-dim);">คำนวณจากตัวละครที่มี Energy และรอบเหลือในทุก ID</div>
-                </div>
-                <button class="btn-add" style="background: #8b5cf6;" onclick="calculateParties()">🔄 คำนวณจัดทีม</button>
-            </div>
-        </div>
-        <div id="partyResult" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-            <div style="color: var(--text-dim); text-align: center; grid-column: 1/-1; padding: 30px;">กดปุ่ม "คำนวณจัดทีม" เพื่อประมวลผลปาร์ตี้</div>
         </div>
     </div>
 
@@ -313,11 +286,9 @@
         document.getElementById('charPage').classList.toggle('hidden', tab !== 'char');
         document.getElementById('itemPage').classList.toggle('hidden', tab !== 'item');
         document.getElementById('globalPage').classList.toggle('hidden', tab !== 'global');
-        document.getElementById('plannerPage').classList.toggle('hidden', tab !== 'planner');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + tab).classList.add('active');
         if(tab === 'global') updateGlobalData();
-        if(tab === 'planner') calculateParties();
     }
 
     // --- WEEKLY RESET LOGIC ---
@@ -326,25 +297,27 @@
         const now = new Date();
         const lastUpdate = new Date(data.lastUpdate);
 
+        // หาเวลาวันพุธที่ผ่านมา 09:00 น.
         let lastWed = new Date(now);
         let dayDiff = now.getDay() - 3; 
         if (dayDiff < 0 || (dayDiff === 0 && now.getHours() < 9)) dayDiff += 7;
         lastWed.setDate(now.getDate() - dayDiff);
         lastWed.setHours(9, 0, 0, 0);
 
+        // หากการอัปเดตครั้งล่าสุด เกิตขึ้นก่อนวันพุธ 09:00 ล่าสุด
         if (lastUpdate < lastWed && now >= lastWed) {
             console.log("Weekly Reset Triggered for ID " + currentID);
             if (data.chars) {
                 data.chars.forEach(c => {
-                    c.boss = 35; 
-                    c.buyChecked = false; 
+                    c.boss = 35; // รีเซ็ตบอสเป็น 35
+                    c.buyChecked = false; // รีเซ็ตติ๊กถูก
                     c.craftChecked = false;
                     c.ascChecked = false;
                     c.raidChecked = false;
                 });
             }
             if (data.summary) {
-                data.summary.con = 0; 
+                data.summary.con = 0; // รีเซ็ต Play Count
                 data.summary.tra = 0;
             }
             data.lastUpdate = now.toISOString();
@@ -390,9 +363,7 @@
     async function saveToCloud() {
         if (isLoading) return;
         const chars = Array.from(document.querySelectorAll('#charBody tr')).map(r => ({
-            name: r.querySelector('.c-name').value, 
-            role: r.querySelector('.c-role').value, 
-            job: r.querySelector('.c-job').value,
+            name: r.querySelector('.c-name').value, job: r.querySelector('.c-job').value,
             base: r.querySelector('.c-base').value, bonus: r.querySelector('.c-bonus').value,
             boss: r.querySelector('.c-boss').value, 
             reward: r.querySelector('.c-reward').value,
@@ -421,8 +392,8 @@
         const snapshot = await get(ref(db, `users/${userName}/id_${currentID}`));
         let data = snapshot.val();
         if (data) {
-            data = checkWeeklyReset(data); 
-            const updated = await checkAutoRefill(data); 
+            data = checkWeeklyReset(data); // เช็ครีเซ็ตสัปดาห์ก่อน
+            const updated = await checkAutoRefill(data); // เช็ค Energy รายวันต่อ
             if (updated || data.wasReset) { 
                 delete data.wasReset;
                 await set(ref(db, `users/${userName}/id_${currentID}`), data); 
@@ -455,12 +426,6 @@
         const row = document.getElementById('charBody').insertRow();
         row.innerHTML = `
             <td><input type="text" class="input-cell c-name" value="${d.name||''}" placeholder="ชื่อ..." oninput="queueSave()"></td>
-            <td><select class="input-cell c-role" onchange="queueSave()">
-                <option value="" ${d.role===''||!d.role?'selected':''}>-เลือก-</option>
-                <option value="carry" ${d.role==='carry'?'selected':''}>💪 แบกได้</option>
-                <option value="solo" ${d.role==='solo'?'selected':''}>🚶 ลุยเดี่ยว</option>
-                <option value="leech" ${d.role==='leech'?'selected':''}>👶 รอแบก</option>
-            </select></td>
             <td><select class="input-cell c-job" onchange="queueSave()">
                 <option value="">เลือกอาชีพ</option>
                 <option value="Ranger" ${d.job==='Ranger'?'selected':''}>Ranger</option>
@@ -472,10 +437,10 @@
                 <option value="Cleric" ${d.job==='Cleric'?'selected':''}>Cleric</option>
                 <option value="Chanter" ${d.job==='Chanter'?'selected':''}>Chanter</option>
             </select></td>
-            <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-base" style="width:45px" value="${d.base||''}" oninput="updateMultiEne(this)">+<input type="number" class="input-cell c-bonus" style="width:45px;color:var(--success)" value="${d.bonus||''}" oninput="updateMultiEne(this)"></div></td>
+            <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-base" style="width:50px" value="${d.base||''}" oninput="updateMultiEne(this)">+<input type="number" class="input-cell c-bonus" style="width:50px;color:var(--success)" value="${d.bonus||''}" oninput="updateMultiEne(this)"></div></td>
             <td class="readonly-cell"><input type="text" class="input-cell c-ene-total" readonly></td>
             <td><input type="number" class="input-cell c-boss" value="${d.boss||''}" oninput="calcFinal(this)"></td>
-            <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-reward" style="width:35px" value="${d.reward||''}" oninput="calcFinal(this)">+<input type="number" class="input-cell c-reward-bonus" style="width:35px;color:var(--gold)" value="${d.rewardBonus||''}" oninput="calcFinal(this)"></div></td>
+            <td><div style="display:flex;justify-content:center;"><input type="number" class="input-cell c-reward" style="width:40px" value="${d.reward||''}" oninput="calcFinal(this)">+<input type="number" class="input-cell c-reward-bonus" style="width:40px;color:var(--gold)" value="${d.rewardBonus||''}" oninput="calcFinal(this)"></div></td>
             <td class="result-cell" style="position:relative; padding: 4px 0;">
                 <input type="text" class="input-cell c-final" style="height: 25px; font-size: 14px; margin-bottom: 2px;" readonly>
                 <div style="display: flex; gap: 2px; justify-content: center; padding: 0 4px;">
@@ -489,92 +454,6 @@
         `;
         updateMultiEne(row.querySelector('.c-base'));
     }
-
-    // --- PARTY PLANNER LOGIC ---
-    window.calculateParties = async () => {
-        const resultDiv = document.getElementById('partyResult');
-        resultDiv.innerHTML = "<div style='color:var(--text-dim); text-align:center; grid-column: 1/-1;'>กำลังประมวลผลข้อมูลตัวละครจากทุก ID...</div>";
-
-        const snap = await get(ref(db, `users/${userName}`));
-        const allData = snap.val() || {};
-        
-        let carries = [];
-        let leechers = [];
-        let solos = [];
-
-        idList.forEach(id => {
-            const d = allData[`id_${id}`];
-            if(d && d.chars) {
-                d.chars.forEach(c => {
-                    if(!c.name) return;
-                    const boss = parseInt(c.boss) || 0;
-                    const rew = (parseInt(c.reward) || 0) + (parseInt(c.rewardBonus) || 0);
-                    const ene = (parseInt(c.base) || 0) + (parseInt(c.bonus) || 0);
-                    
-                    // คำนวณรอบลงได้จริงของตัวละครนี้
-                    let actualRuns = Math.floor(ene / 80);
-                    if (c.boss !== "" && boss >= 0) actualRuns = Math.min(actualRuns, boss);
-                    if (c.reward !== "" || c.rewardBonus !== "") actualRuns = Math.min(actualRuns, rew);
-                    if (actualRuns <= 0) actualRuns = "-";
-                    
-                    const info = { name: c.name, id: id, idNote: d.note || `ID ${id}`, boss, reward: rew, energy: ene, runs: actualRuns };
-                    
-                    // เงื่อนไขใหม่: ตัวแบกไม่ต้องใช้ Energy ขอแค่มี Boss >= 1 และ Reward >= 1
-                    if (c.role === 'carry' && boss >= 1 && rew >= 1) carries.push(info);
-                    // ตัวตามเงื่อนไขเดิม
-                    else if (c.role === 'leech' && rew > 0 && ene >= 80 && boss > 0) leechers.push(info);
-                    else if (c.role === 'solo' && boss > 0 && ene >= 80 && rew > 0) solos.push(info);
-                });
-            }
-        });
-
-        leechers.sort((a,b) => b.reward - a.reward);
-
-        let html = "";
-        let teamCount = 1;
-
-        while(carries.length > 0 && leechers.length > 0) {
-            let leader = carries[0];
-            let members = [];
-            for(let i=0; i<3 && leechers.length>0; i++) {
-                members.push(leechers.shift());
-            }
-            
-            html += `
-                <div class="stat-card" style="border-left: 4px solid #8b5cf6; background: #0f172a; padding: 15px;">
-                    <div style="color: #a78bfa; font-weight: bold; margin-bottom: 10px;">🛡️ ปาร์ตี้ ${teamCount++}</div>
-                    <div style="margin-bottom: 8px;">
-                        <span style="font-size: 12px; color: var(--text-dim);">หัวหน้า (แบก):</span><br>
-                        <span style="color: white; font-weight: bold;">💪 ${leader.name}</span> <span style="font-size:11px; color:var(--gold);">(${leader.idNote}) [ลงได้จริง: ${leader.runs}]</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 12px; color: var(--text-dim);">ลูกทีม (ตาม):</span><br>
-                        ${members.map(m => `<div style="color: var(--success); font-size: 14px; margin-top:3px;">👶 ${m.name} <span style="font-size:11px; color:var(--gold);">(${m.idNote}) [ลงได้จริง: ${m.runs}]</span></div>`).join('')}
-                    </div>
-                </div>
-            `;
-            
-            leader.boss--; 
-            if (leader.boss <= 0) carries.shift();
-        }
-
-        if (html === "") {
-            html = "<div style='color:var(--danger); text-align:center; grid-column: 1/-1; padding: 20px;'>⚠️ ไม่สามารถจับคู่ปาร์ตี้ได้ (ขาดตัวแบก หรือ ขาดตัวตาม ที่มีเงื่อนไขพร้อมลง)</div>";
-        }
-
-        if (solos.length > 0) {
-            html += `
-                <div class="stat-card" style="border-left: 4px solid var(--primary); background: #0f172a; padding: 15px; grid-column: 1/-1;">
-                    <div style="color: var(--primary); font-weight: bold; margin-bottom: 10px;">🚶 ตัวละครลุยเดี่ยวพร้อมลุย (Energy พอ / บอสเหลือ)</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                        ${solos.map(s => `<span style="background: rgba(59, 130, 246, 0.2); padding: 5px 10px; border-radius: 5px; font-size: 13px; color: #60a5fa;">${s.name} (${s.idNote}) [ลงได้จริง: ${s.runs}]</span>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        resultDiv.innerHTML = html;
-    };
 
     window.addItemRow = (d = {}) => {
         const row = document.getElementById('itemBody').insertRow();
@@ -610,7 +489,7 @@
         const rwNormal = parseInt(r.querySelector('.c-reward').value) || 0;
         const rwBonus = parseInt(r.querySelector('.c-reward-bonus').value) || 0;
         if (r.querySelector('.c-reward').value !== "" || r.querySelector('.c-reward-bonus').value !== "") finalRuns = Math.min(finalRuns, rwNormal + rwBonus);
-        r.querySelector('.c-final').value = finalRuns > 0 ? finalRuns : "-"; 
+        r.querySelector('.c-final').value = finalRuns > 0 ? finalRuns + " รอบ" : "-"; 
         updateTotalRuns(); queueSave(); 
     }
 
