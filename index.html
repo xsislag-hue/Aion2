@@ -548,32 +548,56 @@
     }
 
     window.playOneRound = (btn) => {
-        const r = btn.closest('tr'); if(!r) return;
-        const finalVal = r.querySelector('.c-final').value;
-        if (finalVal === "-" || parseInt(finalVal) <= 0) return; 
-        let baseEne = parseInt(r.querySelector('.c-base').value) || 0;
-        let bonusEne = parseInt(r.querySelector('.c-bonus').value) || 0;
-        if (baseEne >= 15) baseEne -= 15; else { let rem = 15 - baseEne; baseEne = 0; bonusEne = Math.max(0, bonusEne - rem); }
-        r.querySelector('.c-base').value = baseEne;
-        r.querySelector('.c-bonus').value = bonusEne;
-        let bossInput = r.querySelector('.c-boss');
-        if (bossInput.value !== "") bossInput.value = Math.max(0, (parseInt(bossInput.value) || 0) - 1);
-        let rwInput = r.querySelector('.c-reward');
-        let rwBonusInput = r.querySelector('.c-reward-bonus');
-        if (rwInput.value !== "" && parseInt(rwInput.value) > 0) rwInput.value = parseInt(rwInput.value) - 1;
-        else if (rwBonusInput.value !== "" && parseInt(rwBonusInput.value) > 0) rwBonusInput.value = parseInt(rwBonusInput.value) - 1;
-        updateMultiEne(r.querySelector('.c-base'));
-    };
+    const r = btn.closest('tr'); if(!r) return;
+    
+    let baseEne = parseInt(r.querySelector('.c-base').value) || 0;
+    let bonusEne = parseInt(r.querySelector('.c-bonus').value) || 0;
+    let totalEne = baseEne + bonusEne;
 
-    window.undoOneRound = (btn) => {
-        const r = btn.closest('tr'); if(!r) return;
-        r.querySelector('.c-base').value = (parseInt(r.querySelector('.c-base').value) || 0) + 15;
-        let bossInput = r.querySelector('.c-boss');
-        if (bossInput.value !== "") bossInput.value = (parseInt(bossInput.value) || 0) + 1;
-        let rwInput = r.querySelector('.c-reward');
-        if (rwInput.value !== "") rwInput.value = (parseInt(rwInput.value) || 0) + 1;
-        updateMultiEne(r.querySelector('.c-base'));
-    };
+    // --- ส่วนที่แก้ไข: เช็คว่าถ้า Energy รวมน้อยกว่า 80 จะไม่ทำงาน ---
+    if (totalEne < 80) {
+        console.log("Energy ไม่พอสำหรับการลงดันเจี้ยน (ต้องการ 80)");
+        return; 
+    }
+
+    // --- ส่วนที่แก้ไข: ลด Energy ลง 80 (ตัด Base ก่อน ถ้าไม่พอไปตัด Bonus) ---
+    if (baseEne >= 80) {
+        baseEne -= 80;
+    } else {
+        let rem = 80 - baseEne;
+        baseEne = 0;
+        bonusEne = Math.max(0, bonusEne - rem);
+    }
+
+    r.querySelector('.c-base').value = baseEne;
+    r.querySelector('.c-bonus').value = bonusEne;
+
+    // ลดค่า Boss และ Reward (คงเดิมเพราะเป็นการนับ 1 รอบการเล่น)
+    let bossInput = r.querySelector('.c-boss');
+    if (bossInput.value !== "") bossInput.value = Math.max(0, (parseInt(bossInput.value) || 0) - 1);
+
+    let rwInput = r.querySelector('.c-reward');
+    let rwBonusInput = r.querySelector('.c-reward-bonus');
+    if (rwInput.value !== "" && parseInt(rwInput.value) > 0) rwInput.value = parseInt(rwInput.value) - 1;
+    else if (rwBonusInput.value !== "" && parseInt(rwBonusInput.value) > 0) rwBonusInput.value = parseInt(rwBonusInput.value) - 1;
+
+    updateMultiEne(r.querySelector('.c-base'));
+};
+
+window.undoOneRound = (btn) => {
+    const r = btn.closest('tr'); if(!r) return;
+    
+    // --- ส่วนที่แก้ไข: คืนค่า Energy 80 หน่วย ---
+    r.querySelector('.c-base').value = (parseInt(r.querySelector('.c-base').value) || 0) + 80;
+
+    let bossInput = r.querySelector('.c-boss');
+    if (bossInput.value !== "") bossInput.value = (parseInt(bossInput.value) || 0) + 1;
+
+    let rwInput = r.querySelector('.c-reward');
+    if (rwInput.value !== "") rwInput.value = (parseInt(rwInput.value) || 0) + 1;
+
+    updateMultiEne(r.querySelector('.c-base'));
+};
 
     window.calcItemTotal = (e) => {
         const r = e.closest('tr');
