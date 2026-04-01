@@ -327,30 +327,45 @@
         queueSave();
     }
 
-    window.playOneRound = (btn) => {
-        const row = btn.closest('tr');
-        let base = parseInt(row.querySelector('.c-base').value) || 0;
-        let boss = parseInt(row.querySelector('.c-boss').value) || 0;
-        let rew = parseInt(row.querySelector('.c-reward').value) || 0;
-        let rewBonus = parseInt(row.querySelector('.c-reward-bonus').value) || 0;
+window.playOneRound = (btn) => {
+    const row = btn.closest('tr');
+    let baseEne = parseInt(row.querySelector('.c-base').value) || 0;
+    let bonusEne = parseInt(row.querySelector('.c-bonus').value) || 0;
+    let boss = parseInt(row.querySelector('.c-boss').value) || 0;
+    let rew = parseInt(row.querySelector('.c-reward').value) || 0;
+    let rewBonus = parseInt(row.querySelector('.c-reward-bonus').value) || 0;
 
-        // ต้องมีครบทั้ง 3 เงื่อนไขถึงจะกดเล่นได้
-        if (base >= 80 && boss > 0 && (rew + rewBonus) > 0) {
-            row.querySelector('.c-base').value = base - 80;
-            row.querySelector('.c-boss').value = boss - 1;
-            
-            // ลำดับการลด Reward: ลด Bonus ก่อน ถ้าไม่มีค่อยลดปกติ
-            if (rewBonus > 0) {
-                row.querySelector('.c-reward-bonus').value = rewBonus - 1;
-            } else if (rew > 0) {
-                row.querySelector('.c-reward').value = rew - 1;
-            }
-            
-            updateMultiEne(btn);
+    const totalEne = baseEne + bonusEne;
+    const totalRew = rew + rewBonus;
+
+    // เงื่อนไขการเข้าเล่น: Energy รวม 80+, Boss 1+, Reward รวม 1+
+    if (totalEne >= 80 && boss > 0 && totalRew > 0) {
+        
+        // --- หัก Energy (หักปกติก่อน) ---
+        if (baseEne >= 80) {
+            row.querySelector('.c-base').value = baseEne - 80;
         } else {
-            alert("เงื่อนไขไม่ครบ (ต้องมี Energy 80+, Boss 1+, และ Reward 1+)");
+            let remainToDeduct = 80 - baseEne;
+            row.querySelector('.c-base').value = 0;
+            row.querySelector('.c-bonus').value = Math.max(0, bonusEne - remainToDeduct);
         }
+
+        // --- หัก Boss ---
+        row.querySelector('.c-boss').value = boss - 1;
+
+        // --- หัก Reward (หักปกติก่อน) ---
+        if (rew > 0) {
+            row.querySelector('.c-reward').value = rew - 1;
+        } else {
+            row.querySelector('.c-reward-bonus').value = Math.max(0, rewBonus - 1);
+        }
+
+        // อัปเดต UI และคำนวณค่า Final ใหม่
+        updateMultiEne(btn); 
+    } else {
+        alert("ต้องมี Energy รวม 80, Boss 1, และ Reward รวม 1");
     }
+}
 
     window.undoRound = (btn) => {
         const row = btn.closest('tr');
