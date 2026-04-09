@@ -151,7 +151,7 @@
                         <th style="width:6%">Buy Energy</th>
                         <th style="width:6%">Craft Energy</th>
                         <th style="width:6%">Ascension</th>
-                        <th style="width:6%">Raid</th>
+                        <th style="width:6%">ครบรอบดัน</th>
                         <th style="width:50px"></th>
                     </tr>
                 </thead>
@@ -247,7 +247,7 @@
     window.currentData = null;
 
     const MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
-    const REWARD_HOURS = [4, 12, 20];
+    const REWARD_HOURS = [4, 16];
 
     // --- INIT ---
     initIDSystem();
@@ -409,7 +409,7 @@ window.playOneRound = (btn) => {
             checkR.setHours(checkR.getHours() + 1);
         }
         if (passR > 0) {
-            if(data.chars) data.chars.forEach(c => { if (c.name) c.reward = Math.min(21, (parseInt(c.reward) || 0) + passR); });
+            if(data.chars) data.chars.forEach(c => { if (c.name) c.reward = Math.min(14, (parseInt(c.reward) || 0) + passR); });
             data.lastRefillRew = finalR_Time.toISOString(); changed = true;
         }
         return { updatedData: data, hasChanged: changed };
