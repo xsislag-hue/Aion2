@@ -129,7 +129,7 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
         <div style="display:flex; align-items:center; gap:20px;">
             <div style="font-size: 20px; font-weight:800; color:var(--primary);">💎 ID: <span id="idLabel">1</span></div>
-            <input type="text" id="idNote" placeholder="ตั้งชื่อไอดีนี้..." oninput="updateIDTabName(this.value); queueSave();" style="border:none; border-bottom:2px solid var(--border); outline:none; font-size:20px; background:transparent; color:var(--gold); width: 300px; font-family:'Prompt';">
+            <input type="text" id="idNote" placeholder="ตั้งชื่อไอดีนี้..." oninput="updateIDTabName(this.value)" style="border:none; border-bottom:2px solid var(--border); outline:none; font-size:20px; background:transparent; color:var(--gold); width: 300px; font-family:'Prompt';">
         </div>
         
         <div style="display:flex; align-items:center; gap:15px;">
@@ -212,8 +212,7 @@
                 </thead>
                 <tbody id="charBody"></tbody>
             </table>
-            <button onclick="addCharRow()" style="width:100%; padding:15px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:20px; transition:0.3s;">+ เพิ่มตัวละคร</button>
-        </div>
+            <button onclick="addCharRow()" style="width:100%; padding:15px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:20px; transition:0.3s;">+ เพิ่มตัวละคร      </div>
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
             <div style="background:#9333ea; color:white; padding:12px 20px; border-radius:12px 12px 0 0; font-weight:bold; font-size:16px;">🎯 ตารางวางแผน Dungeon (เป้าหมาย, Reward & สถานะลงสำเร็จ)</div>
@@ -356,9 +355,8 @@
     let saveTimeout = null;
     let isVipActive = false;
     let vipInterval = null;
-    let currentLastReset = null; // New state to prevent weekly reset overwrite
+    let currentLastReset = null; 
     
-    // History Array for multi-step Undo
     window.undoHistories = {}; 
 
     // Constants
@@ -369,7 +367,6 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
     initSystem();
 
-    // ฟังก์ชัน Refresh ใหม่ที่เพิ่มเข้ามา
     window.forceRefresh = async () => {
         showStatus("🔄 กำลังซิงค์ข้อมูล...");
         await loadIDData(currentID);
@@ -380,7 +377,6 @@
         onValue(ref(db, `users/${userName}/config/idList`), (snap) => {
             idList = snap.val() || [1];
             
-            // ดึง ID ล่าสุดที่เพิ่งเปิดมาแสดงอัตโนมัติ เพื่อป้องกันบัคหน้าจอขาว
             const savedID = localStorage.getItem(`lastID_${userName}`);
             if (savedID && idList.includes(parseInt(savedID))) {
                 currentID = parseInt(savedID);
@@ -388,8 +384,10 @@
                 currentID = idList[0];
             }
 
-            renderIDTabs();
-            switchID(currentID); 
+            refreshIDNames().then(() => {
+                renderIDTabs();
+                switchID(currentID); 
+            });
         });
 
         onValue(ref(db, `users/${userName}`), (snap) => {
@@ -425,14 +423,13 @@
         `).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     };
 
-    // แก้บัคโหลดผิด ทำให้เกิดหน้าจอขาว
     window.switchID = async (id) => {
         currentID = id;
         localStorage.setItem(`lastID_${userName}`, id); 
         document.getElementById('idLabel').innerText = id;
         renderIDTabs();
-        window.undoHistories = {}; // Clear undo history on switch
-        await loadIDData(id); // เรียก loadIDData ได้เลย
+        window.undoHistories = {}; 
+        await loadIDData(id); 
     };
 
     window.addNewID = () => {
@@ -455,13 +452,13 @@
     window.updateIDTabName = (val) => {
         idNames[currentID] = val || `ID ${currentID}`;
         renderIDTabs();
+        queueSave(); // บันทึกข้อมูลชื่อไอดีลง Database ทันที
     };
 
     // --- DATA LOADING & SAVING ---
     async function loadIDData(id) {
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
-        
         applyDataToUI(data);
         checkWeeklyReset(data);
         processOfflineRefills(data);
@@ -473,20 +470,15 @@
         
         isVipActive = data.isVip || false;
         document.getElementById('pageVipToggle').checked = isVipActive;
-        
-        // Preserve Weekly Reset Timestamp to avoid auto-reset bug
         currentLastReset = data.lastWeeklyReset || null; 
 
-        // Id-wide Check UI Update
         updateIdWideUI('idBuyCheck', data.idBuy);
         updateIdWideUI('idCraftCheck', data.idCraft);
-        updateIdWideUI('idDailyCheck', data.idDaily); // เพิ่มตัวโหลดดันเจี้ยน
+        updateIdWideUI('idDailyCheck', data.idDaily);
 
-        // Sum Counters
         document.getElementById('sum-con-count').value = data.sumCon || 0;
         document.getElementById('sum-tra-count').value = data.sumTra || 0;
 
-        // Render Rows
         renderCharRows(data.chars || []);
         renderPlanRows(data.plans || [], data.chars || []);
         renderItemRows(data.items || []);
@@ -497,16 +489,15 @@
 
     function collectData() {
         return {
-            note: document.getElementById('idNote').value,
+            note: document.getElementById('idNote').value, // ดึงค่าจากช่องกรอกชื่อไอดี
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
-            // แก้บัคเซฟหาย: เปลี่ยนจาก .checked เป็น .active เพราะคลาสอยู่ที่ div หุ้มข้างนอก
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
             sumCon: document.getElementById('sum-con-count').value,
             sumTra: document.getElementById('sum-tra-count').value,
-            lastWeeklyReset: currentLastReset, // FIXED BUG: Ensure timestamp is saved back
+            lastWeeklyReset: currentLastReset, 
             lastUpdate: new Date().toISOString(),
             chars: Array.from(document.querySelectorAll('#charBody tr')).map(tr => ({
                 name: tr.querySelector('.c-name').value,
@@ -609,19 +600,15 @@
         const tr = document.createElement('tr');
         tr.dataset.index = index;
         
-        // FIXED BUG: Ensure 0 is saved correctly, fallback 35/7 only when undefined
         const conG = (data && data.conGoal !== undefined) ? data.conGoal : 35;
         const traG = (data && data.traGoal !== undefined) ? data.traGoal : 7;
         const conF = (data && data.conFb !== undefined) ? data.conFb : 35;
         const traF = (data && data.traFb !== undefined) ? data.traFb : 28;
 
-        window.undoHistories[index] = []; // init history stack
+        window.undoHistories[index] = []; 
+        const conD = data?.conDone ?? false;
+        const traD = data?.traDone ?? false;
 
-        // Logic Check: if conDone or traDone exists, use it. Otherwise, fallback to old doneRaid if applicable.
-        const conD = data?.conDone ?? (data?.doneRaid ?? false);
-        const traD = data?.traDone ?? (data?.doneRaid ?? false);
-
-        // ปรับแต่งโครงสร้าง HTML ตรงนี้ เพื่อให้กริดตรงกับ Header แบบ 1:1 พร้อมขีดเส้นคั่นที่ชัดเจน
         tr.innerHTML = `
             <td class="readonly-cell" style="border-right:2px solid #334155;">
                 <input type="text" class="input-cell p-name-sync" value="${charName}" readonly>
@@ -685,11 +672,11 @@
         body.appendChild(tr);
     };
 
-    function renderItemRows(items) {
+    window.renderItemRows = (items) => {
         const body = document.getElementById('itemBody');
         body.innerHTML = "";
         items.forEach(item => addItemRow(item));
-    }
+    };
 
     window.addItemRow = (data = null) => {
         const body = document.getElementById('itemBody');
@@ -703,9 +690,8 @@
         body.appendChild(tr);
     };
 
-    // --- LOGIC & CALCULATION ---
     window.calculateAll = () => {
-        let idTotalActualRuns = 0; // FIXED BUG: Calculate Max Actual Runs
+        let idTotalActualRuns = 0; 
         let idTotalRem = 0;
         let idTotalGoalsOriginal = 0;
 
@@ -716,47 +702,39 @@
             const ptr = planRows[i];
             if (!ptr) return;
 
-            // 1. Energy
             const base = parseInt(tr.querySelector('.c-base').value) || 0;
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
             tr.querySelector('.c-total-ene').value = totalEne;
 
-            // Max runs strictly from energy alone
             const eneRuns = Math.floor(totalEne / 80);
 
-            // 2. Conquest Variables
             const conG = parseInt(ptr.querySelector('.p-con-goal').value) || 0;
             const conR = parseInt(ptr.querySelector('.p-con-rew').value) || 0;
             const conB = parseInt(ptr.querySelector('.p-con-bon').value) || 0;
             const conF = parseInt(ptr.querySelector('.p-con-fb').value) || 0;
             const conD = ptr.querySelector('.p-con-done').classList.contains('checked');
             
-            // 3. Transcendent Variables
             const traG = parseInt(ptr.querySelector('.p-tra-goal').value) || 0;
             const traR = parseInt(ptr.querySelector('.p-tra-rew').value) || 0;
             const traB = parseInt(ptr.querySelector('.p-tra-bon').value) || 0;
             const traF = parseInt(ptr.querySelector('.p-tra-fb').value) || 0;
             const traD = ptr.querySelector('.p-tra-done').classList.contains('checked');
 
-            // 4. Actual Playable (Min of: Energy Runs, Tickets, Final Boss)
             const conAct = Math.min(eneRuns, conR + conB, conF);
             const traAct = Math.min(eneRuns, traR + traB, traF);
             
             ptr.querySelector('.p-con-act').value = conAct;
             ptr.querySelector('.p-tra-act').value = traAct;
 
-            // Calculate Max Run for this specific character and add to Total
             const maxCharAct = Math.max(conAct, traAct);
             idTotalActualRuns += maxCharAct;
 
-            // 5. Remaining Goals calculation
             const remCon = conD ? 0 : conG;
             const remTra = traD ? 0 : traG;
             const remGoals = remCon + remTra;
             ptr.querySelector('.p-rem').value = remGoals;
 
-            // 6. Status Display
             const statusInput = ptr.querySelector('.p-status');
             if (remGoals <= 0) {
                 statusInput.value = "✅ DONE";
@@ -767,24 +745,19 @@
             }
 
             idTotalRem += remGoals;
-            idTotalGoalsOriginal += (conG + traG); // Keep track of base targets shown
+            idTotalGoalsOriginal += (conG + traG); 
         });
 
-        // Summary Bar & Table
-        // FIXED BUG: Show Actual Computed Max Runnable, not the Play Count History
         document.getElementById('totalRunsDisplay').innerText = idTotalActualRuns;
-        
         const sc = parseInt(document.getElementById('sum-con-count').value) || 0;
         const st = parseInt(document.getElementById('sum-tra-count').value) || 0;
-        
         document.getElementById('sum-total-count').value = sc + st;
-        document.getElementById('sum-total-goal').value = idTotalGoalsOriginal + sc + st; // Original Target = Remaining + Done
+        document.getElementById('sum-total-goal').value = idTotalGoalsOriginal + sc + st;
         document.getElementById('sum-total-rem').value = idTotalRem;
 
-        queueSave(); // Auto save every time values change
+        queueSave(); 
     };
 
-    // --- PLAY & UNDO ACTIONS ---
     window.executePlay = (btn, type) => {
         const ptr = btn.closest('tr');
         const idx = ptr.dataset.index;
@@ -792,7 +765,6 @@
 
         let baseE = parseInt(ctr.querySelector('.c-base').value) || 0;
         let bonE = parseInt(ctr.querySelector('.c-bonus').value) || 0;
-        
         const goalInput = ptr.querySelector(type === 'con' ? '.p-con-goal' : '.p-tra-goal');
         const rewInput = ptr.querySelector(type === 'con' ? '.p-con-rew' : '.p-tra-rew');
         const bonInput = ptr.querySelector(type === 'con' ? '.p-con-bon' : '.p-tra-bon');
@@ -803,12 +775,11 @@
         let bon = parseInt(bonInput.value) || 0;
         let fb = parseInt(fbInput.value) || 0;
 
-        if ((baseE + bonE) < 80) return alert("Energy ไม่พอ (ต้องการอย่างน้อย 80)");
+        if ((baseE + bonE) < 80) return alert("Energy ไม่พอ");
         if (goal <= 0) return alert(`เป้าหมาย ${type.toUpperCase()} เรียบร้อยแล้ว`);
         if ((rew + bon) <= 0) return alert(`ตั๋ว ${type.toUpperCase()} ไม่พอ`);
         if (fb <= 0) return alert(`Final Boss ${type.toUpperCase()} ครบกำหนดแล้ว`);
 
-        // Stack History
         if(!window.undoHistories[idx]) window.undoHistories[idx] = [];
         window.undoHistories[idx].push({ 
             baseE, bonE, goal, rew, bon, fb, type,
@@ -816,19 +787,14 @@
             st: document.getElementById('sum-tra-count').value
         });
 
-        // 1. Deduct Ene
         if (baseE >= 80) { ctr.querySelector('.c-base').value = baseE - 80; }
         else { const rem = 80 - baseE; ctr.querySelector('.c-base').value = 0; ctr.querySelector('.c-bonus').value = Math.max(0, bonE - rem); }
 
-        // 2. Deduct Goal & FB
         goalInput.value = goal - 1;
         fbInput.value = fb - 1;
-
-        // 3. Deduct Ticket
         if (rew > 0) rewInput.value = rew - 1;
         else bonInput.value = Math.max(0, bon - 1);
 
-        // 4. Summaries
         if (type === 'con') document.getElementById('sum-con-count').value = (parseInt(document.getElementById('sum-con-count').value)||0) + 1;
         else document.getElementById('sum-tra-count').value = (parseInt(document.getElementById('sum-tra-count').value)||0) + 1;
 
@@ -841,28 +807,23 @@
         const idx = ptr.dataset.index;
         const ctr = document.querySelectorAll('#charBody tr')[idx];
         const stack = window.undoHistories[idx];
-
         if (!stack || stack.length === 0) return;
-        const s = stack.pop(); // Get last action
-
+        const s = stack.pop();
         ctr.querySelector('.c-base').value = s.baseE;
         ctr.querySelector('.c-bonus').value = s.bonE;
         ptr.querySelector(s.type === 'con' ? '.p-con-goal' : '.p-tra-goal').value = s.goal;
         ptr.querySelector(s.type === 'con' ? '.p-con-rew' : '.p-tra-rew').value = s.rew;
         ptr.querySelector(s.type === 'con' ? '.p-con-bon' : '.p-tra-bon').value = s.bon;
         ptr.querySelector(s.type === 'con' ? '.p-con-fb' : '.p-tra-fb').value = s.fb;
-        
         document.getElementById('sum-con-count').value = s.sc;
         document.getElementById('sum-tra-count').value = s.st;
-
         if(stack.length === 0) btn.classList.add('hidden');
         calculateAll();
     };
 
-    // --- UTILS & HELPERS ---
     window.syncName = (idx, val) => {
-        const pName = document.querySelectorAll('.p-name-sync')[idx];
-        if (pName) pName.value = val;
+        const pNames = document.querySelectorAll('.p-name-sync');
+        if (pNames[idx]) pNames[idx].value = val;
     };
 
     window.toggleCheck = (el) => {
@@ -920,10 +881,8 @@
         document.getElementById('charPage').classList.toggle('hidden', tab !== 'char');
         document.getElementById('itemPage').classList.toggle('hidden', tab !== 'item');
         document.getElementById('globalPage').classList.toggle('hidden', tab !== 'global');
-        
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + tab).classList.add('active');
-        
         if (tab === 'global') renderGlobalItemSummary();
     };
 
@@ -932,21 +891,17 @@
         const allData = snap.val() || {};
         const breakdown = document.getElementById('kinahBreakdownList');
         const itemBody = document.getElementById('globalItemBody');
-        
         breakdown.innerHTML = ""; itemBody.innerHTML = "";
         let globalItems = {};
-
         idList.forEach(id => {
             const d = allData[`id_${id}`] || {};
             const money = parseInt((d.money||"0").replace(/,/g,'')) || 0;
-            
             breakdown.innerHTML += `
                 <div style="display:flex; justify-content:space-between; padding:12px; background:rgba(0,0,0,0.3); border-radius:10px; font-size:16px;">
                     <span style="color:var(--text-main); font-weight:600;">${d.note || 'ID '+id}:</span>
                     <span style="color:var(--gold); font-weight:bold;">${money.toLocaleString()}</span>
                 </div>
             `;
-
             if(d.items) {
                 d.items.forEach(it => {
                     if(it.name && it.trade) {
@@ -956,32 +911,23 @@
                 });
             }
         });
-
         const sortedItems = Object.keys(globalItems).sort();
         if(sortedItems.length === 0) {
             itemBody.innerHTML = `<tr><td colspan="2" style="color:var(--text-dim); text-align:center;">ไม่มีไอเทมที่เทรดได้</td></tr>`;
         } else {
             sortedItems.forEach(name => {
-                itemBody.innerHTML += `
-                    <tr>
-                        <td style="text-align:left; padding-left:30px; font-weight:600;">${name}</td>
-                        <td style="color:var(--success); font-weight:bold; font-size:20px;">${globalItems[name].toLocaleString()}</td>
-                    </tr>
-                `;
+                itemBody.innerHTML += `<tr><td style="text-align:left; padding-left:30px; font-weight:600;">${name}</td><td style="color:var(--success); font-weight:bold; font-size:20px;">${globalItems[name].toLocaleString()}</td></tr>`;
             });
         }
     }
 
-    // --- VIP & CLOCK & OFFLINE ---
     window.calcVipExpire = () => {
         const days = parseInt(document.getElementById('vipDays').value) || 0;
         const hours = parseInt(document.getElementById('vipHours').value) || 0;
         if (days <= 0 && hours <= 0) return;
-        
         const exp = new Date();
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
-        
         localStorage.setItem(`vip_exp_${userName}_${currentID}`, exp.toISOString());
         document.getElementById('pageVipToggle').checked = true;
         isVipActive = true;
@@ -994,8 +940,6 @@
         const label = document.getElementById('countdownLabel');
         const fullDate = document.getElementById('expireFullDate');
         const toggle = document.getElementById('pageVipToggle');
-        const slider = document.getElementById('vipSliderUI');
-        
         if (!expStr) {
             label.innerText = "ไม่ได้เปิดใช้งาน";
             fullDate.innerText = "หมดอายุ: --";
@@ -1004,13 +948,11 @@
             document.getElementById('energyValueText').innerText = "+10";
             return;
         }
-
         const exp = new Date(expStr);
         fullDate.innerText = "หมดอายุ: " + exp.toLocaleString('th-TH');
         toggle.checked = true;
         isVipActive = true;
         document.getElementById('energyValueText').innerText = "+15";
-
         const tick = () => {
             const diff = exp - new Date();
             if (diff <= 0) {
@@ -1034,18 +976,15 @@
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
-            
             const nextEneH = ENERGY_MILESTONES.find(h => h > now.getHours()) || ENERGY_MILESTONES[0];
             const targetE = new Date(now);
             if (nextEneH <= now.getHours()) targetE.setDate(targetE.getDate() + 1);
             targetE.setHours(nextEneH, 0, 0, 0);
-            
             const eDiff = targetE - now;
             const eh = Math.floor(eDiff / 3600000).toString().padStart(2,'0');
             const em = Math.floor((eDiff % 3600000) / 60000).toString().padStart(2,'0');
             const es = Math.floor((eDiff % 60000) / 1000).toString().padStart(2,'0');
             document.getElementById('energyNextTimer').innerText = `${eh}:${em}:${es}`;
-
             const nextRewH = REWARD_HOURS.find(h => h > now.getHours()) || REWARD_HOURS[0];
             const rDate = new Date();
             if (nextRewH <= now.getHours()) rDate.setDate(rDate.getDate() + 1);
@@ -1054,7 +993,6 @@
             const rh = Math.floor(rDiff / 3600000);
             const rm = Math.floor((rDiff % 3600000) / 60000).toString().padStart(2,'0');
             document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${rh} ชม. ${rm} นาที`;
-
         }, 1000);
     }
 
@@ -1062,7 +1000,6 @@
         if (!data.lastUpdate) return;
         const last = new Date(data.lastUpdate);
         const now = new Date();
-        
         let energyTicks = 0;
         let checkE = new Date(last);
         checkE.setMinutes(0,0,0);
@@ -1070,7 +1007,6 @@
             checkE.setHours(checkE.getHours() + 1);
             if (ENERGY_MILESTONES.includes(checkE.getHours())) energyTicks++;
         }
-
         let rewardTicks = 0;
         let checkR = new Date(last);
         checkR.setMinutes(0,0,0);
@@ -1078,12 +1014,10 @@
             checkR.setHours(checkR.getHours() + 1);
             if (REWARD_HOURS.includes(checkR.getHours())) rewardTicks++;
         }
-
         if (energyTicks > 0 || rewardTicks > 0) {
             const addEne = isVipActive ? 15 : 10;
             const chars = Array.from(document.querySelectorAll('#charBody tr'));
             const plans = Array.from(document.querySelectorAll('#planBody tr'));
-
             chars.forEach((tr, i) => {
                 if (energyTicks > 0) {
                     let b = parseInt(tr.querySelector('.c-base').value) || 0;
@@ -1094,7 +1028,7 @@
                     if(ptr) {
                         let cr = parseInt(ptr.querySelector('.p-con-rew').value) || 0;
                         let trr = parseInt(ptr.querySelector('.p-tra-rew').value) || 0;
-                        ptr.querySelector('.p-con-rew').value = Math.min(14, cr + rewardTicks); // Cap at 14 based on prior requirement
+                        ptr.querySelector('.p-con-rew').value = Math.min(14, cr + rewardTicks);
                         ptr.querySelector('.p-tra-rew').value = Math.min(14, trr + rewardTicks);
                     }
                 }
@@ -1106,28 +1040,16 @@
     function checkWeeklyReset(data) {
         const now = new Date();
         const lastReset = data.lastWeeklyReset ? new Date(data.lastWeeklyReset) : new Date(0);
-        
         let resetDay = new Date();
         resetDay.setDate(now.getDate() - ((now.getDay() + 4) % 7)); 
-        resetDay.setHours(7, 0, 0, 0); // เปลี่ยนเป็น 07:00 น.
-        
-        // ถ้าเวลาปัจจุบันผ่านวันพุธ 07:00 น. มาแล้ว แต่เราเพิ่งเปิดวันพฤหัสบดี (ตัวอย่าง) 
-        // โค้ดด้านบนจะหา resetDay เป็นพุธที่ผ่านมา 07:00 ถูกต้อง
-        // แต่ถ้าตอนนี้วันพุธ 06:00 น. โค้ดจะคิดว่า resetDay = วันนี้ 07:00 ซึ่งเป็นอนาคต
-        // ถ้า resetDay > now แปลว่าตอนนี้ยังไม่ถึงรอบรีเซ็ตของสัปดาห์นี้ ต้องถอยไปพุธที่แล้ว
+        resetDay.setHours(7, 0, 0, 0); 
         if (resetDay > now) resetDay.setDate(resetDay.getDate() - 7);
-
         if (lastReset < resetDay) {
-            // รีเซ็ต Checkbox ไอดี
             updateIdWideUI('idBuyCheck', false);
             updateIdWideUI('idCraftCheck', false);
             updateIdWideUI('idDailyCheck', false);
-
-            // รีเซ็ตยอดสะสม (Play Count)
             document.getElementById('sum-con-count').value = 0;
             document.getElementById('sum-tra-count').value = 0;
-
-            // รีเซ็ตตัวละคร
             const charRows = document.querySelectorAll('#charBody tr');
             charRows.forEach(tr => {
                 const ascCheck = tr.querySelector('.c-asc');
@@ -1137,29 +1059,21 @@
                     ascCheck.innerText = '✘';
                 }
             });
-
-            // รีเซ็ตดันเจี้ยน
             const plans = Array.from(document.querySelectorAll('#planBody tr'));
             plans.forEach(tr => {
-                // Reset Conquest
                 tr.querySelector('.p-con-goal').value = 35; 
                 tr.querySelector('.p-con-fb').value = 35; 
                 const cd = tr.querySelector('.p-con-done');
                 if(cd) { cd.classList.remove('checked'); cd.classList.add('unchecked'); cd.innerText = '✘'; }
-
-                // Reset Transcendent
                 tr.querySelector('.p-tra-goal').value = 7;  
                 tr.querySelector('.p-tra-fb').value = 28;  
                 const td = tr.querySelector('.p-tra-done');
                 if(td) { td.classList.remove('checked'); td.classList.add('unchecked'); td.innerText = '✘'; }
             });
-            
-            // FIXED BUG: Sync the new timestamp back immediately so it doesn't loop
             currentLastReset = resetDay.toISOString(); 
             calculateAll();
         }
     }
-
 </script>
 </body>
 </html>
