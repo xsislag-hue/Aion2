@@ -223,33 +223,35 @@
             <table id="planTable">
                 <thead>
                     <tr>
-                        <th style="width:12%">อ้างอิงชื่อ</th>
+                        <th style="width:10%">อ้างอิงชื่อ</th>
                         
-                        <th style="width:30%; border-left:2px solid #334155; padding: 0;">
+                        <th style="width:32%; border-left:2px solid #334155; padding: 0;">
                             <span class="badge-con" style="display:block; margin:8px auto;">Conquest</span>
                             <div style="display:flex; justify-content:space-between; font-size:12px; background:#1e293b; border-top:1px solid #334155;">
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
-                                <div style="width:35%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bonus)</div>
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Final Boss</div>
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
-                                <div style="width:20%; text-align:center; padding:8px 0; box-sizing:border-box;">สำเร็จ</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
+                                <div style="width:26%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bon)</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">FB</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงแล้ว</div>
+                                <div style="width:18%; text-align:center; padding:8px 0; box-sizing:border-box;">สำเร็จ</div>
                             </div>
                         </th>
                         
-                        <th style="width:30%; border-left:2px solid #334155; padding: 0;">
+                        <th style="width:32%; border-left:2px solid #334155; padding: 0;">
                             <span class="badge-tra" style="display:block; margin:8px auto;">Transcendent</span>
                             <div style="display:flex; justify-content:space-between; font-size:12px; background:#1e293b; border-top:1px solid #334155;">
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
-                                <div style="width:35%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bonus)</div>
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Final Boss</div>
-                                <div style="width:15%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
-                                <div style="width:20%; text-align:center; padding:8px 0; box-sizing:border-box;">สำเร็จ</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
+                                <div style="width:26%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bon)</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">FB</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงแล้ว</div>
+                                <div style="width:18%; text-align:center; padding:8px 0; box-sizing:border-box;">สำเร็จ</div>
                             </div>
                         </th>
                         
                         <th style="width:8%; border-left:2px solid #334155;">เป้าเหลือ</th>
-                        <th style="width:8%; border-left:2px solid #334155;">สถานะ</th>
-                        <th style="width:12%; border-left:2px solid #334155;">Action</th>
+                        <th style="width:9%; border-left:2px solid #334155;">สถานะ</th>
+                        <th style="width:9%; border-left:2px solid #334155;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="planBody"></tbody>
@@ -359,6 +361,7 @@
     let currentLastReset = null; 
     
     window.undoHistories = {}; 
+    window.lastLiveCheck = null;
 
     // Constants
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
@@ -617,21 +620,24 @@
             
             <td style="border-right:2px solid #334155; padding:0;">
                 <div style="display:flex; height:100%; align-items:center;">
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="number" class="input-cell p-con-goal" value="${conG}" oninput="calculateAll()" style="font-weight:bold; color:white;">
                     </div>
-                    <div style="width:35%; height:100%; border-right:1px solid #334155; box-sizing:border-box; display:flex; align-items:center; padding:0 2px;">
+                    <div style="width:26%; height:100%; border-right:1px solid #334155; box-sizing:border-box; display:flex; align-items:center; padding:0 2px;">
                         <input type="number" class="input-cell p-con-rew" value="${data?.conRew || 0}" oninput="calculateAll()">
                         <span style="color:var(--gold); font-weight:bold;">+</span>
                         <input type="number" class="input-cell p-con-bon" value="${data?.conBon || 0}" oninput="calculateAll()" style="color:var(--gold);">
                     </div>
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="number" class="input-cell p-con-fb" value="${conF}" oninput="calculateAll()" style="color:#fb923c; font-weight:bold;" title="Final Boss (Conquest)">
                     </div>
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="text" class="input-cell p-con-act" style="color:var(--primary); font-weight:bold;" readonly title="ลงได้จริง">
                     </div>
-                    <div style="width:20%; height:100%; box-sizing:border-box; display:flex; justify-content:center; align-items:center;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box; background: rgba(0,0,0,0.2);">
+                        <input type="text" class="input-cell p-con-played" style="color:#cbd5e1; font-weight:bold;" readonly title="ลงไปแล้ว">
+                    </div>
+                    <div style="width:18%; height:100%; box-sizing:border-box; display:flex; justify-content:center; align-items:center;">
                         <div class="check-box-ui p-con-done ${conD?'checked':'unchecked'}" onclick="toggleCheck(this); calculateAll()" style="font-size:18px;">${conD?'✔':'✘'}</div>
                     </div>
                 </div>
@@ -639,21 +645,24 @@
             
             <td style="border-right:2px solid #334155; padding:0;">
                 <div style="display:flex; height:100%; align-items:center;">
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="number" class="input-cell p-tra-goal" value="${traG}" oninput="calculateAll()" style="font-weight:bold; color:white;">
                     </div>
-                    <div style="width:35%; height:100%; border-right:1px solid #334155; box-sizing:border-box; display:flex; align-items:center; padding:0 2px;">
+                    <div style="width:26%; height:100%; border-right:1px solid #334155; box-sizing:border-box; display:flex; align-items:center; padding:0 2px;">
                         <input type="number" class="input-cell p-tra-rew" value="${data?.traRew || 0}" oninput="calculateAll()">
                         <span style="color:var(--gold); font-weight:bold;">+</span>
                         <input type="number" class="input-cell p-tra-bon" value="${data?.traBon || 0}" oninput="calculateAll()" style="color:var(--gold);">
                     </div>
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="number" class="input-cell p-tra-fb" value="${traF}" oninput="calculateAll()" style="color:#fb923c; font-weight:bold;" title="Final Boss (Transcendent)">
                     </div>
-                    <div style="width:15%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box;">
                         <input type="text" class="input-cell p-tra-act" style="color:var(--primary); font-weight:bold;" readonly title="ลงได้จริง">
                     </div>
-                    <div style="width:20%; height:100%; box-sizing:border-box; display:flex; justify-content:center; align-items:center;">
+                    <div style="width:14%; height:100%; border-right:1px solid #334155; box-sizing:border-box; background: rgba(0,0,0,0.2);">
+                        <input type="text" class="input-cell p-tra-played" style="color:#cbd5e1; font-weight:bold;" readonly title="ลงไปแล้ว">
+                    </div>
+                    <div style="width:18%; height:100%; box-sizing:border-box; display:flex; justify-content:center; align-items:center;">
                         <div class="check-box-ui p-tra-done ${traD?'checked':'unchecked'}" onclick="toggleCheck(this); calculateAll()" style="font-size:18px;">${traD?'✔':'✘'}</div>
                     </div>
                 </div>
@@ -710,23 +719,32 @@
 
             const eneRuns = Math.floor(totalEne / 80);
 
+            // Conquest Variables
             const conG = parseInt(ptr.querySelector('.p-con-goal').value) || 0;
             const conR = parseInt(ptr.querySelector('.p-con-rew').value) || 0;
             const conB = parseInt(ptr.querySelector('.p-con-bon').value) || 0;
             const conF = parseInt(ptr.querySelector('.p-con-fb').value) || 0;
             const conD = ptr.querySelector('.p-con-done').classList.contains('checked');
             
+            // Transcendent Variables
             const traG = parseInt(ptr.querySelector('.p-tra-goal').value) || 0;
             const traR = parseInt(ptr.querySelector('.p-tra-rew').value) || 0;
             const traB = parseInt(ptr.querySelector('.p-tra-bon').value) || 0;
             const traF = parseInt(ptr.querySelector('.p-tra-fb').value) || 0;
             const traD = ptr.querySelector('.p-tra-done').classList.contains('checked');
 
+            // Playable 
             const conAct = Math.min(eneRuns, conR + conB, conF);
             const traAct = Math.min(eneRuns, traR + traB, traF);
             
             ptr.querySelector('.p-con-act').value = conAct;
             ptr.querySelector('.p-tra-act').value = traAct;
+            
+            // Played (ลงแล้ว)
+            const conPlayed = Math.max(0, 35 - conF);
+            const traPlayed = Math.max(0, 28 - traF);
+            ptr.querySelector('.p-con-played').value = conPlayed;
+            ptr.querySelector('.p-tra-played').value = traPlayed;
 
             const maxCharAct = Math.max(conAct, traAct);
             idTotalActualRuns += maxCharAct;
@@ -776,7 +794,7 @@
         let bon = parseInt(bonInput.value) || 0;
         let fb = parseInt(fbInput.value) || 0;
 
-        if ((baseE + bonE) < 80) return alert("Energy ไม่พอ");
+        if ((baseE + bonE) < 80) return alert("Energy ไม่พอ (ต้องการอย่างน้อย 80)");
         if (goal <= 0) return alert(`เป้าหมาย ${type.toUpperCase()} เรียบร้อยแล้ว`);
         if ((rew + bon) <= 0) return alert(`ตั๋ว ${type.toUpperCase()} ไม่พอ`);
         if (fb <= 0) return alert(`Final Boss ${type.toUpperCase()} ครบกำหนดแล้ว`);
@@ -974,9 +992,11 @@
     }
 
     function startClocks() {
+        window.lastLiveCheck = new Date(); // Initialize live tracker
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
+            
             const nextEneH = ENERGY_MILESTONES.find(h => h > now.getHours()) || ENERGY_MILESTONES[0];
             const targetE = new Date(now);
             if (nextEneH <= now.getHours()) targetE.setDate(targetE.getDate() + 1);
@@ -986,6 +1006,7 @@
             const em = Math.floor((eDiff % 3600000) / 60000).toString().padStart(2,'0');
             const es = Math.floor((eDiff % 60000) / 1000).toString().padStart(2,'0');
             document.getElementById('energyNextTimer').innerText = `${eh}:${em}:${es}`;
+            
             const nextRewH = REWARD_HOURS.find(h => h > now.getHours()) || REWARD_HOURS[0];
             const rDate = new Date();
             if (nextRewH <= now.getHours()) rDate.setDate(rDate.getDate() + 1);
@@ -994,40 +1015,82 @@
             const rh = Math.floor(rDiff / 3600000);
             const rm = Math.floor((rDiff % 3600000) / 60000).toString().padStart(2,'0');
             document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${rh} ชม. ${rm} นาที`;
+
+            // ระบบเช็คเวลาแบบ Real-time ทำงานเบื้องหลัง แม้ไม่ได้กดปุ่มอะไร
+            if (window.lastLiveCheck) {
+                let checkTime = new Date(window.lastLiveCheck);
+                checkTime.setMinutes(0, 0, 0, 0);
+                checkTime.setHours(checkTime.getHours() + 1);
+                
+                let energyTicks = 0;
+                let rewardTicks = 0;
+                
+                while (checkTime <= now) {
+                    if (ENERGY_MILESTONES.includes(checkTime.getHours())) energyTicks++;
+                    if (REWARD_HOURS.includes(checkTime.getHours())) rewardTicks++;
+                    checkTime.setHours(checkTime.getHours() + 1);
+                }
+                
+                if (energyTicks > 0 || rewardTicks > 0) {
+                    const addEne = isVipActive ? 15 : 10;
+                    const chars = document.querySelectorAll('#charBody tr');
+                    const plans = document.querySelectorAll('#planBody tr');
+                    chars.forEach((tr, i) => {
+                        if (energyTicks > 0) {
+                            let b = parseInt(tr.querySelector('.c-base').value) || 0;
+                            tr.querySelector('.c-base').value = Math.min(840, b + (addEne * energyTicks));
+                        }
+                        if (rewardTicks > 0) {
+                            const ptr = plans[i];
+                            if (ptr) {
+                                let cr = parseInt(ptr.querySelector('.p-con-rew').value) || 0;
+                                let trr = parseInt(ptr.querySelector('.p-tra-rew').value) || 0;
+                                ptr.querySelector('.p-con-rew').value = Math.min(14, cr + rewardTicks);
+                                ptr.querySelector('.p-tra-rew').value = Math.min(14, trr + rewardTicks);
+                            }
+                        }
+                    });
+                    
+                    window.lastLiveCheck = now;
+                    calculateAll();
+                }
+            }
+
         }, 1000);
     }
 
     function processOfflineRefills(data) {
-        if (!data.lastUpdate) return;
+        if (!data.lastUpdate) {
+            window.lastLiveCheck = new Date();
+            return;
+        }
+        
         const last = new Date(data.lastUpdate);
         const now = new Date();
         
         let energyTicks = 0;
-        let checkE = new Date(last);
-        checkE.setMinutes(0,0,0,0); 
-        checkE.setHours(checkE.getHours() + 1); 
-        while (checkE <= now) {
-            if (ENERGY_MILESTONES.includes(checkE.getHours())) {
+        let rewardTicks = 0;
+        
+        // เช็คการข้ามชั่วโมงอย่างแม่นยำตั้งแต่ Last Update จนถึงปัจจุบัน
+        let checkTime = new Date(last.getTime());
+        checkTime.setMinutes(0, 0, 0, 0);
+        checkTime.setHours(checkTime.getHours() + 1); 
+        
+        while (checkTime <= now) {
+            if (ENERGY_MILESTONES.includes(checkTime.getHours())) {
                 energyTicks++;
             }
-            checkE.setHours(checkE.getHours() + 1); 
-        }
-
-        let rewardTicks = 0;
-        let checkR = new Date(last);
-        checkR.setMinutes(0,0,0,0);
-        checkR.setHours(checkR.getHours() + 1);
-        while (checkR <= now) {
-            if (REWARD_HOURS.includes(checkR.getHours())) {
+            if (REWARD_HOURS.includes(checkTime.getHours())) {
                 rewardTicks++;
             }
-            checkR.setHours(checkR.getHours() + 1);
+            checkTime.setHours(checkTime.getHours() + 1); 
         }
 
         if (energyTicks > 0 || rewardTicks > 0) {
             const addEne = isVipActive ? 15 : 10;
             const chars = Array.from(document.querySelectorAll('#charBody tr'));
             const plans = Array.from(document.querySelectorAll('#planBody tr'));
+            
             chars.forEach((tr, i) => {
                 if (energyTicks > 0) {
                     let b = parseInt(tr.querySelector('.c-base').value) || 0;
@@ -1043,8 +1106,14 @@
                     }
                 }
             });
-            calculateAll();
+            
+            // บังคับเซฟทันทีหลังคำนวณเสร็จ เพื่อป้องกันบัคกด Sync รัวๆแล้ว Energy เด้งเบิ้ล
+            const newData = collectData();
+            set(ref(db, `users/${userName}/id_${currentID}`), newData);
         }
+        
+        // อัปเดตตัวตรวจสอบแบบ Real-time ให้เริ่มนับจากเวลาปัจจุบัน
+        window.lastLiveCheck = new Date();
     }
 
     function checkWeeklyReset(data) {
