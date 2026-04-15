@@ -212,7 +212,8 @@
                 </thead>
                 <tbody id="charBody"></tbody>
             </table>
-            <button onclick="addCharRow()" style="width:100%; padding:15px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:20px; transition:0.3s;">+ เพิ่มตัวละคร      </div>
+            <button onclick="addCharRow()" style="width:100%; padding:15px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:16px; transition:0.3s;">+ เพิ่มตัวละครใหม่เข้าทีม</button>
+        </div>
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
             <div style="background:#9333ea; color:white; padding:12px 20px; border-radius:12px 12px 0 0; font-weight:bold; font-size:16px;">🎯 ตารางวางแผน Dungeon (เป้าหมาย, Reward & สถานะลงสำเร็จ)</div>
@@ -452,7 +453,7 @@
     window.updateIDTabName = (val) => {
         idNames[currentID] = val || `ID ${currentID}`;
         renderIDTabs();
-        queueSave(); // บันทึกข้อมูลชื่อไอดีลง Database ทันที
+        queueSave(); 
     };
 
     // --- DATA LOADING & SAVING ---
@@ -489,7 +490,7 @@
 
     function collectData() {
         return {
-            note: document.getElementById('idNote').value, // ดึงค่าจากช่องกรอกชื่อไอดี
+            note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
@@ -1000,20 +1001,29 @@
         if (!data.lastUpdate) return;
         const last = new Date(data.lastUpdate);
         const now = new Date();
+        
         let energyTicks = 0;
         let checkE = new Date(last);
-        checkE.setMinutes(0,0,0);
-        while (checkE < now) {
-            checkE.setHours(checkE.getHours() + 1);
-            if (ENERGY_MILESTONES.includes(checkE.getHours())) energyTicks++;
+        checkE.setMinutes(0,0,0,0); 
+        checkE.setHours(checkE.getHours() + 1); 
+        while (checkE <= now) {
+            if (ENERGY_MILESTONES.includes(checkE.getHours())) {
+                energyTicks++;
+            }
+            checkE.setHours(checkE.getHours() + 1); 
         }
+
         let rewardTicks = 0;
         let checkR = new Date(last);
-        checkR.setMinutes(0,0,0);
-        while (checkR < now) {
+        checkR.setMinutes(0,0,0,0);
+        checkR.setHours(checkR.getHours() + 1);
+        while (checkR <= now) {
+            if (REWARD_HOURS.includes(checkR.getHours())) {
+                rewardTicks++;
+            }
             checkR.setHours(checkR.getHours() + 1);
-            if (REWARD_HOURS.includes(checkR.getHours())) rewardTicks++;
         }
+
         if (energyTicks > 0 || rewardTicks > 0) {
             const addEne = isVipActive ? 15 : 10;
             const chars = Array.from(document.querySelectorAll('#charBody tr'));
