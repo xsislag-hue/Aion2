@@ -153,6 +153,16 @@
                 return;
             }
 
+            // ----------------------------------------------------
+            // คำนวณยา EN กองกลาง จาก Checkbox หน้า index.html
+            // ----------------------------------------------------
+            let calculatedPoolEn = 41; // ยาตั้งต้น 41 ขวด
+            if (data.idBuy) calculatedPoolEn -= 21;   // ถ้าติ๊กซื้อยา หัก 21 ขวด
+            if (data.idCraft) calculatedPoolEn -= 20; // ถ้าติ๊กสร้างยา หัก 20 ขวด
+            
+            document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
+            document.getElementById('poolRew').value = 21; // รีเซ็ตใบกองกลางเป็น 21 ปกติ
+            
             document.getElementById('charTableBody').innerHTML = "";
 
             data.chars.forEach((c, i) => {
@@ -246,6 +256,7 @@
         let poolEn = parseInt(document.getElementById('poolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
         
+        // คำนวณ Regen
         const targetDate = document.getElementById('targetTime').value;
         let regen = 0;
         if (targetDate) {
@@ -270,9 +281,11 @@
             const rawTargetTotal = tCon + tTra;
             const netTargetTotal = Math.max(0, rawTargetTotal - alreadyDone);
 
+            // สมมติว่าที่ลงไปแล้วคือ Conquest ก่อน
             let conLeft = Math.max(0, tCon - Math.min(tCon, alreadyDone)); 
             let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
 
+            // ดึงใบจากกองกลาง
             let conFromPool = Math.min(poolRew, Math.max(0, conLeft - conStock));
             poolRew -= conFromPool;
             let traFromPool = Math.min(poolRew, Math.max(0, traLeft - traStock));
@@ -280,6 +293,7 @@
 
             const totalRightsAvailable = Math.min(conLeft, conStock + conFromPool) + Math.min(traLeft, traStock + traFromPool);
             
+            // ดึงยาจากกองกลาง
             let currentEn = myEn;
             let pillsUsed = 0;
             const enNeeded = totalRightsAvailable * 80;
@@ -290,6 +304,7 @@
                 currentEn += (pillsUsed * 40);
             }
 
+            // คำนวณรอบที่ทำได้จริงและแยกดันเจี้ยน
             const canDoNow = Math.min(totalRightsAvailable, Math.floor(currentEn / 80));
             totalNetRounds += canDoNow;
 
@@ -306,7 +321,7 @@
                             <b style="font-size:20px; color:var(--primary)">${name}</b> 
                             <span class="badge-info">เป้าหมายรวม: ${rawTargetTotal} หักออก ${alreadyDone} = ${netTargetTotal}</span>
                         </div>
-                        <b style="font-size:22px; color:${canDoNow >= netTargetTotal ? 'var(--success)' : 'var(--danger)'}">
+                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--danger)'}">
                             ต้องทำเพิ่ม: ${canDoNow} / ${netTargetTotal} รอบ
                         </b>
                     </div>
