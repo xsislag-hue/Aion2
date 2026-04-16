@@ -142,7 +142,6 @@
         <button class="nav-btn active" id="btn-char" onclick="switchTab('char')">👤 ตัวละคร & ดันเจี้ยน</button>
         <button class="nav-btn" id="btn-item" onclick="switchTab('item')">📦 คลังไอเทม</button>
         <button class="nav-btn nav-btn-global" id="btn-global" onclick="switchTab('global')">📊 สรุปภาพรวมเซิร์ฟเวอร์</button>
-        
         <button class="nav-btn" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; margin-left: 10px;" onclick="goToPlanner()">🔮 ไปหน้า Planner</button>
     </div>
 
@@ -205,9 +204,10 @@
                 <thead>
                     <tr>
                         <th style="width:18%">ชื่อตัวละคร</th>
-                        <th style="width:15%">อาชีพ</th>
-                        <th style="width:25%">Energy (ปกติ + โบนัส)</th>
-                        <th style="width:15%">Energy รวม</th>
+                        <th style="width:12%">อาชีพ</th>
+                        <th style="width:22%">Energy (ปกติ + โบนัส)</th>
+                        <th style="width:12%">Energy รวม</th>
+                        <th style="width:15%; color:#db2777;">⛩️ Sanctuary</th>
                         <th style="width:10%">Ascension</th>
                         <th style="width:50px"></th>
                     </tr>
@@ -365,7 +365,6 @@
     window.undoHistories = {}; 
     window.lastLiveCheck = null;
 
-    // Constants
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
 
@@ -422,7 +421,6 @@
         });
     }
 
-    // --- ID SYSTEM ---
     window.renderIDTabs = () => {
         const container = document.getElementById('idTabsList');
         container.innerHTML = idList.map(id => `
@@ -465,7 +463,6 @@
         queueSave(); 
     };
 
-    // --- DATA LOADING & SAVING ---
     async function loadIDData(id) {
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
@@ -514,6 +511,8 @@
                 job: tr.querySelector('.c-job').value,
                 base: tr.querySelector('.c-base').value,
                 bonus: tr.querySelector('.c-bonus').value,
+                sancRuns: parseInt(tr.querySelector('.c-sanc').value) || 0,
+                sancDone: tr.querySelector('.c-sanc-done').value === '1',
                 asc: tr.querySelector('.c-asc').classList.contains('checked')
             })),
             plans: Array.from(document.querySelectorAll('#planBody tr')).map(tr => ({
@@ -552,7 +551,6 @@
         setTimeout(() => el.style.display = 'none', 2000);
     }
 
-    // --- DYNAMIC ROWS RENDERING ---
     function renderCharRows(chars) {
         const body = document.getElementById('charBody');
         body.innerHTML = "";
@@ -565,6 +563,10 @@
         const i = index !== null ? index : body.children.length;
         const tr = document.createElement('tr');
         tr.dataset.index = i;
+        
+        const sancR = data?.sancRuns || 0;
+        const sancD = data?.sancDone || false;
+
         tr.innerHTML = `
             <td><input type="text" class="input-cell c-name" value="${data?.name || ''}" placeholder="ระบุชื่อ..." oninput="syncName(${i}, this.value); calculateAll()"></td>
             <td>
@@ -588,6 +590,18 @@
                 </div>
             </td>
             <td class="readonly-cell"><input type="text" class="input-cell c-total-ene" readonly style="font-weight:bold;"></td>
+            <td>
+                <div style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <select class="input-cell c-sanc" onchange="queueSave()" style="width:45px; background:#0f172a; color:white; border-radius:4px; border:1px solid #db2777; outline:none;" ${sancD ? 'disabled' : ''}>
+                        <option value="0" ${sancR==0?'selected':''}>0</option>
+                        <option value="2" ${sancR==2?'selected':''}>2</option>
+                        <option value="3" ${sancR==3?'selected':''}>3</option>
+                    </select>
+                    <button class="btn-action" style="background:${sancD ? 'var(--success)' : '#db2777'}; width:28px; padding:4px; font-size:12px;" onclick="executeSanc(this)" ${sancD ? 'disabled' : ''}>${sancD ? '✔' : 'S'}</button>
+                    <input type="hidden" class="c-sanc-done" value="${sancD ? '1' : '0'}">
+                    <button class="btn-action btn-undo-sanc ${sancD ? '' : 'hidden'}" style="background:var(--danger); padding:4px; width:28px; font-size:12px;" onclick="undoSanc(this)">U</button>
+                </div>
+            </td>
             <td><div class="check-box-ui c-asc ${data?.asc?'checked':'unchecked'}" onclick="toggleCheck(this); calculateAll()">${data?.asc?'✔':'✘'}</div></td>
             <td><button class="btn-del-id" onclick="removeRow(this, 'char')">×</button></td>
         `;
@@ -596,6 +610,59 @@
             addPlanRow(null, i, data?.name || "");
             calculateAll();
         }
+    };
+
+    window.executeSanc = (btn) => {
+        const tr = btn.closest('tr');
+        const sancSelect = tr.querySelector('.c-sanc');
+        const runs = parseInt(sancSelect.value) || 0;
+        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary (2 หรือ 3) ก่อนกดปุ่ม S');
+        
+        const cost = runs * 80;
+        const baseInput = tr.querySelector('.c-base');
+        const bonusInput = tr.querySelector('.c-bonus');
+        let baseE = parseInt(baseInput.value) || 0;
+        let bonE = parseInt(bonusInput.value) || 0;
+        
+        if (baseE + bonE < cost) return alert('Energy ไม่พอ! (ต้องการ ' + cost + ' EN สำหรับ ' + runs + ' รอบ)');
+        
+        if (baseE >= cost) {
+            baseInput.value = baseE - cost;
+        } else {
+            const rem = cost - baseE;
+            baseInput.value = 0;
+            bonusInput.value = Math.max(0, bonE - rem);
+        }
+        
+        tr.querySelector('.c-sanc-done').value = '1';
+        sancSelect.disabled = true;
+        btn.disabled = true;
+        btn.style.background = 'var(--success)';
+        btn.innerText = '✔';
+        tr.querySelector('.btn-undo-sanc').classList.remove('hidden');
+        
+        calculateAll();
+    };
+
+    window.undoSanc = (btn) => {
+        const tr = btn.closest('tr');
+        const sancSelect = tr.querySelector('.c-sanc');
+        const runs = parseInt(sancSelect.value) || 0;
+        const cost = runs * 80;
+        
+        const baseInput = tr.querySelector('.c-base');
+        baseInput.value = (parseInt(baseInput.value) || 0) + cost; 
+        
+        tr.querySelector('.c-sanc-done').value = '0';
+        sancSelect.disabled = false;
+        
+        const sBtn = tr.querySelector('button[onclick="executeSanc(this)"]');
+        sBtn.disabled = false;
+        sBtn.style.background = '#db2777';
+        sBtn.innerText = 'S';
+        
+        btn.classList.add('hidden');
+        calculateAll();
     };
 
     function renderPlanRows(plans, chars) {
@@ -725,28 +792,24 @@
 
             const eneRuns = Math.floor(totalEne / 80);
 
-            // Conquest Variables
             const conG = parseInt(ptr.querySelector('.p-con-goal').value) || 0;
             const conR = parseInt(ptr.querySelector('.p-con-rew').value) || 0;
             const conB = parseInt(ptr.querySelector('.p-con-bon').value) || 0;
             const conF = parseInt(ptr.querySelector('.p-con-fb').value) || 0;
             const conD = ptr.querySelector('.p-con-done').classList.contains('checked');
             
-            // Transcendent Variables
             const traG = parseInt(ptr.querySelector('.p-tra-goal').value) || 0;
             const traR = parseInt(ptr.querySelector('.p-tra-rew').value) || 0;
             const traB = parseInt(ptr.querySelector('.p-tra-bon').value) || 0;
             const traF = parseInt(ptr.querySelector('.p-tra-fb').value) || 0;
             const traD = ptr.querySelector('.p-tra-done').classList.contains('checked');
 
-            // Playable 
             const conAct = Math.min(eneRuns, conR + conB, conF);
             const traAct = Math.min(eneRuns, traR + traB, traF);
             
             ptr.querySelector('.p-con-act').value = conAct;
             ptr.querySelector('.p-tra-act').value = traAct;
             
-            // Played (ลงแล้ว)
             const conPlayed = Math.max(0, 35 - conF);
             const traPlayed = Math.max(0, 28 - traF);
             ptr.querySelector('.p-con-played').value = conPlayed;
@@ -755,7 +818,6 @@
             const maxCharAct = Math.max(conAct, traAct);
             idTotalActualRuns += maxCharAct;
 
-            // หักลบเป้าหมายด้วยจำนวนที่ลงไปแล้ว (เป้าเหลือ)
             const remCon = conD ? 0 : Math.max(0, conG - conPlayed);
             const remTra = traD ? 0 : Math.max(0, traG - traPlayed);
             const remGoals = remCon + remTra;
@@ -1139,6 +1201,15 @@
                     ascCheck.classList.add('unchecked');
                     ascCheck.innerText = '✘';
                 }
+                // รีเซ็ต Sanctuary ในหน้าหลัก
+                const sancSelect = tr.querySelector('.c-sanc');
+                if(sancSelect) { sancSelect.value = "0"; sancSelect.disabled = false; }
+                const sancDone = tr.querySelector('.c-sanc-done');
+                if(sancDone) sancDone.value = "0";
+                const sBtn = tr.querySelector('button[onclick="executeSanc(this)"]');
+                if(sBtn) { sBtn.disabled = false; sBtn.style.background = '#db2777'; sBtn.innerText = 'S'; }
+                const uBtn = tr.querySelector('.btn-undo-sanc');
+                if(uBtn) uBtn.classList.add('hidden');
             });
             const plans = Array.from(document.querySelectorAll('#planBody tr'));
             plans.forEach(tr => {
