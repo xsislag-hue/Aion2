@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Master Planner - Smart Allocation</title>
+    <title>AI Master Planner - Smart Time Balancing</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -60,10 +60,10 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1 style="margin:0; font-size:22px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[ระบบกระจายยาอัจฉริยะ (Smart Allocation)]</span></h1>
+            <h1 style="margin:0; font-size:22px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[ประเมินเส้นตาย & กระจายยาดึงเวลา]</span></h1>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
-            <span style="font-size:14px;">เวลาเป้าหมาย (เส้นตายปิดเซิร์ฟ):</span>
+            <span style="font-size:14px;">เวลาเป้าหมาย (เส้นตาย):</span>
             <input type="datetime-local" id="targetTime" style="width:200px; text-align:left;" onchange="window.saveAll()">
             <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
             <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
@@ -104,7 +104,7 @@
         </div>
         <div style="display:flex; gap:10px;">
             <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
-            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการ (กระจายยาให้ครบทุกตัว)</button>
+            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการ (กระจายยาถัวเฉลี่ยเวลา)</button>
         </div>
     </div>
 
@@ -114,7 +114,7 @@
         <div id="leftoverSuggestion" style="background: linear-gradient(135deg, #b45309, #d97706); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; box-shadow: 0 5px 15px rgba(217, 119, 6, 0.4);">
         </div>
 
-        <h2 style="color:var(--gold); margin-bottom:15px; border-bottom: 2px solid var(--border); padding-bottom:10px;">📊 รายงานแผนการเล่นและการประเมินเวลา</h2>
+        <h2 style="color:var(--gold); margin-bottom:15px; border-bottom: 2px solid var(--border); padding-bottom:10px;">📊 รายงานแผนการเล่นและการประเมินเวลา (สมดุลที่สุด)</h2>
         <div id="allocationLog"></div>
     </div>
 </div>
@@ -137,9 +137,8 @@
     const db = getDatabase(app);
     const urlParams = new URLSearchParams(window.location.search);
     const userName = urlParams.get('user') || 'Guest';
-    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V7'; // Update Key
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V8';
     
-    // เวลาที่ระบบเกมรีเจน EN
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
 
     function formatThaiDateTime(d) {
@@ -280,10 +279,10 @@
         }
         document.getElementById('regenText').innerText = targetDate ? `(ถึงเวลาเส้นตาย จะได้รีเจนอีก: +${globalFutureRegen} EN)` : "(กรุณาระบุเวลาเส้นตายเพื่อประเมิน)";
 
-        // รวบรวมข้อมูลตัวละครทั้งหมดก่อนจัดสรร
-        let chars = [];
+        let charsData = [];
         let totalAlreadyDoneAll = 0;
 
+        // ดึงข้อมูลและคำนวณเบื้องต้น
         document.querySelectorAll('#charTableBody tr').forEach(row => {
             const name = row.querySelector('.c-name').value;
             const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0);
@@ -295,21 +294,22 @@
             
             const tCon = parseInt(row.querySelector('.c-tCon').value) || 0;
             const tTra = parseInt(row.querySelector('.c-tTra').value) || 0;
+            
             const rawTargetTotal = tCon + tTra;
             const netTargetTotal = Math.max(0, rawTargetTotal - alreadyDone);
 
             let conLeft = Math.max(0, tCon - Math.min(tCon, alreadyDone)); 
             let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
 
-            chars.push({
+            charsData.push({
                 name, currentBaseEn, conStock, traStock, alreadyDone, 
-                rawTargetTotal, netTargetTotal, conLeft, traLeft, 
+                rawTargetTotal, netTargetTotal, conLeft, traLeft,
                 allocatedPills: 0, conFromPool: 0, traFromPool: 0
             });
         });
 
-        // 1. จัดสรรใบ Reward (Greedy ตามเดิม เพราะไม่ต้องรอ Regen)
-        chars.forEach(c => {
+        // สเต็ป 0: แจกใบ Reward (Greedy เพราะใบไม่ต้องรอ Regen)
+        charsData.forEach(c => {
             c.conFromPool = Math.min(poolRew, Math.max(0, c.conLeft - c.conStock));
             poolRew -= c.conFromPool;
             c.traFromPool = Math.min(poolRew, Math.max(0, c.traLeft - c.traStock));
@@ -318,12 +318,11 @@
 
         let poolEn = originalPoolEn;
 
-        // 2. สเต็ป 1: แจกยาเพื่อ "รับประกันเป้าหมาย" (คำนวณจาก Regen ในอนาคต)
-        // เพื่อให้ตัวรองๆ มีโอกาสรอดก่อน
-        chars.forEach(c => {
+        // สเต็ป 1: แจกยาเพื่อการันตี "รอดตาย" เมื่อถึงเส้นตาย
+        charsData.forEach(c => {
             let requiredEn = c.netTargetTotal * 80;
             let projectedEn = c.currentBaseEn + globalFutureRegen; 
-            let deficit = Math.max(0, requiredEn - projectedEn); // ขาด EN เท่าไหร่ถึงจะถึงเป้าเมื่อถึงเวลา
+            let deficit = Math.max(0, requiredEn - projectedEn);
             
             if (deficit > 0) {
                 let pillsNeededToSurvive = Math.ceil(deficit / 40);
@@ -333,32 +332,42 @@
             }
         });
 
-        // 3. สเต็ป 2: แจกยาเพื่อ "เร่งความเร็ว" (Play Now)
-        // ถ้ายายังเหลือ ค่อยเอามาให้ตัวแรกๆ กด เพื่อจะได้ไม่ต้องรอ Regen
-        chars.forEach(c => {
-            if (poolEn > 0) {
+        // สเต็ป 2: แจกยาเพื่อ "เฉลี่ยเวลารอคอย" (ร่นเวลาให้ทุกคนห่างจากเส้นตาย)
+        // แจกทีละขวดให้ตัวที่ยังต้องการ EN "ณ ปัจจุบัน" มากที่สุด
+        let loopSafety = 0;
+        while (poolEn > 0 && loopSafety < 1000) {
+            loopSafety++;
+            let maxMissingNow = 0;
+            let targetChar = null;
+            
+            charsData.forEach(c => {
                 let requiredEnNow = c.netTargetTotal * 80;
                 let currentEnWithPills = c.currentBaseEn + (c.allocatedPills * 40);
-                let deficitNow = Math.max(0, requiredEnNow - currentEnWithPills);
+                let missingNow = requiredEnNow - currentEnWithPills;
                 
-                if (deficitNow > 0) {
-                    let extraPillsNeeded = Math.ceil(deficitNow / 40);
-                    let pillsGiven = Math.min(poolEn, extraPillsNeeded);
-                    poolEn -= pillsGiven;
-                    c.allocatedPills += pillsGiven;
+                if (missingNow > maxMissingNow) {
+                    maxMissingNow = missingNow;
+                    targetChar = c;
                 }
+            });
+            
+            if (targetChar && maxMissingNow > 0) {
+                targetChar.allocatedPills++;
+                poolEn--;
+            } else {
+                break; // ทุกตัว EN พอที่จะเสร็จเดี๋ยวนี้แล้ว
             }
-        });
+        }
 
         let logHtml = "";
         let totalNetRounds = 0;
         let totalFutureNetRounds = 0;
 
-        // 4. สรุปผลลัพธ์
-        chars.forEach(c => {
+        // ประมวลผลลัพธ์และแสดงผล
+        charsData.forEach(c => {
             const totalRightsAvailable = Math.min(c.conLeft, c.conStock + c.conFromPool) + Math.min(c.traLeft, c.traStock + c.traFromPool);
             let currentEn = c.currentBaseEn + (c.allocatedPills * 40);
-            
+
             const canDoNow = Math.min(totalRightsAvailable, Math.floor(currentEn / 80));
             totalNetRounds += canDoNow;
 
@@ -366,8 +375,6 @@
             if (targetDate) {
                 let totalFutureEn = currentEn + globalFutureRegen; 
                 futureCanDoGlobal = Math.max(canDoNow, Math.min(c.netTargetTotal, Math.floor(totalFutureEn / 80)));
-            } else {
-                futureCanDoGlobal = canDoNow;
             }
             totalFutureNetRounds += futureCanDoGlobal;
 
@@ -387,7 +394,7 @@
                 }
                 
                 statusAlert = `
-                    <div style="color:var(--success); font-weight:bold; font-size:16px; margin-bottom:5px;">✅ สบายมาก! พร้อมลุยทันที</div>
+                    <div style="color:var(--success); font-weight:bold; font-size:16px; margin-bottom:5px;">✅ สบายมาก! กดยาแล้วพร้อมลุยทันที</div>
                     <div style="font-size:14px; color:#cbd5e1; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(16,185,129,0.3);">
                         ▪️ เคลียร์เป้าหมาย ${c.netTargetTotal} รอบได้เลยโดยไม่ต้องรอเวลา<br>
                         ${(targetDate && extraPossibleRuns > 0) ? 
@@ -448,7 +455,7 @@
                                 ${targetDate ? `
                                     ${extraPossibleRuns > 0 ? 
                                         `<div style="margin-top:5px; padding-top:5px; border-top:1px dashed rgba(255,255,255,0.2); color:var(--success);">💡 <b>มีเวลาเหลือ!</b> ก่อนถึงเส้นตายจะได้รีเจนเพิ่มอีก จนสามารถ <b>บวกเป้าหมายเพิ่มได้อีก ${extraPossibleRuns} รอบ!</b></div>` 
-                                        : `<span style="color:#cbd5e1;">(แต่เวลาที่เหลือก่อนถึงเส้นตาย จะรีเจน EN ไม่พอให้บวกรอบเพิ่มแล้ว)</span>`
+                                        : `<span style="color:#cbd5e1;">(เวลาที่เหลือก่อนถึงเส้นตาย จะรีเจน EN ไม่พอให้บวกรอบเพิ่มแล้ว)</span>`
                                     }
                                 ` : `<span style="color:#cbd5e1;">(ระบุ 'เวลาเป้าหมาย' ด้านบน เพื่อเช็คว่าทันเซิร์ฟปิดหรือไม่)</span>`}
                             </div>
