@@ -115,7 +115,6 @@
 </div>
 
 <script type="module">
-    // --- Firebase Initialization (ใช้ Config เดียวกับระบบหลัก) ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -132,13 +131,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     
-    // ดึงชื่อ User จาก URL (ถ้าไม่มีใช้ Guest)
     const urlParams = new URLSearchParams(window.location.search);
     const userName = urlParams.get('user') || 'Guest';
 
     const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V2';
 
-    // --- ฟังก์ชันดึงข้อมูลจาก Firebase ---
     window.syncFromFirebase = async () => {
         try {
             const idToPull = prompt("ระบุหมายเลข ID ที่ต้องการดึงข้อมูลจากหน้าหลัก (เช่น 1, 2, 3)", "1");
@@ -156,10 +153,8 @@
                 return;
             }
 
-            // เคลียร์ตารางเดิม
             document.getElementById('charTableBody').innerHTML = "";
 
-            // วนลูปดึงข้อมูลตัวละครและเป้าหมายจาก Firebase มาใส่ Planner
             data.chars.forEach((c, i) => {
                 const p = (data.plans && data.plans[i]) ? data.plans[i] : {};
                 
@@ -170,11 +165,15 @@
                 const conB = p.conBon || 0;
                 const traN = p.traRew || 0;
                 const traB = p.traBon || 0;
-                const tCon = p.conGoal || 35;
-                const tTra = p.traGoal || 7;
                 
-                // สำหรับ "ลงไปแล้ว" ระบบหลักไม่มีช่องเก็บ ให้เริ่มที่ 0 เพื่อให้กรอกเอง
-                const done = 0; 
+                // ดึงเป้าหมายรวม
+                const tCon = p.conGoal !== undefined ? p.conGoal : 35;
+                const tTra = p.traGoal !== undefined ? p.traGoal : 7;
+                
+                // คำนวณจำนวนที่ลงไปแล้ว จาก (Max - FB)
+                const conF = p.conFb !== undefined ? p.conFb : 35;
+                const traF = p.traFb !== undefined ? p.traFb : 28;
+                const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
 
                 window.addRow(name, en, enB, conN, conB, traN, traB, tCon, tTra, done);
             });
@@ -190,7 +189,6 @@
         }
     };
 
-    // --- Core Logic เดิมของ Planner ---
     window.saveAll = () => {
         const charData = [];
         document.querySelectorAll('#charTableBody tr').forEach(row => {
@@ -248,7 +246,6 @@
         let poolEn = parseInt(document.getElementById('poolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
         
-        // คำนวณ Regen
         const targetDate = document.getElementById('targetTime').value;
         let regen = 0;
         if (targetDate) {
@@ -273,11 +270,9 @@
             const rawTargetTotal = tCon + tTra;
             const netTargetTotal = Math.max(0, rawTargetTotal - alreadyDone);
 
-            // สมมติว่าที่ลงไปแล้วคือ Conquest ก่อน
             let conLeft = Math.max(0, tCon - Math.min(tCon, alreadyDone)); 
             let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
 
-            // ดึงใบจากกองกลาง
             let conFromPool = Math.min(poolRew, Math.max(0, conLeft - conStock));
             poolRew -= conFromPool;
             let traFromPool = Math.min(poolRew, Math.max(0, traLeft - traStock));
@@ -285,7 +280,6 @@
 
             const totalRightsAvailable = Math.min(conLeft, conStock + conFromPool) + Math.min(traLeft, traStock + traFromPool);
             
-            // ดึงยาจากกองกลาง
             let currentEn = myEn;
             let pillsUsed = 0;
             const enNeeded = totalRightsAvailable * 80;
@@ -296,7 +290,6 @@
                 currentEn += (pillsUsed * 40);
             }
 
-            // คำนวณรอบที่ทำได้จริงและแยกดันเจี้ยน
             const canDoNow = Math.min(totalRightsAvailable, Math.floor(currentEn / 80));
             totalNetRounds += canDoNow;
 
@@ -313,7 +306,7 @@
                             <b style="font-size:20px; color:var(--primary)">${name}</b> 
                             <span class="badge-info">เป้าหมายรวม: ${rawTargetTotal} หักออก ${alreadyDone} = ${netTargetTotal}</span>
                         </div>
-                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--danger)'}">
+                        <b style="font-size:22px; color:${canDoNow >= netTargetTotal ? 'var(--success)' : 'var(--danger)'}">
                             ต้องทำเพิ่ม: ${canDoNow} / ${netTargetTotal} รอบ
                         </b>
                     </div>
