@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Master Planner - Ultimate Edition</title>
+    <title>AI Master Planner - Ultimate Planner Sync</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -125,7 +125,7 @@
         </div>
         <div style="display:flex; gap:10px;">
             <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
-            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการสุดล้ำ (AI + Manual)</button>
+            <button class="btn btn-calc" onclick="window.calculateFastTrack(true)">⚡ วิเคราะห์แผนปฏิบัติการสุดล้ำ (AI + Manual)</button>
         </div>
     </div>
 
@@ -157,11 +157,11 @@
     const userName = urlParams.get('user') || 'Guest';
     let currentPlannerId = urlParams.get('id') || '1'; 
     
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V16';
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
 
-    // ฟังก์ชันสร้าง Key ที่แยกตาม ID แบบ 100%
     function getStorageKey() {
-        return `AION_PLANNER_${userName}_ID_${currentPlannerId}_V15`;
+        return `AION_PLANNER_${userName}_ID_${currentPlannerId}_V16`;
     }
 
     function updateIdBadge() {
@@ -210,7 +210,6 @@
                 if (!idToPull) return;
             }
             
-            // อัปเดต ID ปัจจุบันและเปลี่ยน URL ให้จำค่า
             currentPlannerId = idToPull;
             updateIdBadge();
             window.history.replaceState(null, '', `?user=${userName}&id=${currentPlannerId}`);
@@ -235,7 +234,6 @@
             document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
             document.getElementById('poolRew').value = 21; 
 
-            // ดึงค่าเก่าเฉพาะของ ID นี้มาผสม (ป้องกันค่าหาย)
             const saved = localStorage.getItem(getStorageKey());
             let oldChars = [];
             if (saved) {
@@ -260,12 +258,15 @@
                 const traF = p.traFb !== undefined ? p.traFb : 28;
                 const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
                 
-                // ใช้ค่าเก่าถ้ามีอยู่ (ไม่เซ็ตเป็น 0 อัตโนมัติแล้ว)
                 const ownPills = oldC.ownPills || 0;
-                const sancRuns = oldC.sancRuns || 0;
                 const pillsUsed = oldC.pillsUsed || 0;
                 const lockPills = oldC.lockPills || "";
                 const isMain = oldC.isMain || false;
+
+                // ดึงข้อมูล Sanctuary จาก index.html ถ้ากดยืนยันแล้ว ก็ไม่ต้องเอามาหักอีก!
+                const dbSancRuns = c.sancRuns || 0;
+                const dbSancDone = c.sancDone || false;
+                const sancRuns = dbSancDone ? 0 : dbSancRuns;
 
                 window.addRow(name, en, enB, ownPills, sancRuns, pillsUsed, lockPills, conN, conB, traN, traB, tCon, tTra, done, isMain);
             });
@@ -273,7 +274,8 @@
             window.saveAll();
             btn.innerText = "✅ ซิงค์สำเร็จ!";
             setTimeout(() => btn.innerText = originalText, 2000);
-            if (forceId) window.calculateFastTrack();
+            
+            window.calculateFastTrack(false);
 
         } catch (error) {
             console.error(error);
@@ -318,6 +320,7 @@
         if (!saved) { 
             window.addRow("PonyPim", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
             window.addRow("Pony3i3i", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.calculateFastTrack(false);
             return; 
         }
         const data = JSON.parse(saved);
@@ -329,6 +332,7 @@
         data.chars.forEach((c) => {
             window.addRow(c.name, c.en, c.enB, c.ownPills||0, c.sancRuns||0, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
         });
+        window.calculateFastTrack(false);
     };
 
     window.addRow = (name="ตัวละคร", en=0, enB=0, ownPills=0, sancRuns=0, pillsUsed=0, lockPills="", conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0, isMain=false) => {
@@ -362,9 +366,11 @@
         window.saveAll();
     };
 
-    window.clearData = () => { if(confirm('ล้างข้อมูลเฉพาะ Planner ของ ID นี้หรือไม่?')) { localStorage.removeItem(getStorageKey()); location.reload(); } };
+    window.clearData = () => { if(confirm(`ล้างข้อมูลเฉพาะ Planner ของ ID: ${currentPlannerId} หรือไม่?`)) { localStorage.removeItem(getStorageKey()); location.reload(); } };
 
-    window.calculateFastTrack = () => {
+    window.calculateFastTrack = (autoScroll = true) => {
+        if (typeof autoScroll !== 'boolean') autoScroll = true;
+
         let originalPoolEn = parseInt(document.getElementById('poolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
         
@@ -431,10 +437,8 @@
             });
         });
 
-        // คำนวณยากองกลางที่ "เหลือให้ดึง"
         let poolEn = Math.max(0, originalPoolEn - totalPillsAlreadyUsed);
 
-        // ฟังก์ชันช่วยจัดสรรยา (ดึงจากยาติดตัวก่อน ค่อยดึงกองกลาง)
         function allocatePills(c, amount) {
             let given = 0;
             let fromOwn = Math.min(amount, c.ownPills - c.usedOwnPills);
@@ -462,18 +466,14 @@
             }
         });
 
-        // สเต็ป 0.1: หักยา Manual Override
         charsData.forEach(c => {
-            if (c.isPillsLocked) {
-                allocatePills(c, c.lockedPillsValue);
-            }
+            if (c.isPillsLocked) allocatePills(c, c.lockedPillsValue);
         });
 
         let mainChars = charsData.filter(c => c.isMain);
         let otherChars = charsData.filter(c => !c.isMain);
         let mainChar = mainChars.length > 0 ? mainChars[0] : null;
 
-        // สเต็ป 0.2: แจกใบ Reward
         if (mainChar) {
             mainChar.conFromPool = Math.min(poolRew, Math.max(0, mainChar.conLeft - mainChar.conStock));
             poolRew -= mainChar.conFromPool;
@@ -487,28 +487,21 @@
             poolRew -= c.traFromPool;
         });
 
-        // สเต็ป 1: แจกยา AI ให้ตัวหลัก
         if (mainChar && !mainChar.isPillsLocked) {
             let requiredEn = (mainChar.netTargetTotal * 80) + mainChar.sancCost;
             let projectedEn = mainChar.currentBaseEn + mainChar.evalFutureRegen;
             let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) {
-                allocatePills(mainChar, Math.ceil(deficit / 40));
-            }
+            if (deficit > 0) allocatePills(mainChar, Math.ceil(deficit / 40));
         }
         
-        // สเต็ป 2: แจกยา AI ให้ตัวรอง (รอดเส้นตาย)
         otherChars.forEach(c => {
             if (c.isPillsLocked) return;
             let requiredEn = (c.netTargetTotal * 80) + c.sancCost;
             let projectedEn = c.currentBaseEn + c.evalFutureRegen; 
             let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) {
-                allocatePills(c, Math.ceil(deficit / 40));
-            }
+            if (deficit > 0) allocatePills(c, Math.ceil(deficit / 40));
         });
 
-        // สเต็ป 3: ถัวเฉลี่ยเวลาที่เหลือ (เร่งให้เสร็จไวขึ้น)
         let loopSafety = 0;
         let pillsAvailable = true;
         while (pillsAvailable && loopSafety < 1000) {
@@ -765,7 +758,9 @@
             suggestBox.style.display = 'none';
         }
 
-        window.scrollTo({ top: document.getElementById('result').offsetTop - 20, behavior: 'smooth' });
+        if(autoScroll) {
+            window.scrollTo({ top: document.getElementById('result').offsetTop - 20, behavior: 'smooth' });
+        }
     };
 
     window.onload = async () => {
