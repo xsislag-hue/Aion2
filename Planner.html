@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Master Planner - Firebase Sync Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #3b82f6; --success: #10b981; --gold: #fbbf24; --danger: #ef4444;
+            --dark-bg: #0f172a; --dark-card: #1e293b; --border: #334155;
+            --text-main: #f8fafc; --text-dim: #94a3b8;
+        }
+        body { background-color: var(--dark-bg); color: var(--text-main); font-family: 'Prompt', sans-serif; padding: 10px; margin: 0; }
+        
+        .container { width: 100%; max-width: 1800px; margin: 0 auto; }
+        
+        .header { 
+            background: linear-gradient(135deg, #1e3a8a, #4f46e5); 
+            padding: 12px 25px; border-radius: 12px; margin-bottom: 10px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .card { background: var(--dark-card); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; }
+        
+        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 8px; background: #020617; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th { background: #1e293b; color: var(--gold); padding: 8px; font-size: 14px; border: 1px solid var(--border); }
+        td { padding: 6px; border: 1px solid var(--border); text-align: center; }
+
+        input { 
+            background: #0f172a; border: 1px solid var(--border); color: white; 
+            padding: 5px; border-radius: 5px; text-align: center; outline: none; 
+            font-family: 'Prompt'; font-size: 14px; width: 60px; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+        .name-input { width: 150px; text-align: left; font-weight: bold; color: var(--primary); }
+        .done-input { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: #fca5a5; font-weight: bold; }
+        .goal-input { background: rgba(59, 130, 246, 0.1); border-color: var(--primary); color: var(--gold); font-weight: bold; }
+        
+        .btn { padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: 'Prompt'; display: flex; align-items: center; gap: 5px;}
+        .btn-sync { background: linear-gradient(to right, #8b5cf6, #6d28d9); color: white; }
+        .btn-calc { 
+            width: 100%; background: linear-gradient(to right, #10b981, #059669); 
+            color: white; font-size: 20px; margin-top: 5px; height: 50px; 
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); transition: 0.2s;
+        }
+        .btn-calc:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        .log-card { background: #0f172a; border-left: 6px solid var(--primary); padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border); }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        .summary-item { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
+        
+        .badge-info { font-size: 12px; background: #334155; padding: 3px 8px; border-radius: 6px; color: var(--text-main); margin-left: 10px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0; font-size:22px;">🚀 Ultimate Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[Firebase Sync Enabled]</span></h1>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span style="font-size:14px;">เวลาเป้าหมาย:</span>
+            <input type="datetime-local" id="targetTime" style="width:190px; text-align:left;" onchange="window.saveAll()">
+            <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
+            <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
+        </div>
+    </div>
+
+    <div class="card" style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px;">
+        <div style="font-size:18px;">📦 <b>กองกลางคงเหลือ:</b></div>
+        <div>ยา EN (+40): <input type="number" id="poolEn" value="41" oninput="window.saveAll()"></div>
+        <div>ใบ Reward: <input type="number" id="poolRew" value="21" oninput="window.saveAll()"></div>
+        <div id="regenText" style="color:var(--primary); font-weight:bold; font-size:16px;">EN Regen: +0</div>
+    </div>
+
+    <div class="card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">ชื่อตัวละคร</th>
+                        <th colspan="2">Energy (EN)</th>
+                        <th colspan="2">Conquest (Reward)</th>
+                        <th colspan="2">Trans (Reward)</th>
+                        <th style="background:rgba(239,68,68,0.15)">หักลบ</th>
+                        <th colspan="2" style="background:rgba(59,130,246,0.15)">เป้าหมายรวม (รอบ)</th>
+                        <th rowspan="2" width="50">ลบ</th>
+                    </tr>
+                    <tr>
+                        <th>ปกติ</th><th>Bonus</th>
+                        <th>Normal</th><th>Bonus</th>
+                        <th>Normal</th><th>Bonus</th>
+                        <th style="color:#fca5a5">ลงไปแล้ว</th>
+                        <th style="color:var(--gold)">Con</th><th style="color:var(--gold)">Tra</th>
+                    </tr>
+                </thead>
+                <tbody id="charTableBody"></tbody>
+            </table>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
+            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์และแยกดันเจี้ยนที่ต้องลง</button>
+        </div>
+    </div>
+
+    <div id="result" style="display:none; margin-top:20px;">
+        <div class="summary-grid" id="finalSummary"></div>
+        <h2 style="color:var(--gold); margin-bottom:15px;">📊 รายงานแผนการลงดันเจี้ยนแบบเร่งด่วน</h2>
+        <div id="allocationLog"></div>
+    </div>
+</div>
+
+<script type="module">
+    // --- Firebase Initialization (ใช้ Config เดียวกับระบบหลัก) ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAAEYitAhzkIopt6VUTX79SCkRgsorhvgk",
+        authDomain: "aion-2-25473.firebaseapp.com",
+        databaseURL: "https://aion-2-25473-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "aion-2-25473",
+        storageBucket: "aion-2-25473.firebasestorage.app",
+        messagingSenderId: "730363632991",
+        appId: "1:730363632991:web:6410eca836d89a8630eaea"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    // ดึงชื่อ User จาก URL (ถ้าไม่มีใช้ Guest)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userName = urlParams.get('user') || 'Guest';
+
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V2';
+
+    // --- ฟังก์ชันดึงข้อมูลจาก Firebase ---
+    window.syncFromFirebase = async () => {
+        try {
+            const idToPull = prompt("ระบุหมายเลข ID ที่ต้องการดึงข้อมูลจากหน้าหลัก (เช่น 1, 2, 3)", "1");
+            if (!idToPull) return;
+
+            const btn = document.querySelector('.btn-sync');
+            btn.innerText = "⏳ กำลังดึงข้อมูล...";
+
+            const snap = await get(ref(db, `users/${userName}/id_${idToPull}`));
+            const data = snap.val();
+
+            if (!data || !data.chars) {
+                alert(`ไม่พบข้อมูลของ User: ${userName} / ID: ${idToPull}`);
+                btn.innerText = "☁️ ดึงจากระบบหลัก";
+                return;
+            }
+
+            // เคลียร์ตารางเดิม
+            document.getElementById('charTableBody').innerHTML = "";
+
+            // วนลูปดึงข้อมูลตัวละครและเป้าหมายจาก Firebase มาใส่ Planner
+            data.chars.forEach((c, i) => {
+                const p = (data.plans && data.plans[i]) ? data.plans[i] : {};
+                
+                const name = c.name || `ตัวละคร ${i+1}`;
+                const en = c.base || 0;
+                const enB = c.bonus || 0;
+                const conN = p.conRew || 0;
+                const conB = p.conBon || 0;
+                const traN = p.traRew || 0;
+                const traB = p.traBon || 0;
+                const tCon = p.conGoal || 35;
+                const tTra = p.traGoal || 7;
+                
+                // สำหรับ "ลงไปแล้ว" ระบบหลักไม่มีช่องเก็บ ให้เริ่มที่ 0 เพื่อให้กรอกเอง
+                const done = 0; 
+
+                window.addRow(name, en, enB, conN, conB, traN, traB, tCon, tTra, done);
+            });
+
+            window.saveAll();
+            btn.innerText = "✅ ซิงค์สำเร็จ!";
+            setTimeout(() => btn.innerText = "☁️ ดึงจากระบบหลัก", 2000);
+
+        } catch (error) {
+            console.error(error);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+            document.querySelector('.btn-sync').innerText = "☁️ ดึงจากระบบหลัก";
+        }
+    };
+
+    // --- Core Logic เดิมของ Planner ---
+    window.saveAll = () => {
+        const charData = [];
+        document.querySelectorAll('#charTableBody tr').forEach(row => {
+            charData.push({
+                name: row.querySelector('.c-name').value,
+                en: row.querySelector('.c-en').value, enB: row.querySelector('.c-enB').value,
+                conN: row.querySelector('.c-conN').value, conB: row.querySelector('.c-conB').value,
+                traN: row.querySelector('.c-traN').value, traB: row.querySelector('.c-traB').value,
+                done: row.querySelector('.c-done').value,
+                tCon: row.querySelector('.c-tCon').value, tTra: row.querySelector('.c-tTra').value
+            });
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            targetTime: document.getElementById('targetTime').value,
+            poolEn: document.getElementById('poolEn').value,
+            poolRew: document.getElementById('poolRew').value,
+            chars: charData
+        }));
+    };
+
+    window.loadData = () => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) { ["PonyPim", "Pony3i3i"].forEach(n => window.addRow(n)); return; }
+        const data = JSON.parse(saved);
+        document.getElementById('targetTime').value = data.targetTime || "";
+        document.getElementById('poolEn').value = data.poolEn || 41;
+        document.getElementById('poolRew').value = data.poolRew || 21;
+        document.getElementById('charTableBody').innerHTML = "";
+        data.chars.forEach(c => window.addRow(c.name, c.en, c.enB, c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done));
+    };
+
+    window.addRow = (name="ตัวละครใหม่", en=0, enB=0, conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0) => {
+        const tbody = document.getElementById('charTableBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="c-name name-input" value="${name}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-en" value="${en}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-enB" value="${enB}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-conN" value="${conN}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-conB" value="${conB}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-traN" value="${traN}" oninput="window.saveAll()"></td>
+            <td><input type="number" class="c-traB" value="${traB}" oninput="window.saveAll()"></td>
+            <td style="background:rgba(239,68,68,0.05)"><input type="number" class="c-done done-input" value="${done}" oninput="window.saveAll()"></td>
+            <td style="background:rgba(59,130,246,0.05)"><input type="number" class="c-tCon goal-input" value="${tCon}" oninput="window.saveAll()"></td>
+            <td style="background:rgba(59,130,246,0.05)"><input type="number" class="c-tTra goal-input" value="${tTra}" oninput="window.saveAll()"></td>
+            <td><button style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:18px;" onclick="this.parentElement.parentElement.remove(); window.saveAll();">✖</button></td>
+        `;
+        tbody.appendChild(tr);
+        window.saveAll();
+    };
+
+    window.clearData = () => { if(confirm('ล้างข้อมูลใน Planner ทั้งหมดหรือไม่?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } };
+
+    window.calculateFastTrack = () => {
+        let poolEn = parseInt(document.getElementById('poolEn').value) || 0;
+        let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
+        
+        const targetDate = document.getElementById('targetTime').value;
+        let regen = 0;
+        if (targetDate) {
+            const diff = (new Date(targetDate) - new Date()) / (1000 * 60 * 60);
+            regen = Math.max(0, Math.floor(diff / 3) * 15);
+        }
+        document.getElementById('regenText').innerText = `EN Regen: +${regen}`;
+
+        let logHtml = "";
+        let totalNetRounds = 0;
+
+        document.querySelectorAll('#charTableBody tr').forEach(row => {
+            const name = row.querySelector('.c-name').value;
+            const myEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0) + regen;
+            const conStock = (parseInt(row.querySelector('.c-conN').value) || 0) + (parseInt(row.querySelector('.c-conB').value) || 0);
+            const traStock = (parseInt(row.querySelector('.c-traN').value) || 0) + (parseInt(row.querySelector('.c-traB').value) || 0);
+            
+            const alreadyDone = parseInt(row.querySelector('.c-done').value) || 0;
+            const tCon = parseInt(row.querySelector('.c-tCon').value) || 0;
+            const tTra = parseInt(row.querySelector('.c-tTra').value) || 0;
+            
+            const rawTargetTotal = tCon + tTra;
+            const netTargetTotal = Math.max(0, rawTargetTotal - alreadyDone);
+
+            let conLeft = Math.max(0, tCon - Math.min(tCon, alreadyDone)); 
+            let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
+
+            let conFromPool = Math.min(poolRew, Math.max(0, conLeft - conStock));
+            poolRew -= conFromPool;
+            let traFromPool = Math.min(poolRew, Math.max(0, traLeft - traStock));
+            poolRew -= traFromPool;
+
+            const totalRightsAvailable = Math.min(conLeft, conStock + conFromPool) + Math.min(traLeft, traStock + traFromPool);
+            
+            let currentEn = myEn;
+            let pillsUsed = 0;
+            const enNeeded = totalRightsAvailable * 80;
+
+            if (currentEn < enNeeded) {
+                pillsUsed = Math.min(poolEn, Math.ceil((enNeeded - currentEn) / 40));
+                poolEn -= pillsUsed;
+                currentEn += (pillsUsed * 40);
+            }
+
+            const canDoNow = Math.min(totalRightsAvailable, Math.floor(currentEn / 80));
+            totalNetRounds += canDoNow;
+
+            const maxConPossible = Math.min(conLeft, conStock + conFromPool);
+            const actualCon = Math.min(canDoNow, maxConPossible);
+            const actualTra = Math.max(0, canDoNow - actualCon);
+
+            const isSuccess = canDoNow >= netTargetTotal;
+
+            logHtml += `
+                <div class="log-card" style="border-left-color: ${isSuccess ? 'var(--success)' : 'var(--danger)'}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <b style="font-size:20px; color:var(--primary)">${name}</b> 
+                            <span class="badge-info">เป้าหมายรวม: ${rawTargetTotal} หักออก ${alreadyDone} = ${netTargetTotal}</span>
+                        </div>
+                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--danger)'}">
+                            ต้องทำเพิ่ม: ${canDoNow} / ${netTargetTotal} รอบ
+                        </b>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:15px;">
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:10px; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
+                            <small style="color:var(--text-dim); font-size:14px;">⚔️ แนะนำให้ลง Conquest</small><br>
+                            <b style="color:var(--gold); font-size:26px;">${actualCon} รอบ</b>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:10px; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
+                            <small style="color:var(--text-dim); font-size:14px;">🌌 แนะนำให้ลง Trans</small><br>
+                            <b style="color:var(--gold); font-size:26px;">${actualTra} รอบ</b>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:25px; margin-top:15px; font-size:15px; justify-content:center; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px;">
+                        <span>📦 เบิกยากองกลาง: <b style="color:var(--success)">${pillsUsed}</b> ขวด</span>
+                        <span>🎟️ เบิกใบกองกลาง: <b style="color:var(--success)">${conFromPool + traFromPool}</b> ใบ</span>
+                        <span style="color:var(--text-dim)">🔋 ใช้ EN ทั้งหมด: ${canDoNow * 80}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('allocationLog').innerHTML = logHtml;
+        document.getElementById('finalSummary').innerHTML = `
+            <div class="summary-item"><small>ยา EN กองกลางคงเหลือ</small><br><b style="font-size:28px; color:var(--gold)">${poolEn}</b></div>
+            <div class="summary-item"><small>ใบ Reward กองกลางคงเหลือ</small><br><b style="font-size:28px; color:var(--success)">${poolRew}</b></div>
+            <div class="summary-item" style="background:var(--primary)"><small>รวมรอบที่ต้องทำเพิ่มทั้งหมด</small><br><b style="font-size:28px;">${totalNetRounds}</b></div>
+        `;
+        window.scrollTo({ top: document.getElementById('result').offsetTop - 20, behavior: 'smooth' });
+    };
+
+    window.onload = window.loadData;
+</script>
+</body>
+</html>
