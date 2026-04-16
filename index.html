@@ -219,7 +219,7 @@
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
             <div style="background:#9333ea; color:white; padding:12px 20px; border-radius:12px 12px 0 0; font-weight:bold; font-size:16px;">🎯 ตารางวางแผน Dungeon (เป้าหมาย, Reward & สถานะลงสำเร็จ)</div>
-            <div style="font-size:13px; color:var(--text-dim); padding-bottom:5px;">*ลงได้จริง คำนวณจากค่าน้อยสุดระหว่าง (Energy / Ticket / FB)</div>
+            <div style="font-size:13px; color:var(--text-dim); padding-bottom:5px;">*เป้าหมาย (Goal) จะถูกเก็บเป็นค่าคงที่ และหักลบกับ "ลงแล้ว" ในช่องเป้าเหลืออัตโนมัติ</div>
         </div>
         <div class="table-wrapper" style="border-radius:0 15px 15px 15px; margin-bottom:30px;">
             <table id="planTable">
@@ -230,7 +230,7 @@
                         <th style="width:32%; border-left:2px solid #334155; padding: 0;">
                             <span class="badge-con" style="display:block; margin:8px auto;">Conquest</span>
                             <div style="display:flex; justify-content:space-between; font-size:12px; background:#1e293b; border-top:1px solid #334155;">
-                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;" title="เป้าหมายที่ตั้งไว้ (จะไม่ลดลง)">เป้าหมาย</div>
                                 <div style="width:26%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bon)</div>
                                 <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">FB</div>
                                 <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
@@ -242,7 +242,7 @@
                         <th style="width:32%; border-left:2px solid #334155; padding: 0;">
                             <span class="badge-tra" style="display:block; margin:8px auto;">Transcendent</span>
                             <div style="display:flex; justify-content:space-between; font-size:12px; background:#1e293b; border-top:1px solid #334155;">
-                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">เป้าหมาย</div>
+                                <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;" title="เป้าหมายที่ตั้งไว้ (จะไม่ลดลง)">เป้าหมาย</div>
                                 <div style="width:26%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">Reward (+Bon)</div>
                                 <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">FB</div>
                                 <div style="width:14%; text-align:center; padding:8px 0; border-right:1px solid #334155; box-sizing:border-box;">ลงได้</div>
@@ -251,7 +251,7 @@
                             </div>
                         </th>
                         
-                        <th style="width:8%; border-left:2px solid #334155;">เป้าเหลือ</th>
+                        <th style="width:8%; border-left:2px solid #334155;" title="(เป้าหมาย - ลงแล้ว)">เป้าเหลือ</th>
                         <th style="width:9%; border-left:2px solid #334155;">สถานะ</th>
                         <th style="width:9%; border-left:2px solid #334155;">Action</th>
                     </tr>
@@ -379,7 +379,6 @@
         showStatus("✅ ซิงค์ข้อมูลล่าสุดสำเร็จ");
     };
 
-    // ฟังก์ชันวาร์ปไปหน้า Planner
     window.goToPlanner = () => {
         window.location.href = `Planner.html?user=${userName}`;
     };
@@ -756,8 +755,9 @@
             const maxCharAct = Math.max(conAct, traAct);
             idTotalActualRuns += maxCharAct;
 
-            const remCon = conD ? 0 : conG;
-            const remTra = traD ? 0 : traG;
+            // หักลบเป้าหมายด้วยจำนวนที่ลงไปแล้ว (เป้าเหลือ)
+            const remCon = conD ? 0 : Math.max(0, conG - conPlayed);
+            const remTra = traD ? 0 : Math.max(0, traG - traPlayed);
             const remGoals = remCon + remTra;
             ptr.querySelector('.p-rem').value = remGoals;
 
@@ -802,7 +802,7 @@
         let fb = parseInt(fbInput.value) || 0;
 
         if ((baseE + bonE) < 80) return alert("Energy ไม่พอ (ต้องการอย่างน้อย 80)");
-        if (goal <= 0) return alert(`เป้าหมาย ${type.toUpperCase()} เรียบร้อยแล้ว`);
+        // if (goal <= 0) return alert(`เป้าหมาย ${type.toUpperCase()} เรียบร้อยแล้ว`); // อนุญาตให้ลงเกินเป้าได้ถ้าต้องการ
         if ((rew + bon) <= 0) return alert(`ตั๋ว ${type.toUpperCase()} ไม่พอ`);
         if (fb <= 0) return alert(`Final Boss ${type.toUpperCase()} ครบกำหนดแล้ว`);
 
@@ -816,7 +816,7 @@
         if (baseE >= 80) { ctr.querySelector('.c-base').value = baseE - 80; }
         else { const rem = 80 - baseE; ctr.querySelector('.c-base').value = 0; ctr.querySelector('.c-bonus').value = Math.max(0, bonE - rem); }
 
-        goalInput.value = goal - 1;
+        // goalInput.value = goal - 1; // นำบรรทัดนี้ออก เพื่อให้ "เป้าหมาย" คงที่
         fbInput.value = fb - 1;
         if (rew > 0) rewInput.value = rew - 1;
         else bonInput.value = Math.max(0, bon - 1);
