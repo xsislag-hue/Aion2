@@ -380,7 +380,7 @@
     };
 
     window.goToPlanner = () => {
-        window.location.href = `Planner.html?user=${userName}`;
+        window.location.href = `Planner.html?user=${userName}&id=${currentID}`;
     };
 
     async function initSystem() {
@@ -779,9 +779,7 @@
         const st = parseInt(document.getElementById('sum-tra-count').value) || 0;
         document.getElementById('sum-total-count').value = sc + st;
         
-        // แก้ไขให้แสดงเฉพาะผลรวมของเป้าหมายที่แท้จริง
         document.getElementById('sum-total-goal').value = idTotalGoalsOriginal;
-        
         document.getElementById('sum-total-rem').value = idTotalRem;
 
         queueSave(); 
@@ -805,7 +803,6 @@
         let fb = parseInt(fbInput.value) || 0;
 
         if ((baseE + bonE) < 80) return alert("Energy ไม่พอ (ต้องการอย่างน้อย 80)");
-        // if (goal <= 0) return alert(`เป้าหมาย ${type.toUpperCase()} เรียบร้อยแล้ว`); // อนุญาตให้ลงเกินเป้าได้ถ้าต้องการ
         if ((rew + bon) <= 0) return alert(`ตั๋ว ${type.toUpperCase()} ไม่พอ`);
         if (fb <= 0) return alert(`Final Boss ${type.toUpperCase()} ครบกำหนดแล้ว`);
 
@@ -819,7 +816,6 @@
         if (baseE >= 80) { ctr.querySelector('.c-base').value = baseE - 80; }
         else { const rem = 80 - baseE; ctr.querySelector('.c-base').value = 0; ctr.querySelector('.c-bonus').value = Math.max(0, bonE - rem); }
 
-        // goalInput.value = goal - 1; // นำบรรทัดนี้ออก เพื่อให้ "เป้าหมาย" คงที่
         fbInput.value = fb - 1;
         if (rew > 0) rewInput.value = rew - 1;
         else bonInput.value = Math.max(0, bon - 1);
@@ -1002,7 +998,7 @@
     }
 
     function startClocks() {
-        window.lastLiveCheck = new Date(); // Initialize live tracker
+        window.lastLiveCheck = new Date(); 
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('th-TH');
@@ -1026,7 +1022,6 @@
             const rm = Math.floor((rDiff % 3600000) / 60000).toString().padStart(2,'0');
             document.getElementById('nextRewardLabel').innerText = `Reward +1 ในอีก: ${rh} ชม. ${rm} นาที`;
 
-            // ระบบเช็คเวลาแบบ Real-time ทำงานเบื้องหลัง แม้ไม่ได้กดปุ่มอะไร
             if (window.lastLiveCheck) {
                 let checkTime = new Date(window.lastLiveCheck);
                 checkTime.setMinutes(0, 0, 0, 0);
@@ -1081,7 +1076,6 @@
         let energyTicks = 0;
         let rewardTicks = 0;
         
-        // เช็คการข้ามชั่วโมงอย่างแม่นยำตั้งแต่ Last Update จนถึงปัจจุบัน
         let checkTime = new Date(last.getTime());
         checkTime.setMinutes(0, 0, 0, 0);
         checkTime.setHours(checkTime.getHours() + 1); 
@@ -1117,12 +1111,10 @@
                 }
             });
             
-            // บังคับเซฟทันทีหลังคำนวณเสร็จ เพื่อป้องกันบัคกด Sync รัวๆแล้ว Energy เด้งเบิ้ล
             const newData = collectData();
             set(ref(db, `users/${userName}/id_${currentID}`), newData);
         }
         
-        // อัปเดตตัวตรวจสอบแบบ Real-time ให้เริ่มนับจากเวลาปัจจุบัน
         window.lastLiveCheck = new Date();
     }
 
