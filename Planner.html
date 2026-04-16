@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Master Planner - Free Choice Quota</title>
+    <title>AI Master Planner - Ultimate Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -63,7 +63,7 @@
 <div class="container">
     <div class="header">
         <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
-            <h1 style="margin:0; font-size:24px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[Sanctuary & เลือกลงอิสระ]</span></h1>
+            <h1 style="margin:0; font-size:24px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[Sanctuary, ยาติดตัว & Manual Mode]</span></h1>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
                 <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
@@ -97,7 +97,7 @@
                     <tr>
                         <th rowspan="2" style="width:40px; font-size:18px;" title="ติ๊กเลือกตัวละครที่ต้องการโฟกัส">👑</th>
                         <th rowspan="2">ชื่อตัวละคร</th>
-                        <th colspan="2">Energy ปัจจุบัน</th>
+                        <th colspan="3">Energy ปัจจุบัน</th>
                         <th rowspan="2" style="background:rgba(236,72,153,0.15)">⛩️ Sanctuary<br><small>(ล็อค EN)</small></th>
                         <th colspan="2" style="background:rgba(251,191,36,0.15)">💊 การใช้ยา EN (ขวด)</th>
                         <th colspan="2">Conquest (Reward)</th>
@@ -107,7 +107,7 @@
                         <th rowspan="2" width="50">ลบ</th>
                     </tr>
                     <tr>
-                        <th>ปกติ</th><th>Bonus</th>
+                        <th>ปกติ</th><th>Bonus</th><th style="color:var(--success)" title="ยา EN ที่พกติดตัวไว้ (ไม่ดึงกองกลาง)">ยาติดตัว</th>
                         <th style="color:var(--gold)">กดแล้ว</th><th style="color:var(--success)">ล็อคแผน</th>
                         <th>Normal</th><th>Bonus</th>
                         <th>Normal</th><th>Bonus</th>
@@ -120,7 +120,7 @@
         </div>
         <div style="display:flex; gap:10px;">
             <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
-            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการ (Auto / Manual)</button>
+            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการสุดล้ำ (AI + Manual)</button>
         </div>
     </div>
 
@@ -152,7 +152,7 @@
     const userName = urlParams.get('user') || 'Guest';
     const autoId = urlParams.get('id'); 
     
-    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V13';
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V14';
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
 
     function formatThaiDateTime(d) {
@@ -231,9 +231,8 @@
                 const conF = p.conFb !== undefined ? p.conFb : 35;
                 const traF = p.traFb !== undefined ? p.traFb : 28;
                 const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
-                const isMain = false; 
-
-                window.addRow(name, en, enB, 0, 0, "", conN, conB, traN, traB, tCon, tTra, done, isMain);
+                
+                window.addRow(name, en, enB, 0, 0, 0, "", conN, conB, traN, traB, tCon, tTra, done, false);
             });
 
             window.saveAll();
@@ -256,6 +255,7 @@
                 name: row.querySelector('.c-name').value,
                 en: row.querySelector('.c-en').value, 
                 enB: row.querySelector('.c-enB').value,
+                ownPills: row.querySelector('.c-ownPills').value,
                 sancRuns: row.querySelector('.c-sanc').value,
                 pillsUsed: row.querySelector('.c-pills').value, 
                 lockPills: row.querySelector('.c-lock-pills').value,
@@ -280,8 +280,8 @@
     window.loadData = () => {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (!saved) { 
-            window.addRow("PonyPim", 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
-            window.addRow("Pony3i3i", 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.addRow("PonyPim", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.addRow("Pony3i3i", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
             return; 
         }
         const data = JSON.parse(saved);
@@ -291,11 +291,11 @@
         document.getElementById('poolRew').value = data.poolRew || 21;
         document.getElementById('charTableBody').innerHTML = "";
         data.chars.forEach((c) => {
-            window.addRow(c.name, c.en, c.enB, c.sancRuns||0, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
+            window.addRow(c.name, c.en, c.enB, c.ownPills||0, c.sancRuns||0, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
         });
     };
 
-    window.addRow = (name="ตัวละคร", en=0, enB=0, sancRuns=0, pillsUsed=0, lockPills="", conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0, isMain=false) => {
+    window.addRow = (name="ตัวละคร", en=0, enB=0, ownPills=0, sancRuns=0, pillsUsed=0, lockPills="", conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0, isMain=false) => {
         const tbody = document.getElementById('charTableBody');
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -303,6 +303,7 @@
             <td><input type="text" class="c-name name-input" value="${name}" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-en" value="${en}" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-enB" value="${enB}" oninput="window.saveAll()"></td>
+            <td style="background:rgba(16,185,129,0.05)"><input type="number" class="c-ownPills pill-input" style="color:var(--success); border-color:var(--success);" value="${ownPills}" oninput="window.saveAll()"></td>
             <td>
                 <select class="c-sanc" onchange="window.saveAll()" style="background:#0f172a; color:white; border:1px solid #db2777; border-radius:5px; padding:4px; font-family:'Prompt'; outline:none;">
                     <option value="0" ${sancRuns==0 ? 'selected' : ''}>0</option>
@@ -359,6 +360,8 @@
             const pillsAlreadyUsed = parseInt(row.querySelector('.c-pills').value) || 0;
             totalPillsAlreadyUsed += pillsAlreadyUsed;
             
+            const ownPills = parseInt(row.querySelector('.c-ownPills').value) || 0;
+            
             const lockPillsStr = row.querySelector('.c-lock-pills').value;
             const isPillsLocked = lockPillsStr !== "";
             const lockedPillsValue = isPillsLocked ? Math.max(0, parseInt(lockPillsStr) || 0) : 0;
@@ -383,15 +386,33 @@
 
             charsData.push({
                 name, isMain, pillsAlreadyUsed, currentBaseEn, sancRuns, sancCost,
+                ownPills, usedOwnPills: 0, usedSharedPills: 0,
                 isPillsLocked, lockedPillsValue,
                 conStock, traStock, alreadyDone, 
                 rawTargetTotal, netTargetTotal, conLeft, traLeft,
-                allocatedPills: 0, conFromPool: 0, traFromPool: 0,
+                conFromPool: 0, traFromPool: 0,
                 evalTargetDate: null, evalFutureRegen: 0, hasDeadline: false
             });
         });
 
+        // คำนวณยากองกลางที่ "เหลือให้ดึง"
         let poolEn = Math.max(0, originalPoolEn - totalPillsAlreadyUsed);
+
+        // ฟังก์ชันช่วยจัดสรรยา (ดึงจากยาติดตัวก่อน ค่อยดึงกองกลาง)
+        function allocatePills(c, amount) {
+            let given = 0;
+            let fromOwn = Math.min(amount, c.ownPills - c.usedOwnPills);
+            c.usedOwnPills += fromOwn;
+            amount -= fromOwn;
+            given += fromOwn;
+            
+            let fromShared = Math.min(amount, poolEn);
+            c.usedSharedPills += fromShared;
+            poolEn -= fromShared;
+            given += fromShared;
+            
+            return given;
+        }
 
         charsData.forEach(c => {
             if (c.isMain) {
@@ -405,12 +426,10 @@
             }
         });
 
-        // หักยา Manual Override
+        // สเต็ป 0.1: หักยา Manual Override
         charsData.forEach(c => {
             if (c.isPillsLocked) {
-                let pillsToTake = Math.min(poolEn, c.lockedPillsValue);
-                c.allocatedPills = pillsToTake;
-                poolEn -= pillsToTake;
+                allocatePills(c, c.lockedPillsValue);
             }
         });
 
@@ -418,7 +437,7 @@
         let otherChars = charsData.filter(c => !c.isMain);
         let mainChar = mainChars.length > 0 ? mainChars[0] : null;
 
-        // แจกใบ Reward
+        // สเต็ป 0.2: แจกใบ Reward
         if (mainChar) {
             mainChar.conFromPool = Math.min(poolRew, Math.max(0, mainChar.conLeft - mainChar.conStock));
             poolRew -= mainChar.conFromPool;
@@ -432,36 +451,31 @@
             poolRew -= c.traFromPool;
         });
 
-        // แจกยา AI ให้ตัวหลัก
+        // สเต็ป 1: แจกยา AI ให้ตัวหลัก
         if (mainChar && !mainChar.isPillsLocked) {
             let requiredEn = (mainChar.netTargetTotal * 80) + mainChar.sancCost;
             let projectedEn = mainChar.currentBaseEn + mainChar.evalFutureRegen;
             let deficit = Math.max(0, requiredEn - projectedEn);
             if (deficit > 0) {
-                let pillsNeeded = Math.ceil(deficit / 40);
-                let pillsGiven = Math.min(poolEn, pillsNeeded);
-                poolEn -= pillsGiven;
-                mainChar.allocatedPills += pillsGiven;
+                allocatePills(mainChar, Math.ceil(deficit / 40));
             }
         }
         
-        // แจกยา AI ให้ตัวรอง
+        // สเต็ป 2: แจกยา AI ให้ตัวรอง (รอดเส้นตาย)
         otherChars.forEach(c => {
             if (c.isPillsLocked) return;
             let requiredEn = (c.netTargetTotal * 80) + c.sancCost;
             let projectedEn = c.currentBaseEn + c.evalFutureRegen; 
             let deficit = Math.max(0, requiredEn - projectedEn);
             if (deficit > 0) {
-                let pillsNeeded = Math.ceil(deficit / 40);
-                let pillsGiven = Math.min(poolEn, pillsNeeded);
-                poolEn -= pillsGiven;
-                c.allocatedPills += pillsGiven;
+                allocatePills(c, Math.ceil(deficit / 40));
             }
         });
 
-        // ถัวเฉลี่ยเวลาที่เหลือ
+        // สเต็ป 3: ถัวเฉลี่ยเวลาที่เหลือ (เร่งให้เสร็จไวขึ้น)
         let loopSafety = 0;
-        while (poolEn > 0 && loopSafety < 1000) {
+        let pillsAvailable = true;
+        while (pillsAvailable && loopSafety < 1000) {
             loopSafety++;
             let maxMissingNow = 0;
             let targetChar = null;
@@ -469,20 +483,21 @@
             charsData.forEach(c => {
                 if (c.isPillsLocked) return;
                 let requiredEnNow = (c.netTargetTotal * 80) + c.sancCost;
-                let currentEnWithPills = c.currentBaseEn + (c.allocatedPills * 40);
+                let currentEnWithPills = c.currentBaseEn + (c.usedOwnPills * 40) + (c.usedSharedPills * 40);
                 let missingNow = requiredEnNow - currentEnWithPills;
                 
-                if (missingNow > maxMissingNow) {
+                let canReceive = (c.ownPills > c.usedOwnPills) || (poolEn > 0);
+                
+                if (missingNow > maxMissingNow && canReceive) {
                     maxMissingNow = missingNow;
                     targetChar = c;
                 }
             });
             
             if (targetChar && maxMissingNow > 0) {
-                targetChar.allocatedPills++;
-                poolEn--;
+                allocatePills(targetChar, 1);
             } else {
-                break;
+                pillsAvailable = false;
             }
         }
 
@@ -494,7 +509,7 @@
 
         sortedChars.forEach(c => {
             const totalRightsAvailable = Math.min(c.conLeft, c.conStock + c.conFromPool) + Math.min(c.traLeft, c.traStock + c.traFromPool);
-            let currentTotalEn = c.currentBaseEn + (c.allocatedPills * 40);
+            let currentTotalEn = c.currentBaseEn + (c.usedOwnPills * 40) + (c.usedSharedPills * 40);
             
             let usableEnForDungeons = Math.max(0, currentTotalEn - c.sancCost);
 
@@ -512,7 +527,6 @@
             const maxConPossible = Math.min(c.conLeft, c.conStock + c.conFromPool);
             const maxTraPossible = Math.min(c.traLeft, c.traStock + c.traFromPool);
             
-            // เปลี่ยนมาใช้ Max Choice ตาม UI ใหม่
             const maxConChoice = Math.min(canDoNow, maxConPossible);
             const maxTraChoice = Math.min(canDoNow, maxTraPossible);
 
@@ -623,7 +637,8 @@
                 deadlineLabel = targetDateStr ? formatThaiDateTime(c.evalTargetDate) : "ไม่ได้ตั้งเวลา";
             }
 
-            let totalPillsPlan = c.allocatedPills + c.pillsAlreadyUsed;
+            let totalPillsPlan = c.usedOwnPills + c.usedSharedPills + c.pillsAlreadyUsed;
+            let remainingToPress = c.usedOwnPills + c.usedSharedPills;
 
             logHtml += `
                 <div class="log-card" style="border-left-color: ${borderStyle}; ${c.isMain ? 'box-shadow: 0 0 15px rgba(251,191,36,0.2);' : ''}">
@@ -668,9 +683,11 @@
                         <div style="text-align:left; padding-right:20px; min-width: 280px;">
                             <div style="margin-bottom:8px; background: rgba(251,191,36,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.2);">
                                 <div style="font-size:15px; font-weight:bold; color:white; border-bottom:1px solid #334155; padding-bottom:5px; margin-bottom:8px;">💡 คำแนะนำ (กดยาเพิ่ม)</div>
-                                <div style="margin-bottom:4px;">💊 แผนกดยารวม: <b style="color:var(--gold); font-size:16px;">${totalPillsPlan}</b> ขวด ${c.isPillsLocked ? '<span style="color:var(--success); font-size:12px;">(ล็อคค่า)</span>' : '<span style="color:var(--text-dim); font-size:12px;">(AI คำนวณ)</span>'}</div>
-                                <div style="margin-bottom:4px; margin-left:22px; font-size:14px; color:var(--text-dim);">✔️ ใช้ไปแล้ว: <b style="color:var(--success);">${c.pillsAlreadyUsed}</b> ขวด</div>
-                                <div style="margin-bottom:8px; margin-left:22px; font-size:14px;">⚠️ คงเหลือต้องกดอีก: <b style="color:var(--danger); font-size:16px;">${c.allocatedPills}</b> ขวด</div>
+                                <div style="margin-bottom:4px;">💊 แผนกดยารวม: <b style="color:var(--gold); font-size:16px;">${totalPillsPlan}</b> ขวด ${c.isPillsLocked ? '<span style="color:var(--success); font-size:12px;">(ล็อคค่า Override)</span>' : '<span style="color:var(--text-dim); font-size:12px;">(AI คำนวณ)</span>'}</div>
+                                <div style="margin-bottom:2px; margin-left:22px; font-size:13px; color:var(--text-dim);">- ดึงยาติดตัว: <b style="color:var(--success);">${c.usedOwnPills}</b> / ${c.ownPills} ขวด</div>
+                                <div style="margin-bottom:4px; margin-left:22px; font-size:13px; color:var(--text-dim);">- ดึงกองกลาง: <b style="color:var(--gold);">${c.usedSharedPills}</b> ขวด</div>
+                                <div style="margin-bottom:4px; margin-left:22px; font-size:13px; color:var(--text-dim);">✔️ คุณกดใช้ไปแล้ว: <b style="color:var(--success);">${c.pillsAlreadyUsed}</b> ขวด</div>
+                                <div style="margin-bottom:8px; margin-left:22px; font-size:14px; padding-top:5px; border-top:1px solid #334155;">⚠️ คงเหลือต้องกดอีก: <b style="color:var(--danger); font-size:16px;">${remainingToPress}</b> ขวด</div>
                             </div>
                             
                             <div style="margin-bottom:5px; padding-left:10px;">🎟️ ดึงใบ Reward กองกลาง: <b style="color:var(--success); font-size:16px;">${c.conFromPool + c.traFromPool}</b> ใบ</div>
