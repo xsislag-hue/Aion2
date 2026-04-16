@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Master Planner - Firebase Sync Edition</title>
+    <title>AI Master Planner - Deadline UI Update</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -47,11 +47,12 @@
         }
         .btn-calc:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
-        .log-card { background: #0f172a; border-left: 6px solid var(--primary); padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border); }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        .log-card { background: #0f172a; border-left: 6px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--border); }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
         .summary-item { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
         
-        .badge-info { font-size: 12px; background: #334155; padding: 3px 8px; border-radius: 6px; color: var(--text-main); margin-left: 10px;}
+        .badge-info { font-size: 13px; background: #334155; padding: 4px 10px; border-radius: 6px; color: var(--text-main); margin-left: 10px;}
+        .recommend-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -59,11 +60,11 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1 style="margin:0; font-size:22px;">🚀 Ultimate Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[Firebase Sync Enabled]</span></h1>
+            <h1 style="margin:0; font-size:22px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[ประเมินเส้นตายปิดเซิร์ฟเวอร์]</span></h1>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
-            <span style="font-size:14px;">เวลาเป้าหมาย:</span>
-            <input type="datetime-local" id="targetTime" style="width:190px; text-align:left;" onchange="window.saveAll()">
+            <span style="font-size:14px;">เวลาเป้าหมาย (เส้นตายปิดเซิร์ฟ):</span>
+            <input type="datetime-local" id="targetTime" style="width:200px; text-align:left;" onchange="window.saveAll()">
             <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
             <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
             <button class="btn" style="background:rgba(0,0,0,0.4); color:white; border:1px solid var(--border);" onclick="window.location.href='index.html?user=' + (new URLSearchParams(window.location.search).get('user') || 'Guest')">⬅ กลับหน้าหลัก</button>
@@ -74,7 +75,7 @@
         <div style="font-size:18px;">📦 <b>กองกลางคงเหลือ:</b></div>
         <div>ยา EN (+40): <input type="number" id="poolEn" value="41" oninput="window.saveAll()"></div>
         <div>ใบ Reward: <input type="number" id="poolRew" value="21" oninput="window.saveAll()"></div>
-        <div id="regenText" style="color:var(--primary); font-weight:bold; font-size:16px;">EN Regen: +0</div>
+        <div id="regenText" style="color:var(--text-dim); font-size:14px;">(ประเมินการรีเจน: +0 EN)</div>
     </div>
 
     <div class="card">
@@ -83,7 +84,7 @@
                 <thead>
                     <tr>
                         <th rowspan="2">ชื่อตัวละคร</th>
-                        <th colspan="2">Energy (EN)</th>
+                        <th colspan="2">Energy ปัจจุบัน</th>
                         <th colspan="2">Conquest (Reward)</th>
                         <th colspan="2">Trans (Reward)</th>
                         <th style="background:rgba(239,68,68,0.15)">หักลบ</th>
@@ -103,13 +104,17 @@
         </div>
         <div style="display:flex; gap:10px;">
             <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
-            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์และแยกดันเจี้ยนที่ต้องลง</button>
+            <button class="btn btn-calc" onclick="window.calculateFastTrack()">⚡ วิเคราะห์แผนปฏิบัติการ (เช็คว่าเพิ่มเป้าได้ไหม)</button>
         </div>
     </div>
 
     <div id="result" style="display:none; margin-top:20px;">
         <div class="summary-grid" id="finalSummary"></div>
-        <h2 style="color:var(--gold); margin-bottom:15px;">📊 รายงานแผนการลงดันเจี้ยนแบบเร่งด่วน</h2>
+        
+        <div id="leftoverSuggestion" style="background: linear-gradient(135deg, #b45309, #d97706); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; box-shadow: 0 5px 15px rgba(217, 119, 6, 0.4);">
+        </div>
+
+        <h2 style="color:var(--gold); margin-bottom:15px; border-bottom: 2px solid var(--border); padding-bottom:10px;">📊 รายงานแผนการเล่นและการประเมินเวลา</h2>
         <div id="allocationLog"></div>
     </div>
 </div>
@@ -130,11 +135,21 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    
     const urlParams = new URLSearchParams(window.location.search);
     const userName = urlParams.get('user') || 'Guest';
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V6';
+    
+    // เวลาที่ระบบเกมรีเจน EN
+    const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
 
-    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V2';
+    function formatThaiDateTime(d) {
+        if (!d) return "";
+        const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543} เวลา ${hh}:${mm} น.`;
+    }
 
     window.syncFromFirebase = async () => {
         try {
@@ -153,21 +168,16 @@
                 return;
             }
 
-            // ----------------------------------------------------
-            // คำนวณยา EN กองกลาง จาก Checkbox หน้า index.html
-            // ----------------------------------------------------
-            let calculatedPoolEn = 41; // ยาตั้งต้น 41 ขวด
-            if (data.idBuy) calculatedPoolEn -= 21;   // ถ้าติ๊กซื้อยา หัก 21 ขวด
-            if (data.idCraft) calculatedPoolEn -= 20; // ถ้าติ๊กสร้างยา หัก 20 ขวด
+            let calculatedPoolEn = 41; 
+            if (data.idBuy) calculatedPoolEn -= 21;   
+            if (data.idCraft) calculatedPoolEn -= 20; 
             
             document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
-            document.getElementById('poolRew').value = 21; // รีเซ็ตใบกองกลางเป็น 21 ปกติ
-            
+            document.getElementById('poolRew').value = 21; 
             document.getElementById('charTableBody').innerHTML = "";
 
             data.chars.forEach((c, i) => {
                 const p = (data.plans && data.plans[i]) ? data.plans[i] : {};
-                
                 const name = c.name || `ตัวละคร ${i+1}`;
                 const en = c.base || 0;
                 const enB = c.bonus || 0;
@@ -175,12 +185,9 @@
                 const conB = p.conBon || 0;
                 const traN = p.traRew || 0;
                 const traB = p.traBon || 0;
-                
-                // ดึงเป้าหมายรวม
                 const tCon = p.conGoal !== undefined ? p.conGoal : 35;
                 const tTra = p.traGoal !== undefined ? p.traGoal : 7;
                 
-                // คำนวณจำนวนที่ลงไปแล้ว จาก (Max - FB)
                 const conF = p.conFb !== undefined ? p.conFb : 35;
                 const traF = p.traFb !== undefined ? p.traFb : 28;
                 const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
@@ -256,21 +263,31 @@
         let poolEn = parseInt(document.getElementById('poolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
         
-        // คำนวณ Regen
-        const targetDate = document.getElementById('targetTime').value;
-        let regen = 0;
+        const targetDateStr = document.getElementById('targetTime').value;
+        const targetDate = targetDateStr ? new Date(targetDateStr) : null;
+        let globalFutureRegen = 0;
+        
         if (targetDate) {
-            const diff = (new Date(targetDate) - new Date()) / (1000 * 60 * 60);
-            regen = Math.max(0, Math.floor(diff / 3) * 15);
+            let checkTime = new Date();
+            checkTime.setMinutes(0, 0, 0, 0);
+            let safetyCounter = 0;
+            while (safetyCounter < 1000) {
+                checkTime.setHours(checkTime.getHours() + 1);
+                if (checkTime > targetDate) break;
+                if (ENERGY_MILESTONES.includes(checkTime.getHours())) globalFutureRegen += 15;
+                safetyCounter++;
+            }
         }
-        document.getElementById('regenText').innerText = `EN Regen: +${regen}`;
+        document.getElementById('regenText').innerText = targetDate ? `(ถึงเวลาเส้นตาย จะได้รีเจนอีก: +${globalFutureRegen} EN)` : "(กรุณาระบุเวลาเส้นตายเพื่อประเมิน)";
 
         let logHtml = "";
         let totalNetRounds = 0;
+        let totalFutureNetRounds = 0;
 
         document.querySelectorAll('#charTableBody tr').forEach(row => {
             const name = row.querySelector('.c-name').value;
-            const myEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0) + regen;
+            
+            const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0);
             const conStock = (parseInt(row.querySelector('.c-conN').value) || 0) + (parseInt(row.querySelector('.c-conB').value) || 0);
             const traStock = (parseInt(row.querySelector('.c-traN').value) || 0) + (parseInt(row.querySelector('.c-traB').value) || 0);
             
@@ -281,11 +298,9 @@
             const rawTargetTotal = tCon + tTra;
             const netTargetTotal = Math.max(0, rawTargetTotal - alreadyDone);
 
-            // สมมติว่าที่ลงไปแล้วคือ Conquest ก่อน
             let conLeft = Math.max(0, tCon - Math.min(tCon, alreadyDone)); 
             let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
 
-            // ดึงใบจากกองกลาง
             let conFromPool = Math.min(poolRew, Math.max(0, conLeft - conStock));
             poolRew -= conFromPool;
             let traFromPool = Math.min(poolRew, Math.max(0, traLeft - traStock));
@@ -293,54 +308,143 @@
 
             const totalRightsAvailable = Math.min(conLeft, conStock + conFromPool) + Math.min(traLeft, traStock + traFromPool);
             
-            // ดึงยาจากกองกลาง
-            let currentEn = myEn;
+            let currentEn = currentBaseEn;
             let pillsUsed = 0;
-            const enNeeded = totalRightsAvailable * 80;
+            const enNeededForRights = totalRightsAvailable * 80;
 
-            if (currentEn < enNeeded) {
-                pillsUsed = Math.min(poolEn, Math.ceil((enNeeded - currentEn) / 40));
+            if (currentEn < enNeededForRights) {
+                pillsUsed = Math.min(poolEn, Math.ceil((enNeededForRights - currentEn) / 40));
                 poolEn -= pillsUsed;
                 currentEn += (pillsUsed * 40);
             }
 
-            // คำนวณรอบที่ทำได้จริงและแยกดันเจี้ยน
             const canDoNow = Math.min(totalRightsAvailable, Math.floor(currentEn / 80));
             totalNetRounds += canDoNow;
+
+            // คำนวณยอดที่ทำได้ในอนาคต และจำนวนรอบที่บวกเพิ่มได้
+            let totalEnAtDeadline = currentEn + globalFutureRegen; 
+            let surplusEnAtDeadline = totalEnAtDeadline - (netTargetTotal * 80);
+            let extraPossibleRuns = Math.floor(surplusEnAtDeadline / 80);
+            
+            let futureCanDoGlobal = canDoNow;
+            if (targetDate) {
+                futureCanDoGlobal = Math.max(canDoNow, Math.min(netTargetTotal, Math.floor(totalEnAtDeadline / 80)));
+            } else {
+                futureCanDoGlobal = canDoNow;
+            }
+            totalFutureNetRounds += futureCanDoGlobal;
 
             const maxConPossible = Math.min(conLeft, conStock + conFromPool);
             const actualCon = Math.min(canDoNow, maxConPossible);
             const actualTra = Math.max(0, canDoNow - actualCon);
 
             const isSuccess = canDoNow >= netTargetTotal;
+            let statusAlert = "";
+
+            if (isSuccess) {
+                statusAlert = `
+                    <div style="color:var(--success); font-weight:bold; font-size:16px; margin-bottom:5px;">✅ สบายมาก! กดยาแล้วพร้อมลุยทันที</div>
+                    <div style="font-size:14px; color:#cbd5e1; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(16,185,129,0.3);">
+                        ▪️ เคลียร์เป้าหมาย ${netTargetTotal} รอบได้เลยโดยไม่ต้องรอเวลา<br>
+                        ${(targetDate && extraPossibleRuns > 0) ? 
+                          `<div style="margin-top:5px; padding-top:5px; border-top:1px dashed rgba(255,255,255,0.2); color:var(--success);">💡 <b>โบนัส:</b> ถ้ารอรีเจนจนถึงเส้นตาย จะได้ EN เพิ่มจนสามารถ <b>บวกเป้าหมายเพิ่มได้อีก ${extraPossibleRuns} รอบ!</b> (อย่าลืมเตรียมตั๋วเผื่อด้วยนะ)</div>` : 
+                          ''
+                        }
+                    </div>
+                `;
+            } else {
+                let missingEn = (netTargetTotal * 80) - currentEn; 
+                let actualMissingTickets = Math.max(0, netTargetTotal - totalRightsAvailable);
+
+                if (missingEn > 0) {
+                    let ticksNeeded = Math.ceil(missingEn / 15);
+                    let readyDate = new Date();
+                    readyDate.setMinutes(0, 0, 0, 0);
+                    let ticksCount = 0;
+                    let safetyCounter = 0;
+                    
+                    while (ticksCount < ticksNeeded && safetyCounter < 1000) {
+                        readyDate.setHours(readyDate.getHours() + 1);
+                        if (ENERGY_MILESTONES.includes(readyDate.getHours())) ticksCount++;
+                        safetyCounter++;
+                    }
+                    
+                    let dateStr = formatThaiDateTime(readyDate);
+
+                    if (targetDate && readyDate > targetDate) {
+                        let extraRunsByEn = futureCanDoGlobal - canDoNow;
+                        let tStr = formatThaiDateTime(targetDate);
+                        
+                        statusAlert = `
+                            <div style="color:var(--danger); font-weight:bold; font-size:16px; margin-bottom:5px;">❌ พลังงานรีเจนไม่ทันเส้นตาย!</div>
+                            <div style="font-size:14px; color:#fba11b; line-height:1.6; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(239,68,68,0.3);">
+                                ▪️ ณ เวลาเส้นตายที่คุณกำหนด <b>(${tStr})</b><br>
+                                ▪️ จะได้ EN จากการรีเจนสะสมเพียง: <b>+${globalFutureRegen} EN</b><br>
+                                ▪️ ซึ่งทำให้ลงเพิ่มได้อีกแค่: <b>${extraRunsByEn} รอบ</b><br>
+                                <div style="margin-top:5px; padding-top:5px; border-top:1px dashed rgba(255,255,255,0.2); color:white;">
+                                    💥 <b>สรุป: จะทำได้สูงสุด ${futureCanDoGlobal} / ${netTargetTotal} รอบ (ขาดอีก ${netTargetTotal - futureCanDoGlobal} รอบ)</b>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        statusAlert = `
+                            <div style="color:var(--gold); font-weight:bold; font-size:16px; margin-bottom:5px;">⏳ ต้องรอเวลารีเจน (ทันเส้นตายแน่นอน!)</div>
+                            <div style="font-size:14px; color:#93c5fd; line-height:1.6; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(59,130,246,0.3);">
+                                ▪️ พลังงานจะเด้งครบ ${netTargetTotal} รอบ ใน: <b>${dateStr}</b><br>
+                                ${targetDate ? `
+                                    ${extraPossibleRuns > 0 ? 
+                                        `<div style="margin-top:5px; padding-top:5px; border-top:1px dashed rgba(255,255,255,0.2); color:var(--success);">💡 <b>มีเวลาเหลือ!</b> ก่อนถึงเส้นตายจะได้รีเจนเพิ่มอีก จนสามารถ <b>บวกเป้าหมายเพิ่มได้อีก ${extraPossibleRuns} รอบ!</b></div>` 
+                                        : `<span style="color:#cbd5e1;">(แต่เวลาที่เหลือก่อนถึงเส้นตาย จะรีเจน EN ไม่พอให้บวกรอบเพิ่มแล้ว)</span>`
+                                    }
+                                ` : `<span style="color:#cbd5e1;">(ระบุ 'เวลาเป้าหมาย' ด้านบน เพื่อเช็คว่าทันเซิร์ฟปิดหรือไม่)</span>`}
+                            </div>
+                        `;
+                    }
+                    
+                    if (actualMissingTickets > 0) {
+                        statusAlert += `<div style="color:#fca5a5; font-size:13px; margin-top:8px; background:rgba(239,68,68,0.1); padding:5px 10px; border-radius:6px; border:1px solid rgba(239,68,68,0.2);">⚠️ คำเตือน: คุณยังขาดใบ Reward สำรองอีก <b>${actualMissingTickets} ใบ</b> (ถ้าหามาเติมไม่ได้ ต่อให้ EN พอ ก็ลงไม่ได้!)</div>`;
+                    }
+                } else {
+                    statusAlert = `
+                        <div style="color:var(--danger); font-weight:bold; font-size:16px; margin-bottom:5px;">❌ พลังงานพอ แต่ใบ Reward หมด!</div>
+                        <div style="font-size:14px; color:#cbd5e1;">หาใบมาเพิ่มอีก ${actualMissingTickets} ใบด่วนเลยครับ</div>
+                    `;
+                }
+            }
 
             logHtml += `
                 <div class="log-card" style="border-left-color: ${isSuccess ? 'var(--success)' : 'var(--danger)'}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <b style="font-size:20px; color:var(--primary)">${name}</b> 
-                            <span class="badge-info">เป้าหมายรวม: ${rawTargetTotal} หักออก ${alreadyDone} = ${netTargetTotal}</span>
+                            <span class="badge-info">เป้าหมาย: ต้องทำเพิ่ม ${netTargetTotal} รอบ (จากเป้าเดิม ${rawTargetTotal})</span>
                         </div>
-                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--danger)'}">
-                            ต้องทำเพิ่ม: ${canDoNow} / ${netTargetTotal} รอบ
+                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--gold)'}">
+                            ลงดันเจี้ยนได้ตอนนี้เลย: ${canDoNow} / ${netTargetTotal} รอบ
                         </b>
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:15px;">
-                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:10px; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
-                            <small style="color:var(--text-dim); font-size:14px;">⚔️ แนะนำให้ลง Conquest</small><br>
+                        <div class="recommend-box">
+                            <small style="color:var(--text-dim); font-size:14px;">⚔️ สิ่งที่ต้องไปลง ณ ตอนนี้ (Conquest)</small><br>
                             <b style="color:var(--gold); font-size:26px;">${actualCon} รอบ</b>
                         </div>
-                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:10px; text-align:center; border: 1px solid rgba(255,255,255,0.05);">
-                            <small style="color:var(--text-dim); font-size:14px;">🌌 แนะนำให้ลง Trans</small><br>
+                        <div class="recommend-box">
+                            <small style="color:var(--text-dim); font-size:14px;">🌌 สิ่งที่ต้องไปลง ณ ตอนนี้ (Transcendent)</small><br>
                             <b style="color:var(--gold); font-size:26px;">${actualTra} รอบ</b>
                         </div>
                     </div>
 
-                    <div style="display:flex; gap:25px; margin-top:15px; font-size:15px; justify-content:center; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px;">
-                        <span>📦 เบิกยากองกลาง: <b style="color:var(--success)">${pillsUsed}</b> ขวด</span>
-                        <span>🎟️ เบิกใบกองกลาง: <b style="color:var(--success)">${conFromPool + traFromPool}</b> ใบ</span>
-                        <span style="color:var(--text-dim)">🔋 ใช้ EN ทั้งหมด: ${canDoNow * 80}</span>
+                    <div style="display:flex; gap:20px; margin-top:15px; background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                        <div style="text-align:left; padding-right:20px; min-width: 250px;">
+                            <div style="font-size:16px; font-weight:bold; color:white; border-bottom:1px solid #334155; padding-bottom:5px; margin-bottom:8px;">💡 คำแนะนำ (เฉพาะหน้า)</div>
+                            <div style="margin-bottom:5px;">💊 เบิกยากองกลางมากด: <b style="color:var(--gold); font-size:16px;">${pillsUsed}</b> ขวด</div>
+                            <div style="margin-bottom:5px;">🎟️ ดึงใบ Reward กองกลาง: <b style="color:var(--success); font-size:16px;">${conFromPool + traFromPool}</b> ใบ</div>
+                            <div style="color:var(--text-dim); font-size:14px; margin-top:8px;">(ใช้พลังงานรวมทั้งหมด: ${canDoNow * 80} EN)</div>
+                        </div>
+                        <div style="border-left: 2px dashed rgba(255,255,255,0.1); padding-left: 20px; text-align:left; flex:1;">
+                            ${statusAlert}
+                        </div>
                     </div>
                 </div>
             `;
@@ -348,11 +452,27 @@
 
         document.getElementById('result').style.display = 'block';
         document.getElementById('allocationLog').innerHTML = logHtml;
+        
         document.getElementById('finalSummary').innerHTML = `
-            <div class="summary-item"><small>ยา EN กองกลางคงเหลือ</small><br><b style="font-size:28px; color:var(--gold)">${poolEn}</b></div>
-            <div class="summary-item"><small>ใบ Reward กองกลางคงเหลือ</small><br><b style="font-size:28px; color:var(--success)">${poolRew}</b></div>
-            <div class="summary-item" style="background:var(--primary)"><small>รวมรอบที่ต้องทำเพิ่มทั้งหมด</small><br><b style="font-size:28px;">${totalNetRounds}</b></div>
+            <div class="summary-item"><small>ยา EN คงเหลือ</small><br><b style="font-size:28px; color:var(--gold)">${poolEn}</b></div>
+            <div class="summary-item"><small>ใบ Reward คงเหลือ</small><br><b style="font-size:28px; color:var(--success)">${poolRew}</b></div>
+            <div class="summary-item" style="background:linear-gradient(135deg, #1e3a8a, #1d4ed8); border-color:#1e3a8a;"><small>รวมรอบที่จบได้ทันที (ปัจจุบัน)</small><br><b style="font-size:28px; color:white;">${totalNetRounds}</b></div>
+            <div class="summary-item" style="background:linear-gradient(135deg, #047857, #064e3b); border-color:#064e3b;"><small>รวมรอบที่จะทำได้ทั้งหมด (เมื่อถึงเส้นตาย)</small><br><b style="font-size:28px; color:var(--gold);">${targetDate ? totalFutureNetRounds : '-'}</b></div>
         `;
+
+        const suggestBox = document.getElementById('leftoverSuggestion');
+        if (poolEn > 0) {
+            const extraRounds = Math.floor((poolEn * 40) / 80);
+            suggestBox.innerHTML = `
+                <div style="font-size:20px; font-weight:bold; margin-bottom:5px;">🔥 คุณมียา EN กองกลางเหลือ ${poolEn} ขวด!</div>
+                <div>หากต้องการล้างกองกลางให้หมดทันที ยาที่เหลือนี้สามารถเปลี่ยนเป็นรอบลงดันได้อีก <b style=\"font-size:22px;\">${extraRounds} รอบ</b> <br>
+                <small style="opacity:0.8;">(คำเตือน: คุณจำเป็นต้องมีใบ Reward สำรองอีก ${extraRounds} ใบ เพื่อใช้คู่กับพลังงานนี้)</small></div>
+            `;
+            suggestBox.style.display = 'block';
+        } else {
+            suggestBox.style.display = 'none';
+        }
+
         window.scrollTo({ top: document.getElementById('result').offsetTop - 20, behavior: 'smooth' });
     };
 
