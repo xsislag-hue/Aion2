@@ -778,7 +778,10 @@
         const sc = parseInt(document.getElementById('sum-con-count').value) || 0;
         const st = parseInt(document.getElementById('sum-tra-count').value) || 0;
         document.getElementById('sum-total-count').value = sc + st;
-        document.getElementById('sum-total-goal').value = idTotalGoalsOriginal + sc + st;
+        
+        // แก้ไขให้แสดงเฉพาะผลรวมของเป้าหมายที่แท้จริง
+        document.getElementById('sum-total-goal').value = idTotalGoalsOriginal;
+        
         document.getElementById('sum-total-rem').value = idTotalRem;
 
         queueSave(); 
