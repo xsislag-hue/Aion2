@@ -54,6 +54,7 @@
         .summary-item { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
         
         .badge-info { font-size: 13px; background: #334155; padding: 4px 10px; border-radius: 6px; color: var(--text-main); margin-left: 10px;}
+        .recommend-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
         
         .radio-main { width: 22px; height: 22px; cursor: pointer; accent-color: var(--gold); }
     </style>
@@ -63,7 +64,11 @@
 <div class="container">
     <div class="header">
         <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
-            <h1 style="margin:0; font-size:24px;">🚀 Fast-Track Planner <span style="font-size:14px; font-weight:normal; color:var(--gold);">[Sanctuary, ยาติดตัว & Manual Mode]</span></h1>
+            <h1 style="margin:0; font-size:24px;">
+                🚀 Fast-Track Planner 
+                <span id="idDisplayBadge" style="font-size:15px; background:#2563eb; color:white; padding:3px 10px; border-radius:6px; margin-left:10px; font-weight:bold;">ID: 1</span>
+                <span style="font-size:14px; font-weight:normal; color:var(--gold); margin-left:5px;">[Sanctuary, ยาติดตัว & Manual Mode]</span>
+            </h1>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
                 <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
@@ -150,10 +155,19 @@
     const db = getDatabase(app);
     const urlParams = new URLSearchParams(window.location.search);
     const userName = urlParams.get('user') || 'Guest';
-    const autoId = urlParams.get('id'); 
+    let currentPlannerId = urlParams.get('id') || '1'; 
     
-    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V14'; // ใช้ Key เดิมเพื่อดึงข้อมูลที่มีอยู่
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
+
+    // ฟังก์ชันสร้าง Key ที่แยกตาม ID แบบ 100%
+    function getStorageKey() {
+        return `AION_PLANNER_${userName}_ID_${currentPlannerId}_V15`;
+    }
+
+    function updateIdBadge() {
+        const badge = document.getElementById('idDisplayBadge');
+        if (badge) badge.innerText = `ID: ${currentPlannerId}`;
+    }
 
     function formatThaiDateTime(d) {
         if (!d) return "";
@@ -192,19 +206,24 @@
         try {
             let idToPull = forceId;
             if (!idToPull) {
-                idToPull = prompt("ระบุหมายเลข ID ที่ต้องการดึงข้อมูลจากหน้าหลัก (เช่น 1, 2, 3)", "1");
+                idToPull = prompt("ระบุหมายเลข ID ที่ต้องการดึงข้อมูลจากระบบหลัก (เช่น 1, 2, 3)", currentPlannerId);
                 if (!idToPull) return;
             }
+            
+            // อัปเดต ID ปัจจุบันและเปลี่ยน URL ให้จำค่า
+            currentPlannerId = idToPull;
+            updateIdBadge();
+            window.history.replaceState(null, '', `?user=${userName}&id=${currentPlannerId}`);
 
             const btn = document.querySelector('.btn-sync');
             const originalText = btn.innerText;
             btn.innerText = "⏳ กำลังดึงข้อมูล...";
 
-            const snap = await get(ref(db, `users/${userName}/id_${idToPull}`));
+            const snap = await get(ref(db, `users/${userName}/id_${currentPlannerId}`));
             const data = snap.val();
 
             if (!data || !data.chars) {
-                if (!forceId) alert(`ไม่พบข้อมูลของ User: ${userName} / ID: ${idToPull}`);
+                if (!forceId) alert(`ไม่พบข้อมูลของ User: ${userName} / ID: ${currentPlannerId}`);
                 btn.innerText = originalText;
                 return;
             }
@@ -216,8 +235,8 @@
             document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
             document.getElementById('poolRew').value = 21; 
 
-            // ดึงค่าเก่าที่ผู้เล่นกรอกไว้ในหน้า Planner เพื่อนำมาผสมผสาน (Memory Merge)
-            const saved = localStorage.getItem(STORAGE_KEY);
+            // ดึงค่าเก่าเฉพาะของ ID นี้มาผสม (ป้องกันค่าหาย)
+            const saved = localStorage.getItem(getStorageKey());
             let oldChars = [];
             if (saved) {
                 try { oldChars = JSON.parse(saved).chars || []; } catch(e) {}
@@ -226,7 +245,7 @@
             document.getElementById('charTableBody').innerHTML = "";
 
             data.chars.forEach((c, i) => {
-                const oldC = oldChars[i] || {}; // ดึงประวัติตัวละครนี้
+                const oldC = oldChars[i] || {}; 
                 const p = (data.plans && data.plans[i]) ? data.plans[i] : {};
                 const name = c.name || `ตัวละคร ${i+1}`;
                 const en = c.base || 0;
@@ -241,7 +260,7 @@
                 const traF = p.traFb !== undefined ? p.traFb : 28;
                 const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
                 
-                // ใช้ค่าเก่าถ้ามีอยู่ ป้องกันการถูกรีเซ็ต
+                // ใช้ค่าเก่าถ้ามีอยู่ (ไม่เซ็ตเป็น 0 อัตโนมัติแล้ว)
                 const ownPills = oldC.ownPills || 0;
                 const sancRuns = oldC.sancRuns || 0;
                 const pillsUsed = oldC.pillsUsed || 0;
@@ -284,7 +303,7 @@
                 tTra: row.querySelector('.c-tTra').value
             });
         });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        localStorage.setItem(getStorageKey(), JSON.stringify({
             targetTime: document.getElementById('targetTime').value,
             mainTargetTime: document.getElementById('mainTargetTime').value,
             poolEn: document.getElementById('poolEn').value,
@@ -294,7 +313,8 @@
     };
 
     window.loadData = () => {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        updateIdBadge();
+        const saved = localStorage.getItem(getStorageKey());
         if (!saved) { 
             window.addRow("PonyPim", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
             window.addRow("Pony3i3i", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
@@ -342,7 +362,7 @@
         window.saveAll();
     };
 
-    window.clearData = () => { if(confirm('ล้างข้อมูลใน Planner ทั้งหมดหรือไม่?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } };
+    window.clearData = () => { if(confirm('ล้างข้อมูลเฉพาะ Planner ของ ID นี้หรือไม่?')) { localStorage.removeItem(getStorageKey()); location.reload(); } };
 
     window.calculateFastTrack = () => {
         let originalPoolEn = parseInt(document.getElementById('poolEn').value) || 0;
