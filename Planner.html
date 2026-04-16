@@ -152,7 +152,7 @@
     const userName = urlParams.get('user') || 'Guest';
     const autoId = urlParams.get('id'); 
     
-    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V14';
+    const STORAGE_KEY = 'AION_HORIZONTAL_ULTIMATE_V14'; // ใช้ Key เดิมเพื่อดึงข้อมูลที่มีอยู่
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
 
     function formatThaiDateTime(d) {
@@ -215,9 +215,18 @@
             
             document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
             document.getElementById('poolRew').value = 21; 
+
+            // ดึงค่าเก่าที่ผู้เล่นกรอกไว้ในหน้า Planner เพื่อนำมาผสมผสาน (Memory Merge)
+            const saved = localStorage.getItem(STORAGE_KEY);
+            let oldChars = [];
+            if (saved) {
+                try { oldChars = JSON.parse(saved).chars || []; } catch(e) {}
+            }
+
             document.getElementById('charTableBody').innerHTML = "";
 
             data.chars.forEach((c, i) => {
+                const oldC = oldChars[i] || {}; // ดึงประวัติตัวละครนี้
                 const p = (data.plans && data.plans[i]) ? data.plans[i] : {};
                 const name = c.name || `ตัวละคร ${i+1}`;
                 const en = c.base || 0;
@@ -232,7 +241,14 @@
                 const traF = p.traFb !== undefined ? p.traFb : 28;
                 const done = Math.max(0, 35 - conF) + Math.max(0, 28 - traF);
                 
-                window.addRow(name, en, enB, 0, 0, 0, "", conN, conB, traN, traB, tCon, tTra, done, false);
+                // ใช้ค่าเก่าถ้ามีอยู่ ป้องกันการถูกรีเซ็ต
+                const ownPills = oldC.ownPills || 0;
+                const sancRuns = oldC.sancRuns || 0;
+                const pillsUsed = oldC.pillsUsed || 0;
+                const lockPills = oldC.lockPills || "";
+                const isMain = oldC.isMain || false;
+
+                window.addRow(name, en, enB, ownPills, sancRuns, pillsUsed, lockPills, conN, conB, traN, traB, tCon, tTra, done, isMain);
             });
 
             window.saveAll();
