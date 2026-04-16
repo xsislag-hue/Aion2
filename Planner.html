@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Master Planner - Ultimate Planner Sync</title>
+    <title>AI Master Planner - Ultimate Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -42,21 +42,38 @@
         
         .btn { padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: 'Prompt'; display: flex; align-items: center; gap: 5px;}
         .btn-sync { background: linear-gradient(to right, #8b5cf6, #6d28d9); color: white; }
+        
+        /* ดีไซน์ปุ่มวิเคราะห์ใหม่ แดงสด ใหญ่ ชัดเจน */
         .btn-calc { 
-            width: 100%; background: linear-gradient(to right, #10b981, #059669); 
-            color: white; font-size: 20px; margin-top: 5px; height: 50px; 
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); transition: 0.2s;
+            width: 100%; 
+            background: linear-gradient(to right, #dc2626, #991b1b); 
+            color: white; 
+            font-size: 24px; 
+            margin-top: 15px; 
+            height: 65px; 
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(220, 38, 38, 0.4); 
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            justify-content: center;
         }
-        .btn-calc:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-calc:hover { transform: translateY(-3px); filter: brightness(1.2); box-shadow: 0 8px 20px rgba(220, 38, 38, 0.6); }
 
         .log-card { background: #0f172a; border-left: 6px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--border); }
         .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
         .summary-item { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
         
         .badge-info { font-size: 13px; background: #334155; padding: 4px 10px; border-radius: 6px; color: var(--text-main); margin-left: 10px;}
-        .recommend-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        
         .radio-main { width: 22px; height: 22px; cursor: pointer; accent-color: var(--gold); }
+
+        /* แถบแจ้งเตือนเมื่อบันทึกข้อมูล */
+        #saveStatus { 
+            position: fixed; bottom: 30px; right: 30px; 
+            padding: 15px 30px; background: var(--success); color: white; 
+            border-radius: 12px; display: none; z-index: 9999; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: bold; font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -70,7 +87,7 @@
                 <span style="font-size:14px; font-weight:normal; color:var(--gold); margin-left:5px;">[Sanctuary, ยาติดตัว & Manual Mode]</span>
             </h1>
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก</button>
+                <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก (Manual)</button>
                 <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
                 <button class="btn" style="background:rgba(0,0,0,0.4); color:white; border:1px solid var(--border);" onclick="window.location.href='index.html?user=' + (new URLSearchParams(window.location.search).get('user') || 'Guest')">⬅ กลับหน้าหลัก</button>
             </div>
@@ -123,10 +140,9 @@
                 <tbody id="charTableBody"></tbody>
             </table>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn" style="background:var(--primary); color:white; margin-top:10px;" onclick="window.addRow()">+ เพิ่มตัวละคร</button>
-            <button class="btn btn-calc" onclick="window.calculateFastTrack(true)">⚡ วิเคราะห์แผนปฏิบัติการสุดล้ำ (AI + Manual)</button>
-        </div>
+        
+        <button class="btn btn-calc" onclick="window.handleManualCalculate()">⚡ วิเคราะห์แผนปฏิบัติการ & บันทึกข้อมูล</button>
+        
     </div>
 
     <div id="result" style="display:none; margin-top:20px;">
@@ -136,6 +152,8 @@
         <div id="allocationLog"></div>
     </div>
 </div>
+
+<div id="saveStatus">✓ บันทึกข้อมูลแล้ว</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -168,6 +186,14 @@
         const badge = document.getElementById('idDisplayBadge');
         if (badge) badge.innerText = `ID: ${currentPlannerId}`;
     }
+
+    window.showStatus = (msg) => {
+        const el = document.getElementById('saveStatus');
+        if(!el) return;
+        el.innerText = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 2500);
+    };
 
     function formatThaiDateTime(d) {
         if (!d) return "";
@@ -263,18 +289,18 @@
                 const lockPills = oldC.lockPills || "";
                 const isMain = oldC.isMain || false;
 
-                // ดึงข้อมูล Sanctuary จาก index.html ถ้ากดยืนยันแล้ว ก็ไม่ต้องเอามาหักอีก!
+                // ดึงค่า Sanctuary จากระบบหลัก (ถ้าลงแล้ว จะล็อคการหัก EN ซ้ำ)
                 const dbSancRuns = c.sancRuns || 0;
                 const dbSancDone = c.sancDone || false;
-                const sancRuns = dbSancDone ? 0 : dbSancRuns;
 
-                window.addRow(name, en, enB, ownPills, sancRuns, pillsUsed, lockPills, conN, conB, traN, traB, tCon, tTra, done, isMain);
+                window.addRow(name, en, enB, ownPills, dbSancRuns, dbSancDone, pillsUsed, lockPills, conN, conB, traN, traB, tCon, tTra, done, isMain);
             });
 
             window.saveAll();
             btn.innerText = "✅ ซิงค์สำเร็จ!";
             setTimeout(() => btn.innerText = originalText, 2000);
             
+            // ถ้าดึงข้อมูล Auto ให้ทำการคำนวณโชว์ทันที แต่ไม่เลื่อนจอ
             window.calculateFastTrack(false);
 
         } catch (error) {
@@ -293,7 +319,8 @@
                 en: row.querySelector('.c-en').value, 
                 enB: row.querySelector('.c-enB').value,
                 ownPills: row.querySelector('.c-ownPills').value,
-                sancRuns: row.querySelector('.c-sanc').value,
+                sancRuns: row.querySelector('.c-sanc') ? row.querySelector('.c-sanc').value : row.querySelector('.c-sanc-hidden').value,
+                sancDone: row.querySelector('.c-sanc-done').value === 'true',
                 pillsUsed: row.querySelector('.c-pills').value, 
                 lockPills: row.querySelector('.c-lock-pills').value,
                 conN: row.querySelector('.c-conN').value, 
@@ -318,8 +345,8 @@
         updateIdBadge();
         const saved = localStorage.getItem(getStorageKey());
         if (!saved) { 
-            window.addRow("PonyPim", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
-            window.addRow("Pony3i3i", 0, 0, 0, 0, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.addRow("PonyPim", 0, 0, 0, 0, false, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.addRow("Pony3i3i", 0, 0, 0, 0, false, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
             window.calculateFastTrack(false);
             return; 
         }
@@ -330,27 +357,43 @@
         document.getElementById('poolRew').value = data.poolRew || 21;
         document.getElementById('charTableBody').innerHTML = "";
         data.chars.forEach((c) => {
-            window.addRow(c.name, c.en, c.enB, c.ownPills||0, c.sancRuns||0, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
+            window.addRow(c.name, c.en, c.enB, c.ownPills||0, c.sancRuns||0, c.sancDone||false, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
         });
+        // โหลดเสร็จสั่งโชว์การคำนวณเลย แต่ไม่เลื่อนจอ
         window.calculateFastTrack(false);
     };
 
-    window.addRow = (name="ตัวละคร", en=0, enB=0, ownPills=0, sancRuns=0, pillsUsed=0, lockPills="", conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0, isMain=false) => {
+    window.addRow = (name="ตัวละคร", en=0, enB=0, ownPills=0, sancRuns=0, sancDone=false, pillsUsed=0, lockPills="", conN=14, conB=10, traN=7, traB=10, tCon=35, tTra=7, done=0, isMain=false) => {
         const tbody = document.getElementById('charTableBody');
         const tr = document.createElement('tr');
+        
+        let sancHtml = "";
+        if (sancDone) {
+            // ถ้ายืนยันจากหน้าหลักแล้ว ให้ล็อคเป็นป้ายบอกเฉยๆ เพื่อให้คนเล่นรู้ว่า EN ถูกหักไปแล้วในหน้าหลัก
+            sancHtml = `
+                <div style="color:var(--success); font-weight:bold; font-size:14px; background:rgba(16,185,129,0.1); padding:4px; border-radius:5px; border:1px solid var(--success);">✅ ลงแล้ว<br>(${sancRuns} รอบ)</div>
+                <input type="hidden" class="c-sanc-hidden" value="${sancRuns}">
+                <input type="hidden" class="c-sanc-done" value="true">
+            `;
+        } else {
+            // ถ้ายังไม่ลง ให้เลือกได้อิสระ
+            sancHtml = `
+                <select class="c-sanc" onchange="window.saveAll()" style="background:#0f172a; color:white; border:1px solid #db2777; border-radius:5px; padding:4px; font-family:'Prompt'; outline:none; width: 100%;">
+                    <option value="0" ${sancRuns==0 ? 'selected' : ''}>0</option>
+                    <option value="2" ${sancRuns==2 ? 'selected' : ''}>2 รอบ</option>
+                    <option value="3" ${sancRuns==3 ? 'selected' : ''}>3 รอบ</option>
+                </select>
+                <input type="hidden" class="c-sanc-done" value="false">
+            `;
+        }
+
         tr.innerHTML = `
             <td><input type="checkbox" class="c-main radio-main" ${isMain ? 'checked' : ''} onclick="window.handleMainCheck(this)"></td>
             <td><input type="text" class="c-name name-input" value="${name}" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-en" value="${en}" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-enB" value="${enB}" oninput="window.saveAll()"></td>
             <td style="background:rgba(16,185,129,0.05)"><input type="number" class="c-ownPills pill-input" style="color:var(--success); border-color:var(--success);" value="${ownPills}" oninput="window.saveAll()"></td>
-            <td>
-                <select class="c-sanc" onchange="window.saveAll()" style="background:#0f172a; color:white; border:1px solid #db2777; border-radius:5px; padding:4px; font-family:'Prompt'; outline:none;">
-                    <option value="0" ${sancRuns==0 ? 'selected' : ''}>0</option>
-                    <option value="2" ${sancRuns==2 ? 'selected' : ''}>2 รอบ</option>
-                    <option value="3" ${sancRuns==3 ? 'selected' : ''}>3 รอบ</option>
-                </select>
-            </td>
+            <td>${sancHtml}</td>
             <td style="background:rgba(251,191,36,0.05)"><input type="number" class="c-pills pill-input" value="${pillsUsed}" oninput="window.saveAll()"></td>
             <td style="background:rgba(16,185,129,0.05)"><input type="number" class="c-lock-pills lock-pill-input" value="${lockPills}" placeholder="Auto" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-conN" value="${conN}" oninput="window.saveAll()"></td>
@@ -368,8 +411,14 @@
 
     window.clearData = () => { if(confirm(`ล้างข้อมูลเฉพาะ Planner ของ ID: ${currentPlannerId} หรือไม่?`)) { localStorage.removeItem(getStorageKey()); location.reload(); } };
 
-    window.calculateFastTrack = (autoScroll = true) => {
-        if (typeof autoScroll !== 'boolean') autoScroll = true;
+    window.handleManualCalculate = () => {
+        window.saveAll();
+        window.calculateFastTrack(true);
+        window.showStatus('💾 วิเคราะห์และบันทึกแผนล่าสุดเรียบร้อย!');
+    };
+
+    window.calculateFastTrack = (autoScroll = false) => {
+        if (typeof autoScroll !== 'boolean') autoScroll = false;
 
         let originalPoolEn = parseInt(document.getElementById('poolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
@@ -408,8 +457,11 @@
             const isPillsLocked = lockPillsStr !== "";
             const lockedPillsValue = isPillsLocked ? Math.max(0, parseInt(lockPillsStr) || 0) : 0;
 
-            const sancRuns = parseInt(row.querySelector('.c-sanc').value) || 0;
-            const sancCost = sancRuns * 80;
+            const isSancDone = row.querySelector('.c-sanc-done').value === 'true';
+            const sancRuns = parseInt(row.querySelector('.c-sanc') ? row.querySelector('.c-sanc').value : row.querySelector('.c-sanc-hidden').value) || 0;
+            
+            // ถ้าลง Sanctuary ไปแล้ว ในหน้าหลัก EN ถูกหักล่วงหน้าไปแล้ว! ในการคำนวณนี้เราจึงไม่ต้องเอาไปเป็นภาระลบอีก 
+            const sancCost = isSancDone ? 0 : (sancRuns * 80);
 
             const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0) + (pillsAlreadyUsed * 40);
             const conStock = (parseInt(row.querySelector('.c-conN').value) || 0) + (parseInt(row.querySelector('.c-conB').value) || 0);
@@ -427,7 +479,7 @@
             let traLeft = Math.max(0, tTra - Math.max(0, alreadyDone - tCon));
 
             charsData.push({
-                name, isMain, pillsAlreadyUsed, currentBaseEn, sancRuns, sancCost,
+                name, isMain, pillsAlreadyUsed, currentBaseEn, sancRuns, sancCost, isSancDone,
                 ownPills, usedOwnPills: 0, usedSharedPills: 0,
                 isPillsLocked, lockedPillsValue,
                 conStock, traStock, alreadyDone, 
@@ -466,14 +518,18 @@
             }
         });
 
+        // สเต็ป 0.1: หักยา Manual Override
         charsData.forEach(c => {
-            if (c.isPillsLocked) allocatePills(c, c.lockedPillsValue);
+            if (c.isPillsLocked) {
+                allocatePills(c, c.lockedPillsValue);
+            }
         });
 
         let mainChars = charsData.filter(c => c.isMain);
         let otherChars = charsData.filter(c => !c.isMain);
         let mainChar = mainChars.length > 0 ? mainChars[0] : null;
 
+        // สเต็ป 0.2: แจกใบ Reward
         if (mainChar) {
             mainChar.conFromPool = Math.min(poolRew, Math.max(0, mainChar.conLeft - mainChar.conStock));
             poolRew -= mainChar.conFromPool;
@@ -487,21 +543,28 @@
             poolRew -= c.traFromPool;
         });
 
+        // สเต็ป 1: แจกยา AI ให้ตัวหลัก
         if (mainChar && !mainChar.isPillsLocked) {
             let requiredEn = (mainChar.netTargetTotal * 80) + mainChar.sancCost;
             let projectedEn = mainChar.currentBaseEn + mainChar.evalFutureRegen;
             let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) allocatePills(mainChar, Math.ceil(deficit / 40));
+            if (deficit > 0) {
+                allocatePills(mainChar, Math.ceil(deficit / 40));
+            }
         }
         
+        // สเต็ป 2: แจกยา AI ให้ตัวรอง
         otherChars.forEach(c => {
             if (c.isPillsLocked) return;
             let requiredEn = (c.netTargetTotal * 80) + c.sancCost;
             let projectedEn = c.currentBaseEn + c.evalFutureRegen; 
             let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) allocatePills(c, Math.ceil(deficit / 40));
+            if (deficit > 0) {
+                allocatePills(c, Math.ceil(deficit / 40));
+            }
         });
 
+        // สเต็ป 3: ถัวเฉลี่ยเวลาที่เหลือ
         let loopSafety = 0;
         let pillsAvailable = true;
         while (pillsAvailable && loopSafety < 1000) {
@@ -669,6 +732,13 @@
             let totalPillsPlan = c.usedOwnPills + c.usedSharedPills + c.pillsAlreadyUsed;
             let remainingToPress = c.usedOwnPills + c.usedSharedPills;
 
+            let sancLabel = "";
+            if (c.isSancDone) {
+                sancLabel = `<div style="color:var(--success); margin-top:5px; padding-left:10px; font-weight:bold;">⛩️ Sanctuary: ลงไปแล้ว ${c.sancRuns} รอบ (EN ถูกหักแล้ว)</div>`;
+            } else if (c.sancRuns > 0) {
+                sancLabel = `<div style="color:#db2777; margin-top:5px; padding-left:10px; font-weight:bold;">⛩️ หัก EN ให้ Sanctuary ล่วงหน้า: -${c.sancCost} EN</div>`;
+            }
+
             logHtml += `
                 <div class="log-card" style="border-left-color: ${borderStyle}; ${c.isMain ? 'box-shadow: 0 0 15px rgba(251,191,36,0.2);' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -720,7 +790,7 @@
                             </div>
                             
                             <div style="margin-bottom:5px; padding-left:10px;">🎟️ ดึงใบ Reward กองกลาง: <b style="color:var(--success); font-size:16px;">${c.conFromPool + c.traFromPool}</b> ใบ</div>
-                            ${c.sancRuns > 0 ? `<div style="color:#db2777; margin-top:5px; padding-left:10px; font-weight:bold;">⛩️ หัก EN ให้ Sanctuary: -${c.sancCost} EN</div>` : ''}
+                            ${sancLabel}
                             <div style="color:var(--text-dim); font-size:14px; margin-top:8px; padding-left:10px;">(ใช้พลังงานลงดันรวม: ${canDoNow * 80} EN)</div>
                         </div>
                         <div style="border-left: 2px dashed rgba(255,255,255,0.1); padding-left: 20px; text-align:left; flex:1;">
@@ -765,6 +835,7 @@
 
     window.onload = async () => {
         window.loadData();
+        const autoId = new URLSearchParams(window.location.search).get('id');
         if (autoId) {
             await window.syncFromFirebase(autoId);
         }
