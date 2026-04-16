@@ -142,6 +142,8 @@
         <button class="nav-btn active" id="btn-char" onclick="switchTab('char')">👤 ตัวละคร & ดันเจี้ยน</button>
         <button class="nav-btn" id="btn-item" onclick="switchTab('item')">📦 คลังไอเทม</button>
         <button class="nav-btn nav-btn-global" id="btn-global" onclick="switchTab('global')">📊 สรุปภาพรวมเซิร์ฟเวอร์</button>
+        
+        <button class="nav-btn" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; margin-left: 10px;" onclick="goToPlanner()">🔮 ไปหน้า Planner</button>
     </div>
 
     <div id="charPage">
@@ -375,6 +377,11 @@
         showStatus("🔄 กำลังซิงค์ข้อมูล...");
         await loadIDData(currentID);
         showStatus("✅ ซิงค์ข้อมูลล่าสุดสำเร็จ");
+    };
+
+    // ฟังก์ชันวาร์ปไปหน้า Planner
+    window.goToPlanner = () => {
+        window.location.href = `Planner.html?user=${userName}`;
     };
 
     async function initSystem() {
