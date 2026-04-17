@@ -19,7 +19,6 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-        /* ปรับขนาด Container ให้กระชับขึ้น พอดีจอ 1080p */
         body { font-family: var(--font-main); background: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; padding: 15px; font-size: 15px; margin: 0; min-height: 100vh; }
         .container { background: var(--dark-card); width: 100%; max-width: 1580px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
         
@@ -356,6 +355,7 @@
     
     window.undoHistories = {}; 
     window.lastLiveCheck = null;
+    window.currentVipExpire = null;
 
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
@@ -369,13 +369,14 @@
         return data;
     }
 
+    // กดดึงข้อมูลคลาวด์ แล้วสั่ง F5 ทันทีเพื่อความชัวร์ ไม่ค้างแน่นอน
     window.forceRefresh = async () => {
         showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
         const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
         const data = snap.val() || {};
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         
-        showStatus("✅ ซิงค์สำเร็จ! กำลังรีเฟรชหน้า...");
+        showStatus("✅ ซิงค์สำเร็จ! กำลังรีเฟรช...");
         setTimeout(() => { window.location.reload(); }, 500);
     };
 
@@ -430,25 +431,21 @@
         `).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     };
 
-    // ----- แก้ไขการสลับ ID ให้เป็น Auto-Refresh (เหมือน F5) ตามคำขอ -----
     window.switchID = async (id) => {
-        if (id === currentID) return; // ถ้ากดแท็บไอดีเดิม ไม่ต้องทำอะไร
-        saveToLocalFast(); // เซฟไอดีปัจจุบันก่อนสลับ
-        localStorage.setItem(`lastID_${userName}`, id); // บันทึกเป้าหมายไอดีใหม่
-        showStatus(`🔄 กำลังสลับไป ID ${id}...`);
-        setTimeout(() => {
-            window.location.reload(); // รีเฟรชหน้าเว็บทันที (เหมือนกด F5)
-        }, 300); // หน่วงนิดนึงให้ UI โชว์สถานะ
+        saveToLocalFast(); 
+        currentID = id;
+        localStorage.setItem(`lastID_${userName}`, id); 
+        document.getElementById('idLabel').innerText = id;
+        renderIDTabs();
+        window.undoHistories = {}; 
+        await loadIDData(id); 
     };
 
     window.addNewID = () => {
         const nextId = idList.length > 0 ? Math.max(...idList) + 1 : 1;
         idList.push(nextId);
         set(ref(db, `users/${userName}/config/idList`), idList);
-        
-        // ใช้ reload แทนการเรียก switchID สดๆ
-        localStorage.setItem(`lastID_${userName}`, nextId);
-        setTimeout(() => { window.location.reload(); }, 300);
+        switchID(nextId);
     };
 
     window.deleteID = async (id) => {
@@ -458,13 +455,7 @@
             await set(ref(db, `users/${userName}/config/idList`), idList);
             await remove(ref(db, `users/${userName}/id_${id}`));
             localStorage.removeItem(`AION_INDEX_${userName}_ID_${id}`);
-            localStorage.removeItem(`vip_exp_${userName}_${id}`);
-            if (currentID === id) {
-                localStorage.setItem(`lastID_${userName}`, idList[0]);
-                window.location.reload();
-            } else {
-                renderIDTabs();
-            }
+            if (currentID === id) switchID(idList[0]);
         }
     };
 
@@ -499,14 +490,9 @@
         document.getElementById('idNote').value = data.note || "";
         document.getElementById('moneyKinah').value = (data.money || "0");
         
-        // ⏳ กู้คืนเวลา VIP จาก Data เพื่อให้เซฟขึ้นคลาวด์ได้
-        const vipData = data.vipExpire || localStorage.getItem(`vip_exp_${userName}_${currentID}`);
-        if (vipData) {
-            localStorage.setItem(`vip_exp_${userName}_${currentID}`, vipData);
-        } else {
-            localStorage.removeItem(`vip_exp_${userName}_${currentID}`);
-        }
-        updateVIPDisplay(vipData);
+        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage แล้ว ป้องกันหาย 100%
+        window.currentVipExpire = data.vipExpire || null;
+        updateVIPDisplay(window.currentVipExpire);
 
         updateIdWideUI('idBuyCheck', data.idBuy);
         updateIdWideUI('idCraftCheck', data.idCraft);
@@ -536,17 +522,14 @@
             const pillsUsed = parseInt(tr.querySelector('.c-pillsUsed')?.value) || 0;
             const lockPills = tr.querySelector('.c-lockPills')?.value || "";
             const isMain = tr.querySelector('.c-isMain')?.value === 'true';
-            
-            const sancR = card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0;
-            const sancD = card ? (card.querySelector('.c-sanc-done').value === '1') : false;
 
             chars.push({
                 name: tr.querySelector('.c-name').value,
                 job: tr.querySelector('.c-job').value,
                 base: parseInt(tr.querySelector('.c-base').value) || 0,
                 bonus: parseInt(tr.querySelector('.c-bonus').value) || 0,
-                sancRuns: sancR,
-                sancDone: sancD,
+                sancRuns: card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0,
+                sancDone: card ? (card.querySelector('.c-sanc-done').value === '1') : false,
                 asc: tr.querySelector('.c-asc').classList.contains('checked'),
                 ownPills, pillsUsed, lockPills, isMain
             });
@@ -576,7 +559,7 @@
             note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
-            vipExpire: localStorage.getItem(`vip_exp_${userName}_${currentID}`) || null, // แนบเวลา VIP ลงเซฟไอดีเลย!
+            vipExpire: window.currentVipExpire || null, // แนบเวลา VIP ลงเซฟไอดีเลย!
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
@@ -594,12 +577,13 @@
         };
     }
 
+    // เซฟลงเครื่อง 0 วิ ทันที แล้วค่อยหน่วงเวลาอัปโหลด
     window.queueSave = () => {
         const data = saveToLocalFast(); 
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             set(ref(db, `users/${userName}/id_${currentID}`), data);
-            showStatus("✓ อัปเดตข้อมูลขึ้นคลาวด์แล้ว");
+            showStatus("✓ บันทึกข้อมูลขึ้นคลาวด์แล้ว");
         }, 500); 
     };
 
@@ -803,7 +787,7 @@
         
         const sancSelect = card.querySelector('.c-sanc');
         const runs = parseInt(sancSelect.value) || 0;
-        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary ก่อนกดปุ่ม S');
+        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary (2 หรือ 3) ก่อนกดปุ่ม S');
         
         const cost = runs * 80;
         const baseInput = tr.querySelector('.c-base');
@@ -886,11 +870,11 @@
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
             
-            // โชว์ Energy รวมเป็นตัวเลขดิบ (เช่น 980) 
+            // Energy รวม เป็นตัวเลขดิบหลักพัน
             const eneInput = tr.querySelector('.c-total-ene');
             if(eneInput) eneInput.value = totalEne; 
 
-            // Sync ชื่อและอาชีพไปที่การ์ดภารกิจ
+            // อัปเดตป้ายชื่ออาชีพในการ์ด
             const jobStr = tr.querySelector('.c-job').value;
             const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
             card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
@@ -1192,7 +1176,7 @@
         }
     }
 
-    // ระบบ VIP ที่บันทึกขึ้น Firebase ถาวร ไม่หายตอนรีเฟรช 100%
+    // ⏳ ระบบ VIP ตัวใหม่ ส่งค่าตรงเข้าเซฟหลัก
     window.calcVipExpire = () => {
         const days = parseInt(document.getElementById('vipDays').value) || 0;
         const hours = parseInt(document.getElementById('vipHours').value) || 0;
@@ -1202,8 +1186,8 @@
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
         
-        window.currentVipExpire = exp.toISOString(); 
-        document.getElementById('vipDays').value = ""; 
+        window.currentVipExpire = exp.toISOString();
+        document.getElementById('vipDays').value = ""; // เคลียร์ช่องพิมพ์
         document.getElementById('vipHours').value = "";
         
         document.getElementById('pageVipToggle').checked = true;
