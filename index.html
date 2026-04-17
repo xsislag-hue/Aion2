@@ -12,8 +12,6 @@
             --success: #10b981; --danger: #ef4444; --gold: #fbbf24; --gold-glow: rgba(251, 191, 36, 0.4);
             --dark-bg: #0f172a; --dark-card: #1e293b; --border: #334155;
             --text-main: #f8fafc; --text-dim: #94a3b8; --font-main: 'Prompt', sans-serif;
-            --fs-table: 16px; 
-            --fs-header: 14px; 
         }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -21,8 +19,9 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
+        /* ปรับขนาด Container ให้กระชับขึ้น พอดีจอ 1080p */
         body { font-family: var(--font-main); background: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; padding: 15px; font-size: 15px; margin: 0; min-height: 100vh; }
-        .container { background: var(--dark-card); width: 100%; max-width: 1550px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
+        .container { background: var(--dark-card); width: 100%; max-width: 1580px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
         
         .reset-notice { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: #60a5fa; padding: 10px 20px; border-radius: 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .global-summary-bar { background: #0f172a; padding: 15px 25px; border-radius: 15px; border: 1px solid var(--gold); display: flex; justify-content: space-between; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
@@ -51,8 +50,8 @@
         select.input-cell { cursor: pointer; }
 
         .input-split { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
-        .input-split input { width: 42%; font-size: 15px; }
-        .input-split span { width: 16%; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
+        .input-split input { width: 45%; font-size: 16px; font-weight: bold; }
+        .input-split span { width: 10%; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
 
         .switch-container { position: relative; display: inline-block; width: 42px; height: 24px; }
         .switch-container input { opacity: 0; width: 0; height: 0; }
@@ -105,9 +104,9 @@
         .btn-play-tra:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 6px 15px rgba(147,51,234,0.4); }
         .btn-play:disabled { background: #334155; cursor: not-allowed; transform: none; box-shadow: none; color: #94a3b8; }
         
-        .btn-undo-card { background: var(--danger); color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; font-weight:bold; transition: 0.2s; }
+        .btn-undo-card { background: var(--success); color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; font-weight:bold; transition: 0.2s; }
         .btn-undo-card:hover { filter: brightness(1.2); }
-        .btn-action-small { padding: 6px 12px; border:none; border-radius:6px; font-family:'Prompt'; font-weight:bold; cursor:pointer; color:white; font-size:14px; transition:0.2s;}
+        .btn-action-small { padding: 4px 10px; border:none; border-radius:6px; font-family:'Prompt'; font-weight:bold; cursor:pointer; color:white; font-size:13px; transition:0.2s;}
         .btn-action-small:hover:not(:disabled) { filter: brightness(1.2); }
     </style>
 </head>
@@ -135,7 +134,7 @@
         </div>
         
         <div style="display:flex; align-items:center; gap:15px;">
-            <button class="btn-undo-card" style="background-color: var(--success); font-size: 14px; padding: 6px 15px;" onclick="forceRefresh()">🔄 Sync / รีเฟรช</button>
+            <button class="btn-undo-card" style="background:linear-gradient(135deg, #10b981, #059669); font-size:14px; padding:8px 18px;" onclick="forceRefresh()">🔄 ดึงข้อมูลจากคลาวด์</button>
             <div id="clock" style="font-family:monospace; font-size:16px; color:var(--text-dim); background:#000; padding:4px 12px; border-radius:8px;"></div>
         </div>
     </div>
@@ -205,7 +204,7 @@
         <div class="table-wrapper" style="border-radius:0 0 12px 12px; margin-bottom:25px;">
             <table id="charTable">
                 <colgroup>
-                    <col style="width: 16%;"> <col style="width: 13%;"> <col style="width: 17%;"> <col style="width: 8%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 5%;">  <col style="width: 5%;">  </colgroup>
+                    <col style="width: 15%;"> <col style="width: 10%;"> <col style="width: 17%;"> <col style="width: 8%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 6%;">  <col style="width: 40px;"> </colgroup>
                 <thead>
                     <tr>
                         <th rowspan="2">ชื่อตัวละคร</th>
@@ -218,11 +217,11 @@
                     </tr>
                     <tr>
                         <th>ปกติ + โบนัส</th>
-                        <th title="นำไปหาร 80 ให้แล้ว">รวม<br><small>(รอบ)</small></th>
+                        <th title="พลังงานรวมทั้งหมด">รวม</th>
                         <th style="background:rgba(37,99,235,0.1)">Reward (ปกติ + โบนัส)</th>
-                        <th style="background:rgba(37,99,235,0.1)" title="Final Boss">Final Boss</th>
+                        <th style="background:rgba(37,99,235,0.1)">Final Boss</th>
                         <th style="background:rgba(147,51,234,0.1)">Reward (ปกติ + โบนัส)</th>
-                        <th style="background:rgba(147,51,234,0.1)" title="Final Boss">Final Boss</th>
+                        <th style="background:rgba(147,51,234,0.1)">Final Boss</th>
                     </tr>
                 </thead>
                 <tbody id="charBody"></tbody>
@@ -354,9 +353,11 @@
     let isVipActive = false;
     let vipInterval = null;
     let currentLastReset = null; 
+    let rowIdCounter = 0; 
     
     window.undoHistories = {}; 
     window.lastLiveCheck = null;
+    window.currentVipExpire = null;
 
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
@@ -364,26 +365,27 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
     initSystem();
 
-    // เพิ่ม Force Save ตอนกดรีเฟรช/ปิดหน้าเว็บ
-    window.addEventListener('beforeunload', () => {
-        if(saveTimeout) clearTimeout(saveTimeout);
+    // ฟังก์ชันเซฟลงเครื่องทันที (0 วิ) แก้ปัญหาเน็ตตัดตอนกด F5
+    function saveToLocalFast() {
         const data = collectData();
-        set(ref(db, `users/${userName}/id_${currentID}`), data);
-    });
+        localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
+        return data;
+    }
 
     window.forceRefresh = async () => {
-        showStatus("🔄 กำลังซิงค์ข้อมูล...");
-        await loadIDData(currentID);
-        showStatus("✅ ซิงค์ข้อมูลล่าสุดสำเร็จ");
+        showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
+        const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
+        const data = snap.val() || {};
+        localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
+        applyDataToUI(data);
+        checkWeeklyReset(data);
+        processOfflineRefills(data);
+        showStatus("✅ ซิงค์ข้อมูลคลาวด์สำเร็จ");
     };
 
     window.goToPlanner = () => {
-        // บังคับเซฟก่อนข้ามหน้า
-        clearTimeout(saveTimeout);
-        const data = collectData();
-        set(ref(db, `users/${userName}/id_${currentID}`), data).then(() => {
-            window.location.href = `Planner.html?user=${userName}&id=${currentID}`;
-        });
+        saveToLocalFast();
+        window.location.href = `Planner.html?user=${userName}&id=${currentID}`;
     };
 
     async function initSystem() {
@@ -433,11 +435,7 @@
     };
 
     window.switchID = async (id) => {
-        // เซฟ ID เดิมก่อนสลับ
-        clearTimeout(saveTimeout);
-        const data = collectData();
-        await set(ref(db, `users/${userName}/id_${currentID}`), data);
-
+        saveToLocalFast(); 
         currentID = id;
         localStorage.setItem(`lastID_${userName}`, id); 
         document.getElementById('idLabel').innerText = id;
@@ -459,6 +457,7 @@
             idList = idList.filter(i => i !== id);
             await set(ref(db, `users/${userName}/config/idList`), idList);
             await remove(ref(db, `users/${userName}/id_${id}`));
+            localStorage.removeItem(`AION_INDEX_${userName}_ID_${id}`);
             if (currentID === id) switchID(idList[0]);
         }
     };
@@ -470,11 +469,25 @@
     };
 
     async function loadIDData(id) {
+        // ดึงจากคอมก่อน ป้องกัน F5 ข้อมูลแหว่ง
+        const localSaved = localStorage.getItem(`AION_INDEX_${userName}_ID_${id}`);
+        if (localSaved) {
+            try {
+                const data = JSON.parse(localSaved);
+                applyDataToUI(data);
+                checkWeeklyReset(data);
+                processOfflineRefills(data);
+            } catch(e){}
+        }
+
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
-        applyDataToUI(data);
-        checkWeeklyReset(data);
-        processOfflineRefills(data);
+        if (data && Object.keys(data).length > 0) {
+            applyDataToUI(data);
+            checkWeeklyReset(data);
+            processOfflineRefills(data);
+            saveToLocalFast(); 
+        }
     }
 
     function applyDataToUI(data) {
@@ -495,10 +508,11 @@
         renderCharRows(data.chars || [], data.plans || []);
         renderItemRows(data.items || []);
         
-        updateVIPDisplay(localStorage.getItem(`vip_exp_${userName}_${currentID}`));
+        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage ลอยๆ แล้ว
+        window.currentVipExpire = data.vipExpire || null;
+        updateVIPDisplay(window.currentVipExpire);
         
-        // setTimeout เพื่อให้ DOM วาด Card เสร็จก่อนค่อยคำนวณ
-        setTimeout(() => { calculateAll(); }, 50); 
+        setTimeout(calculateAll, 50); 
     }
 
     function collectData() {
@@ -508,62 +522,79 @@
         const chars = [];
         const plans = [];
 
-        charRows.forEach((tr, idx) => {
-            const card = Array.from(planCards).find(c => c.dataset.index == idx);
-            if (!card) return; // ข้ามถ้ายังไม่มี card
+        charRows.forEach((tr) => {
+            const rowIdx = tr.dataset.index;
+            const card = Array.from(planCards).find(c => c.dataset.index === rowIdx);
+            
+            // ดึงค่าลับที่ไม่โชว์ในหน้านี้กลับมาด้วย
+            const ownPills = parseInt(tr.querySelector('.c-ownPills')?.value) || 0;
+            const pillsUsed = parseInt(tr.querySelector('.c-pillsUsed')?.value) || 0;
+            const lockPills = tr.querySelector('.c-lockPills')?.value || "";
+            const isMain = tr.querySelector('.c-isMain')?.value === 'true';
+            
+            const sancR = card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0;
+            const sancD = card ? (card.querySelector('.c-sanc-done').value === '1') : false;
 
             chars.push({
                 name: tr.querySelector('.c-name').value,
                 job: tr.querySelector('.c-job').value,
-                base: tr.querySelector('.c-base').value,
-                bonus: tr.querySelector('.c-bonus').value,
-                sancRuns: parseInt(card.querySelector('.c-sanc').value) || 0,
-                sancDone: card.querySelector('.c-sanc-done').value === '1',
-                asc: tr.querySelector('.c-asc').classList.contains('checked')
+                base: parseInt(tr.querySelector('.c-base').value) || 0,
+                bonus: parseInt(tr.querySelector('.c-bonus').value) || 0,
+                sancRuns: sancR,
+                sancDone: sancD,
+                asc: tr.querySelector('.c-asc').classList.contains('checked'),
+                ownPills, pillsUsed, lockPills, isMain
             });
 
-            plans.push({
-                conGoal: card.querySelector('.p-con-goal').value,
-                conRew: tr.querySelector('.c-con-rew').value,
-                conBon: tr.querySelector('.c-con-bon').value,
-                conFb: tr.querySelector('.c-con-fb').value,
-                conDone: card.querySelector('.p-con-done').classList.contains('checked'),
-                traGoal: card.querySelector('.p-tra-goal').value,
-                traRew: tr.querySelector('.c-tra-rew').value,
-                traBon: tr.querySelector('.c-tra-bon').value,
-                traFb: tr.querySelector('.c-tra-fb').value,
-                traDone: card.querySelector('.p-tra-done').classList.contains('checked')
-            });
+            if (card) {
+                plans.push({
+                    conGoal: card.querySelector('.p-con-goal').value === '' ? 35 : parseInt(card.querySelector('.p-con-goal').value),
+                    conRew: parseInt(tr.querySelector('.c-con-rew').value) || 0,
+                    conBon: parseInt(tr.querySelector('.c-con-bon').value) || 0,
+                    conFb: parseInt(tr.querySelector('.c-con-fb').value) || 0,
+                    conDone: card.querySelector('.p-con-done').classList.contains('checked'),
+                    traGoal: card.querySelector('.p-tra-goal').value === '' ? 7 : parseInt(card.querySelector('.p-tra-goal').value),
+                    traRew: parseInt(tr.querySelector('.c-tra-rew').value) || 0,
+                    traBon: parseInt(tr.querySelector('.c-tra-bon').value) || 0,
+                    traFb: parseInt(tr.querySelector('.c-tra-fb').value) || 0,
+                    traDone: card.querySelector('.p-tra-done').classList.contains('checked')
+                });
+            } else {
+                plans.push({
+                    conGoal: 35, conRew: 0, conBon: 0, conFb: 35, conDone: false,
+                    traGoal: 7, traRew: 0, traBon: 0, traFb: 28, traDone: false
+                });
+            }
         });
 
         return {
             note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
+            vipExpire: window.currentVipExpire || null, // เซฟ VIP ไว้ใน Database ด้วยเลย ไม่หายแน่นอน
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
-            sumCon: document.getElementById('sum-con-count').value,
-            sumTra: document.getElementById('sum-tra-count').value,
+            sumCon: parseInt(document.getElementById('sum-con-count').value) || 0,
+            sumTra: parseInt(document.getElementById('sum-tra-count').value) || 0,
             lastWeeklyReset: currentLastReset, 
             lastUpdate: new Date().toISOString(),
             chars: chars,
             plans: plans,
             items: Array.from(document.querySelectorAll('#itemBody tr')).map(tr => ({
                 name: tr.querySelector('.i-name').value,
-                trade: tr.querySelector('.i-trade').value,
-                bound: tr.querySelector('.i-bound').value
+                trade: parseInt(tr.querySelector('.i-trade').value) || 0,
+                bound: parseInt(tr.querySelector('.i-bound').value) || 0
             }))
         };
     }
 
-    // ปรับ debounce time ให้น้อยลงเพื่อความแม่นยำตอนรัวคีย์บอร์ด
     window.queueSave = () => {
+        const data = saveToLocalFast(); 
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
-            const data = collectData();
             set(ref(db, `users/${userName}/id_${currentID}`), data);
-            showStatus("✓ บันทึกข้อมูลอัตโนมัติแล้ว");
+            showStatus("✓ อัปเดตข้อมูลขึ้นคลาวด์แล้ว");
         }, 300);
     };
 
@@ -579,17 +610,20 @@
         const cardsCont = document.getElementById('planCardsContainer');
         body.innerHTML = "";
         cardsCont.innerHTML = "";
+        rowIdCounter = 0; 
         
         if (chars.length === 0) {
             addCharRow();
         } else {
-            chars.forEach((c, i) => addCharRow(c, plans[i], i, true));
+            chars.forEach((c, i) => addCharRow(c, plans[i], rowIdCounter++, true));
         }
     }
 
-    window.addCharRow = (charData = null, planData = null, index = null, isRender = false) => {
+    window.addCharRow = (charData = null, planData = null, forceIndex = null, isRender = false) => {
         const body = document.getElementById('charBody');
-        const i = index !== null ? index : body.children.length;
+        const i = forceIndex !== null ? forceIndex : rowIdCounter++;
+        if (forceIndex !== null && forceIndex >= rowIdCounter) rowIdCounter = forceIndex + 1;
+        
         const tr = document.createElement('tr');
         tr.dataset.index = i;
 
@@ -599,11 +633,21 @@
         const traR = planData?.traRew || 0;
         const traB = planData?.traBon || 0;
         const traF = planData?.traFb !== undefined ? planData.traFb : 28;
+        
+        const ownPills = charData?.ownPills || 0;
+        const pillsUsed = charData?.pillsUsed || 0;
+        const lockPills = charData?.lockPills || "";
+        const isMain = charData?.isMain || false;
 
         tr.innerHTML = `
-            <td><input type="text" class="input-cell c-name" value="${charData?.name || ''}" placeholder="ชื่อ..." oninput="syncName(${i}, this.value); queueSave();" style="font-weight:bold; color:var(--primary);"></td>
+            <input type="hidden" class="c-ownPills" value="${ownPills}">
+            <input type="hidden" class="c-pillsUsed" value="${pillsUsed}">
+            <input type="hidden" class="c-lockPills" value="${lockPills}">
+            <input type="hidden" class="c-isMain" value="${isMain}">
+
+            <td><input type="text" class="input-cell c-name" value="${charData?.name || ''}" placeholder="ชื่อตัวละคร..." oninput="syncName('${i}', this.value); queueSave();" style="font-weight:bold; color:var(--primary);"></td>
             <td>
-                <select class="input-cell c-job" onchange="syncJob(${i}, this.value); queueSave()">
+                <select class="input-cell c-job" onchange="syncJob('${i}', this.value); queueSave()">
                     <option value="">-อาชีพ-</option>
                     <option ${charData?.job=='Templar'?'selected':''}>Templar</option>
                     <option ${charData?.job=='Gladiator'?'selected':''}>Gladiator</option>
@@ -631,7 +675,7 @@
                 </div>
             </td>
             <td style="background:rgba(37,99,235,0.05);">
-                <input type="number" class="input-cell c-con-fb" value="${conF}" style="color:#fb923c; font-weight:bold; font-size:16px;" oninput="calculateAll()">
+                <input type="number" class="input-cell c-con-fb" value="${conF}" style="color:#fb923c; font-weight:bold; font-size:18px;" oninput="calculateAll()">
             </td>
             <td style="background:rgba(147,51,234,0.05);">
                 <div class="input-split">
@@ -641,14 +685,13 @@
                 </div>
             </td>
             <td style="background:rgba(147,51,234,0.05);">
-                <input type="number" class="input-cell c-tra-fb" value="${traF}" style="color:#fb923c; font-weight:bold; font-size:16px;" oninput="calculateAll()">
+                <input type="number" class="input-cell c-tra-fb" value="${traF}" style="color:#fb923c; font-weight:bold; font-size:18px;" oninput="calculateAll()">
             </td>
-            <td><div class="check-box-ui c-asc ${charData?.asc?'checked':'unchecked'}" style="font-size:18px;" onclick="toggleCheck(this); calculateAll()">${charData?.asc?'✔':'✘'}</div></td>
+            <td><div class="check-box-ui c-asc ${charData?.asc?'checked':'unchecked'}" style="font-size:20px;" onclick="toggleCheck(this); calculateAll()">${charData?.asc?'✔':'✘'}</div></td>
             <td><button class="btn-del-id" onclick="removeRow(this, 'char')">×</button></td>
         `;
         body.appendChild(tr);
 
-        // วาด Card
         renderPlanCard(planData, charData, i);
         
         if (!isRender) setTimeout(calculateAll, 50);
@@ -672,7 +715,7 @@
 
         window.undoHistories[index] = []; 
 
-        const jobBadgeHtml = jobName ? `<span class="card-job" style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12px; margin-left:10px; color:white; font-weight:bold;">${jobName}</span>` : `<span class="card-job"></span>`;
+        const jobBadgeHtml = jobName ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobName}</span>` : `<span class="card-job"></span>`;
 
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
@@ -692,7 +735,7 @@
                     ⛩️ โหมดพิเศษ: Sanctuary <span style="font-size:13px; font-weight:normal; color:var(--text-dim);">(หักลบ EN ล่วงหน้า)</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <select class="c-sanc" onchange="queueSave()" style="width:70px; background:#0f172a; color:white; border-radius:6px; border:1px solid #db2777; outline:none; padding:6px; font-family:'Prompt';" ${sancD ? 'disabled' : ''}>
+                    <select class="c-sanc" onchange="queueSave()" style="width:75px; background:#0f172a; color:white; border-radius:6px; border:1px solid #db2777; outline:none; padding:6px; font-family:'Prompt'; font-size:14px;" ${sancD ? 'disabled' : ''}>
                         <option value="0" ${sancR==0?'selected':''}>0 รอบ</option>
                         <option value="2" ${sancR==2?'selected':''}>2 รอบ</option>
                         <option value="3" ${sancR==3?'selected':''}>3 รอบ</option>
@@ -708,8 +751,8 @@
                     <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.4); padding:12px 15px; border-radius:10px; margin-bottom:15px; border:1px solid rgba(37,99,235,0.2);">
                         <span style="color:#93c5fd; font-weight:bold; font-size:16px;">🎯 เป้าหมาย Conquest:</span>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="number" class="p-con-goal" style="font-size:22px; font-weight:bold; width:60px; text-align:center; background:transparent; border:none; border-bottom:2px solid var(--primary); color:white; outline:none; font-family:'Prompt';" value="${conG}" oninput="calculateAll()">
-                            <span style="color:var(--text-dim); font-size:14px;">รอบ</span>
+                            <input type="number" class="p-con-goal" style="font-size:24px; font-weight:bold; width:65px; text-align:center; background:transparent; border:none; border-bottom:2px solid var(--primary); color:white; outline:none; font-family:'Prompt';" value="${conG}" oninput="calculateAll()">
+                            <span style="color:var(--text-dim); font-size:15px;">รอบ</span>
                             <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
                             <div class="check-box-ui p-con-done ${conD?'checked':'unchecked'}" style="width:28px; height:28px; font-size:16px;" onclick="toggleCheck(this); calculateAll()">${conD?'✔':'✘'}</div>
                         </div>
@@ -727,8 +770,8 @@
                     <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.4); padding:12px 15px; border-radius:10px; margin-bottom:15px; border:1px solid rgba(147,51,234,0.2);">
                         <span style="color:#d8b4fe; font-weight:bold; font-size:16px;">🎯 เป้าหมาย Transcendent:</span>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="number" class="p-tra-goal" style="font-size:22px; font-weight:bold; width:60px; text-align:center; background:transparent; border:none; border-bottom:2px solid #9333ea; color:white; outline:none; font-family:'Prompt';" value="${traG}" oninput="calculateAll()">
-                            <span style="color:var(--text-dim); font-size:14px;">รอบ</span>
+                            <input type="number" class="p-tra-goal" style="font-size:24px; font-weight:bold; width:65px; text-align:center; background:transparent; border:none; border-bottom:2px solid #9333ea; color:white; outline:none; font-family:'Prompt';" value="${traG}" oninput="calculateAll()">
+                            <span style="color:var(--text-dim); font-size:15px;">รอบ</span>
                             <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
                             <div class="check-box-ui p-tra-done ${traD?'checked':'unchecked'}" style="width:28px; height:28px; font-size:16px;" onclick="toggleCheck(this); calculateAll()">${traD?'✔':'✘'}</div>
                         </div>
@@ -753,7 +796,7 @@
         
         const sancSelect = card.querySelector('.c-sanc');
         const runs = parseInt(sancSelect.value) || 0;
-        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary (2 หรือ 3) ก่อนกดปุ่ม S');
+        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary ก่อนกดปุ่ม S');
         
         const cost = runs * 80;
         const baseInput = tr.querySelector('.c-base');
@@ -761,7 +804,7 @@
         let baseE = parseInt(baseInput.value) || 0;
         let bonE = parseInt(bonusInput.value) || 0;
         
-        if (baseE + bonE < cost) return alert('Energy ไม่พอ! (ต้องการ ' + cost + ' EN สำหรับ ' + runs + ' รอบ)');
+        if (baseE + bonE < cost) return alert('Energy ไม่พอ! (ต้องการ ' + cost + ' EN)');
         
         if (baseE >= cost) {
             baseInput.value = baseE - cost;
@@ -828,24 +871,26 @@
         const charRows = document.querySelectorAll('#charBody tr');
         const planCards = document.querySelectorAll('.plan-card');
 
-        charRows.forEach((tr, i) => {
+        charRows.forEach((tr) => {
+            const idx = tr.dataset.index;
+            const card = Array.from(planCards).find(c => c.dataset.index === idx);
+            if (!card) return; 
+
             const base = parseInt(tr.querySelector('.c-base').value) || 0;
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
             const eneInput = tr.querySelector('.c-total-ene');
-            if(eneInput) eneInput.value = Math.floor(totalEne / 80); 
-
-            const card = Array.from(planCards).find(c => c.dataset.index == i);
-            if (!card) return; 
+            
+            // นำ Energy รวมกลับมาโชว์ตัวเลขดิบตามคำเรียกร้อง
+            if(eneInput) eneInput.value = totalEne; 
 
             // Sync Title & Job
             const jobStr = tr.querySelector('.c-job').value;
-            const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12px; margin-left:10px; color:white; font-weight:bold;">${jobStr}</span>` : `<span class="card-job"></span>`;
-            card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร ${i+1}`) + jobBadgeHtml;
+            const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
+            card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
 
             const eneRuns = Math.floor(totalEne / 80);
 
-            // Fetch limits from Upper Table
             const conR = parseInt(tr.querySelector('.c-con-rew').value) || 0;
             const conB = parseInt(tr.querySelector('.c-con-bon').value) || 0;
             const conF = parseInt(tr.querySelector('.c-con-fb').value) || 0;
@@ -854,7 +899,6 @@
             const traB = parseInt(tr.querySelector('.c-tra-bon').value) || 0;
             const traF = parseInt(tr.querySelector('.c-tra-fb').value) || 0;
 
-            // Fetch Goals from Card
             const conG = parseInt(card.querySelector('.p-con-goal').value) || 0;
             const conD = card.querySelector('.p-con-done').classList.contains('checked');
             
@@ -879,33 +923,30 @@
             idTotalGoalsOriginal += (conG + traG); 
             
             // --- อัปเดต Card UI ---
-            // Conquest Bar
             const conBar = card.querySelector('.p-con-bar');
             const conTxt = card.querySelector('.p-con-text');
             const conPct = conG > 0 ? Math.min(100, Math.round((conPlayed / conG) * 100)) : 0;
             conBar.style.width = conPct + '%';
             if(conPct >= 100 || conD) {
                 conBar.classList.add('bar-success');
-                conTxt.innerText = `🎉 สำเร็จเป้าหมาย! (${conPlayed}/${conG})`;
+                conTxt.innerText = `🎉 สำเร็จแล้ว! (${conPlayed}/${conG})`;
             } else {
                 conBar.classList.remove('bar-success');
                 conTxt.innerText = `${conPlayed} / ${conG} รอบ`;
             }
 
-            // Trans Bar
             const traBar = card.querySelector('.p-tra-bar');
             const traTxt = card.querySelector('.p-tra-text');
             const traPct = traG > 0 ? Math.min(100, Math.round((traPlayed / traG) * 100)) : 0;
             traBar.style.width = traPct + '%';
             if(traPct >= 100 || traD) {
                 traBar.classList.add('bar-success');
-                traTxt.innerText = `🎉 สำเร็จเป้าหมาย! (${traPlayed}/${traG})`;
+                traTxt.innerText = `🎉 สำเร็จแล้ว! (${traPlayed}/${traG})`;
             } else {
                 traBar.classList.remove('bar-success');
                 traTxt.innerText = `${traPlayed} / ${traG} รอบ`;
             }
 
-            // Buttons
             const btnCon = card.querySelector('.p-con-btn');
             if (conAct > 0 && !conD && conPct < 100) {
                 btnCon.disabled = false;
@@ -989,7 +1030,7 @@
         if ((rew + bon) <= 0) return alert(`ตั๋ว ${type.toUpperCase()} ไม่พอ`);
         if (fb <= 0) return alert(`Final Boss ${type.toUpperCase()} ครบกำหนดแล้ว`);
 
-        if(!window.undoHistories[idx]) window.undoHistories[idx] = [];
+        window.undoHistories[idx] = window.undoHistories[idx] || [];
         window.undoHistories[idx].push({ 
             baseE, bonE, goal, rew, bon, fb, type,
             sc: document.getElementById('sum-con-count').value,
@@ -1033,19 +1074,19 @@
 
     window.syncName = (idx, val) => {
         const cards = document.querySelectorAll('.plan-card');
-        const target = Array.from(cards).find(c => c.dataset.index == idx);
+        const target = Array.from(cards).find(c => c.dataset.index === idx);
         const tr = document.querySelector(`#charBody tr[data-index="${idx}"]`);
         const job = tr ? tr.querySelector('.c-job').value : '';
-        const jobBadgeHtml = job ? `<span class="card-job" style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12px; margin-left:10px; color:white; font-weight:bold;">${job}</span>` : `<span class="card-job"></span>`;
-        if (target) target.querySelector('.card-title').innerHTML = (val || `ตัวละคร ${idx+1}`) + jobBadgeHtml;
+        const jobBadgeHtml = job ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${job}</span>` : `<span class="card-job"></span>`;
+        if (target) target.querySelector('.card-title').innerHTML = (val || `ตัวละคร`) + jobBadgeHtml;
     };
     
     window.syncJob = (idx, val) => {
         const cards = document.querySelectorAll('.plan-card');
-        const target = Array.from(cards).find(c => c.dataset.index == idx);
+        const target = Array.from(cards).find(c => c.dataset.index === idx);
         if (target) {
-            const name = document.querySelector(`#charBody tr[data-index="${idx}"] .c-name`).value || `ตัวละคร ${idx+1}`;
-            const jobBadgeHtml = val ? `<span class="card-job" style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12px; margin-left:10px; color:white; font-weight:bold;">${val}</span>` : `<span class="card-job"></span>`;
+            const name = document.querySelector(`#charBody tr[data-index="${idx}"] .c-name`).value || `ตัวละคร`;
+            const jobBadgeHtml = val ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${val}</span>` : `<span class="card-job"></span>`;
             target.querySelector('.card-title').innerHTML = name + jobBadgeHtml;
         }
     };
@@ -1152,10 +1193,11 @@
         const exp = new Date();
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
-        localStorage.setItem(`vip_exp_${userName}_${currentID}`, exp.toISOString());
+        
+        window.currentVipExpire = exp.toISOString(); // เก็บลงตัวแปรหลักเพื่อเซฟลง Firebase ต่อ
         document.getElementById('pageVipToggle').checked = true;
         isVipActive = true;
-        updateVIPDisplay(exp.toISOString());
+        updateVIPDisplay(window.currentVipExpire);
         queueSave();
     };
 
@@ -1181,7 +1223,7 @@
             const diff = exp - new Date();
             if (diff <= 0) {
                 label.innerText = "หมดอายุแล้ว";
-                localStorage.removeItem(`vip_exp_${userName}_${currentID}`);
+                window.currentVipExpire = null;
                 updateVIPDisplay(null);
                 queueSave();
                 return;
