@@ -247,14 +247,12 @@
         window.saveAll();
     };
 
-    // ฟังก์ชันใหม่: ส่งข้อมูลเป้าหมายไปทับหน้าหลัก (Index)
     window.syncGoalsToIndex = async () => {
         if (!confirm(`ยืนยันการส่งค่า "เป้าหมายรวม (รอบ)" ของตัวละครทั้งหมดไปอัปเดตทับในหน้าหลัก (ID ${currentPlannerId}) ใช่หรือไม่?`)) return;
         
         try {
             window.showStatus("⏳ กำลังส่งข้อมูลเป้าหมายไปหน้าหลัก...");
             
-            // ดึงข้อมูล ID ล่าสุดจากคลาวด์ก่อน
             const snap = await get(ref(db, `users/${userName}/id_${currentPlannerId}`));
             let dbData = snap.val();
             
@@ -263,7 +261,6 @@
                 return;
             }
 
-            // เตรียมข้อมูลเป้าหมายจากตาราง Planner
             const plannerRows = document.querySelectorAll('#charTableBody tr');
             const plannerGoals = [];
             plannerRows.forEach(row => {
@@ -274,7 +271,6 @@
                 });
             });
 
-            // จับคู่ชื่อและเขียนเป้าหมายทับ (ทับเฉพาะ conGoal และ traGoal)
             let updatedCount = 0;
             dbData.chars.forEach((c, idx) => {
                 const plannerChar = plannerGoals.find(pc => pc.name === c.name);
@@ -286,7 +282,6 @@
                 }
             });
 
-            // อัปโหลดข้อมูลกลับขึ้นไปบน Cloud
             await set(ref(db, `users/${userName}/id_${currentPlannerId}`), dbData);
             
             window.showStatus(`✅ ส่งเป้าหมายสำเร็จ! (อัปเดตไป ${updatedCount} ตัวละคร)`);
@@ -530,7 +525,9 @@
             
             const sancCost = isSancDone ? 0 : (sancRuns * 80);
 
-            const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0) + (pillsAlreadyUsed * 40);
+            // *** แก้ไขบัค การนับยาซ้ำซ้อน เรียบร้อยแล้ว (ไม่เอา pillsAlreadyUsed ไปบวกเพิ่มใน currentBaseEn) ***
+            const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0);
+            
             const conStock = (parseInt(row.querySelector('.c-conN').value) || 0) + (parseInt(row.querySelector('.c-conB').value) || 0);
             const traStock = (parseInt(row.querySelector('.c-traN').value) || 0) + (parseInt(row.querySelector('.c-traB').value) || 0);
             
