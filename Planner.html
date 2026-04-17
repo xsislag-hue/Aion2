@@ -106,10 +106,16 @@
         </div>
     </div>
 
-    <div class="card" style="display:flex; gap:40px; align-items:center; justify-content:center; padding:20px;">
-        <div style="font-size:18px;">📦 <b>กองกลางคงเหลือ (ตั้งต้น):</b></div>
-        <div>ยา EN (+40): <input type="number" id="poolEn" value="41" oninput="window.saveAll()"></div>
-        <div>ใบ Reward: <input type="number" id="poolRew" value="21" oninput="window.saveAll()"></div>
+    <div class="card" style="display:flex; gap:30px; align-items:center; justify-content:center; padding:20px; flex-wrap:wrap;">
+        <div style="font-size:18px;">📦 <b>คลังยาส่วนกลาง:</b></div>
+        <div style="background:rgba(0,0,0,0.3); padding:10px 20px; border-radius:10px; border:1px solid var(--border); display:flex; align-items:center; gap:15px;">
+            <span>ยา EN ตั้งต้น: <input type="number" id="basePoolEn" value="41" oninput="window.saveAll(); window.updatePoolDisplay();" style="width:70px;"></span>
+            <span style="color:var(--danger); font-size:15px;">(ตัวละครกดใช้ไปแล้ว <span id="sumUsedPills" style="font-weight:bold;">0</span>)</span>
+            <span style="font-size:18px;">➡️ คงเหลือ: <b id="realPoolEn" style="color:var(--gold); font-size:24px;">41</b></span>
+        </div>
+        <div style="background:rgba(0,0,0,0.3); padding:10px 20px; border-radius:10px; border:1px solid var(--border);">
+            <span>ใบ Reward: <input type="number" id="poolRew" value="21" oninput="window.saveAll()"></span>
+        </div>
     </div>
 
     <div class="card">
@@ -219,6 +225,19 @@
         return regen;
     }
 
+    // ฟังก์ชันคำนวณและโชว์ยาคงเหลือแบบ Real-time
+    window.updatePoolDisplay = () => {
+        let base = parseInt(document.getElementById('basePoolEn').value) || 0;
+        let used = 0;
+        document.querySelectorAll('.c-pills').forEach(inp => {
+            used += parseInt(inp.value) || 0;
+        });
+        const sumEl = document.getElementById('sumUsedPills');
+        const realEl = document.getElementById('realPoolEn');
+        if(sumEl) sumEl.innerText = used;
+        if(realEl) realEl.innerText = Math.max(0, base - used);
+    };
+
     window.handleMainCheck = (cb) => {
         if (cb.checked) {
             document.querySelectorAll('.c-main').forEach(other => {
@@ -228,7 +247,7 @@
         window.saveAll();
     };
 
-    window.syncFromFirebase = async (forceId = null) => {
+    window.syncFromFirebase = async (forceId = null, isAutoLoad = false) => {
         try {
             let idToPull = forceId;
             if (!idToPull) {
@@ -257,8 +276,11 @@
             if (data.idBuy) calculatedPoolEn -= 21;   
             if (data.idCraft) calculatedPoolEn -= 20; 
             
-            document.getElementById('poolEn').value = Math.max(0, calculatedPoolEn);
-            document.getElementById('poolRew').value = 21; 
+            // ถ้าเป็นการดึงข้อมูลอัตโนมัติตอนโหลดหน้าจอ จะไม่ไปเขียนทับค่ายาตั้งต้นที่คุณพิมพ์ไว้
+            if (!isAutoLoad) {
+                document.getElementById('basePoolEn').value = Math.max(0, calculatedPoolEn);
+                document.getElementById('poolRew').value = 21; 
+            }
 
             const saved = localStorage.getItem(getStorageKey());
             let oldChars = [];
@@ -289,18 +311,17 @@
                 const lockPills = oldC.lockPills || "";
                 const isMain = oldC.isMain || false;
 
-                // ดึงค่า Sanctuary จากระบบหลัก (ถ้าลงแล้ว จะล็อคการหัก EN ซ้ำ)
                 const dbSancRuns = c.sancRuns || 0;
                 const dbSancDone = c.sancDone || false;
 
                 window.addRow(name, en, enB, ownPills, dbSancRuns, dbSancDone, pillsUsed, lockPills, conN, conB, traN, traB, tCon, tTra, done, isMain);
             });
 
+            window.updatePoolDisplay();
             window.saveAll();
             btn.innerText = "✅ ซิงค์สำเร็จ!";
             setTimeout(() => btn.innerText = originalText, 2000);
             
-            // ถ้าดึงข้อมูล Auto ให้ทำการคำนวณโชว์ทันที แต่ไม่เลื่อนจอ
             window.calculateFastTrack(false);
 
         } catch (error) {
@@ -335,7 +356,7 @@
         localStorage.setItem(getStorageKey(), JSON.stringify({
             targetTime: document.getElementById('targetTime').value,
             mainTargetTime: document.getElementById('mainTargetTime').value,
-            poolEn: document.getElementById('poolEn').value,
+            poolEn: document.getElementById('basePoolEn').value, // อิงค่ายาตั้งต้นที่บันทึก
             poolRew: document.getElementById('poolRew').value,
             chars: charData
         }));
@@ -347,19 +368,20 @@
         if (!saved) { 
             window.addRow("PonyPim", 0, 0, 0, 0, false, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
             window.addRow("Pony3i3i", 0, 0, 0, 0, false, 0, "", 14, 10, 7, 10, 35, 7, 0, false);
+            window.updatePoolDisplay();
             window.calculateFastTrack(false);
             return; 
         }
         const data = JSON.parse(saved);
         document.getElementById('targetTime').value = data.targetTime || "";
         document.getElementById('mainTargetTime').value = data.mainTargetTime || "";
-        document.getElementById('poolEn').value = data.poolEn || 41;
+        document.getElementById('basePoolEn').value = data.poolEn !== undefined ? data.poolEn : 41;
         document.getElementById('poolRew').value = data.poolRew || 21;
         document.getElementById('charTableBody').innerHTML = "";
         data.chars.forEach((c) => {
             window.addRow(c.name, c.en, c.enB, c.ownPills||0, c.sancRuns||0, c.sancDone||false, c.pillsUsed||0, c.lockPills||"", c.conN, c.conB, c.traN, c.traB, c.tCon, c.tTra, c.done, c.isMain);
         });
-        // โหลดเสร็จสั่งโชว์การคำนวณเลย แต่ไม่เลื่อนจอ
+        window.updatePoolDisplay();
         window.calculateFastTrack(false);
     };
 
@@ -369,14 +391,12 @@
         
         let sancHtml = "";
         if (sancDone) {
-            // ถ้ายืนยันจากหน้าหลักแล้ว ให้ล็อคเป็นป้ายบอกเฉยๆ เพื่อให้คนเล่นรู้ว่า EN ถูกหักไปแล้วในหน้าหลัก
             sancHtml = `
                 <div style="color:var(--success); font-weight:bold; font-size:14px; background:rgba(16,185,129,0.1); padding:4px; border-radius:5px; border:1px solid var(--success);">✅ ลงแล้ว<br>(${sancRuns} รอบ)</div>
                 <input type="hidden" class="c-sanc-hidden" value="${sancRuns}">
                 <input type="hidden" class="c-sanc-done" value="true">
             `;
         } else {
-            // ถ้ายังไม่ลง ให้เลือกได้อิสระ
             sancHtml = `
                 <select class="c-sanc" onchange="window.saveAll()" style="background:#0f172a; color:white; border:1px solid #db2777; border-radius:5px; padding:4px; font-family:'Prompt'; outline:none; width: 100%;">
                     <option value="0" ${sancRuns==0 ? 'selected' : ''}>0</option>
@@ -394,7 +414,7 @@
             <td><input type="number" class="c-enB" value="${enB}" oninput="window.saveAll()"></td>
             <td style="background:rgba(16,185,129,0.05)"><input type="number" class="c-ownPills pill-input" style="color:var(--success); border-color:var(--success);" value="${ownPills}" oninput="window.saveAll()"></td>
             <td>${sancHtml}</td>
-            <td style="background:rgba(251,191,36,0.05)"><input type="number" class="c-pills pill-input" value="${pillsUsed}" oninput="window.saveAll()"></td>
+            <td style="background:rgba(251,191,36,0.05)"><input type="number" class="c-pills pill-input" value="${pillsUsed}" oninput="window.updatePoolDisplay(); window.saveAll();"></td>
             <td style="background:rgba(16,185,129,0.05)"><input type="number" class="c-lock-pills lock-pill-input" value="${lockPills}" placeholder="Auto" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-conN" value="${conN}" oninput="window.saveAll()"></td>
             <td><input type="number" class="c-conB" value="${conB}" oninput="window.saveAll()"></td>
@@ -403,7 +423,7 @@
             <td style="background:rgba(239,68,68,0.05)"><input type="number" class="c-done done-input" value="${done}" oninput="window.saveAll()"></td>
             <td style="background:rgba(59,130,246,0.05)"><input type="number" class="c-tCon goal-input" value="${tCon}" oninput="window.saveAll()"></td>
             <td style="background:rgba(59,130,246,0.05)"><input type="number" class="c-tTra goal-input" value="${tTra}" oninput="window.saveAll()"></td>
-            <td><button style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:18px;" onclick="this.parentElement.parentElement.remove(); window.saveAll();">✖</button></td>
+            <td><button style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:18px;" onclick="this.parentElement.parentElement.remove(); window.updatePoolDisplay(); window.saveAll();">✖</button></td>
         `;
         tbody.appendChild(tr);
         window.saveAll();
@@ -420,7 +440,7 @@
     window.calculateFastTrack = (autoScroll = false) => {
         if (typeof autoScroll !== 'boolean') autoScroll = false;
 
-        let originalPoolEn = parseInt(document.getElementById('poolEn').value) || 0;
+        let originalPoolEn = parseInt(document.getElementById('basePoolEn').value) || 0;
         let poolRew = parseInt(document.getElementById('poolRew').value) || 0;
         
         const targetDateStr = document.getElementById('targetTime').value;
@@ -460,7 +480,6 @@
             const isSancDone = row.querySelector('.c-sanc-done').value === 'true';
             const sancRuns = parseInt(row.querySelector('.c-sanc') ? row.querySelector('.c-sanc').value : row.querySelector('.c-sanc-hidden').value) || 0;
             
-            // ถ้าลง Sanctuary ไปแล้ว ในหน้าหลัก EN ถูกหักล่วงหน้าไปแล้ว! ในการคำนวณนี้เราจึงไม่ต้องเอาไปเป็นภาระลบอีก 
             const sancCost = isSancDone ? 0 : (sancRuns * 80);
 
             const currentBaseEn = (parseInt(row.querySelector('.c-en').value) || 0) + (parseInt(row.querySelector('.c-enB').value) || 0) + (pillsAlreadyUsed * 40);
@@ -518,7 +537,6 @@
             }
         });
 
-        // สเต็ป 0.1: หักยา Manual Override
         charsData.forEach(c => {
             if (c.isPillsLocked) {
                 allocatePills(c, c.lockedPillsValue);
@@ -529,7 +547,6 @@
         let otherChars = charsData.filter(c => !c.isMain);
         let mainChar = mainChars.length > 0 ? mainChars[0] : null;
 
-        // สเต็ป 0.2: แจกใบ Reward
         if (mainChar) {
             mainChar.conFromPool = Math.min(poolRew, Math.max(0, mainChar.conLeft - mainChar.conStock));
             poolRew -= mainChar.conFromPool;
@@ -543,7 +560,6 @@
             poolRew -= c.traFromPool;
         });
 
-        // สเต็ป 1: แจกยา AI ให้ตัวหลัก
         if (mainChar && !mainChar.isPillsLocked) {
             let requiredEn = (mainChar.netTargetTotal * 80) + mainChar.sancCost;
             let projectedEn = mainChar.currentBaseEn + mainChar.evalFutureRegen;
@@ -553,7 +569,6 @@
             }
         }
         
-        // สเต็ป 2: แจกยา AI ให้ตัวรอง
         otherChars.forEach(c => {
             if (c.isPillsLocked) return;
             let requiredEn = (c.netTargetTotal * 80) + c.sancCost;
@@ -564,7 +579,6 @@
             }
         });
 
-        // สเต็ป 3: ถัวเฉลี่ยเวลาที่เหลือ
         let loopSafety = 0;
         let pillsAvailable = true;
         while (pillsAvailable && loopSafety < 1000) {
@@ -782,11 +796,11 @@
                         <div style="text-align:left; padding-right:20px; min-width: 280px;">
                             <div style="margin-bottom:8px; background: rgba(251,191,36,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(251,191,36,0.2);">
                                 <div style="font-size:15px; font-weight:bold; color:white; border-bottom:1px solid #334155; padding-bottom:5px; margin-bottom:8px;">💡 คำแนะนำ (กดยาเพิ่ม)</div>
-                                <div style="margin-bottom:4px;">💊 แผนกดยารวม: <b style="color:var(--gold); font-size:16px;">${totalPillsPlan}</b> ขวด ${c.isPillsLocked ? '<span style="color:var(--success); font-size:12px;">(ล็อคค่า Override)</span>' : '<span style="color:var(--text-dim); font-size:12px;">(AI คำนวณ)</span>'}</div>
+                                <div style="margin-bottom:4px;">💊 แผนกดยารวม: <b style="color:var(--gold); font-size:16px;">${totalPillsPlan}</b> ขวด ${c.isPillsLocked ? '<span style="color:var(--success); font-size:12px;">(ล็อคค่า)</span>' : '<span style="color:var(--text-dim); font-size:12px;">(AI คำนวณ)</span>'}</div>
                                 <div style="margin-bottom:2px; margin-left:22px; font-size:13px; color:var(--text-dim);">- ดึงยาติดตัว: <b style="color:var(--success);">${c.usedOwnPills}</b> / ${c.ownPills} ขวด</div>
                                 <div style="margin-bottom:4px; margin-left:22px; font-size:13px; color:var(--text-dim);">- ดึงกองกลาง: <b style="color:var(--gold);">${c.usedSharedPills}</b> ขวด</div>
-                                <div style="margin-bottom:4px; margin-left:22px; font-size:13px; color:var(--text-dim);">✔️ คุณกดใช้ไปแล้ว: <b style="color:var(--success);">${c.pillsAlreadyUsed}</b> ขวด</div>
-                                <div style="margin-bottom:8px; margin-left:22px; font-size:14px; padding-top:5px; border-top:1px solid #334155;">⚠️ คงเหลือต้องกดอีก: <b style="color:var(--danger); font-size:16px;">${remainingToPress}</b> ขวด</div>
+                                <div style="margin-bottom:4px; margin-left:22px; font-size:13px; color:var(--text-dim);">✔️ คุณกดไปแล้ว: <b style="color:var(--success);">${c.pillsAlreadyUsed}</b> ขวด</div>
+                                <div style="margin-bottom:8px; margin-left:22px; font-size:14px; padding-top:5px; border-top:1px solid #334155;">⚠️ ต้องกดเพิ่มอีก: <b style="color:var(--danger); font-size:16px;">${remainingToPress}</b> ขวด</div>
                             </div>
                             
                             <div style="margin-bottom:5px; padding-left:10px;">🎟️ ดึงใบ Reward กองกลาง: <b style="color:var(--success); font-size:16px;">${c.conFromPool + c.traFromPool}</b> ใบ</div>
@@ -837,8 +851,9 @@
         window.loadData();
         const autoId = new URLSearchParams(window.location.search).get('id');
         if (autoId) {
-            await window.syncFromFirebase(autoId);
+            await window.syncFromFirebase(autoId, true);
         }
+        window.updatePoolDisplay();
     };
 </script>
 </body>
