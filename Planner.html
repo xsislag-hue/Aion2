@@ -87,7 +87,8 @@
                 <span style="font-size:14px; font-weight:normal; color:var(--gold); margin-left:5px;">[Sanctuary, ยาติดตัว & Manual Mode]</span>
             </h1>
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากระบบหลัก (Manual)</button>
+                <button class="btn btn-sync" onclick="window.syncFromFirebase()">☁️ ดึงจากหน้าหลัก</button>
+                <button class="btn" style="background: linear-gradient(135deg, #ea580c, #c2410c); color: white; border: 1px solid #f97316;" onclick="window.syncGoalsToIndex()">📤 ส่งเป้าหมายไปหน้าหลัก</button>
                 <button class="btn" style="background:var(--danger); color:white;" onclick="window.clearData()">ล้าง</button>
                 <button class="btn" style="background:rgba(0,0,0,0.4); color:white; border:1px solid var(--border);" onclick="window.location.href='index.html?user=' + (new URLSearchParams(window.location.search).get('user') || 'Guest')">⬅ กลับหน้าหลัก</button>
             </div>
@@ -163,7 +164,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAAEYitAhzkIopt6VUTX79SCkRgsorhvgk",
@@ -225,7 +226,6 @@
         return regen;
     }
 
-    // ฟังก์ชันคำนวณและโชว์ยาคงเหลือแบบ Real-time
     window.updatePoolDisplay = () => {
         let base = parseInt(document.getElementById('basePoolEn').value) || 0;
         let used = 0;
@@ -245,6 +245,55 @@
             });
         }
         window.saveAll();
+    };
+
+    // ฟังก์ชันใหม่: ส่งข้อมูลเป้าหมายไปทับหน้าหลัก (Index)
+    window.syncGoalsToIndex = async () => {
+        if (!confirm(`ยืนยันการส่งค่า "เป้าหมายรวม (รอบ)" ของตัวละครทั้งหมดไปอัปเดตทับในหน้าหลัก (ID ${currentPlannerId}) ใช่หรือไม่?`)) return;
+        
+        try {
+            window.showStatus("⏳ กำลังส่งข้อมูลเป้าหมายไปหน้าหลัก...");
+            
+            // ดึงข้อมูล ID ล่าสุดจากคลาวด์ก่อน
+            const snap = await get(ref(db, `users/${userName}/id_${currentPlannerId}`));
+            let dbData = snap.val();
+            
+            if (!dbData || !dbData.chars || !dbData.plans) {
+                alert("ไม่พบข้อมูลตัวละครในระบบหลัก กรุณาสร้างตัวละครในหน้าหลักก่อน");
+                return;
+            }
+
+            // เตรียมข้อมูลเป้าหมายจากตาราง Planner
+            const plannerRows = document.querySelectorAll('#charTableBody tr');
+            const plannerGoals = [];
+            plannerRows.forEach(row => {
+                plannerGoals.push({
+                    name: row.querySelector('.c-name').value,
+                    tCon: parseInt(row.querySelector('.c-tCon').value) || 0,
+                    tTra: parseInt(row.querySelector('.c-tTra').value) || 0
+                });
+            });
+
+            // จับคู่ชื่อและเขียนเป้าหมายทับ (ทับเฉพาะ conGoal และ traGoal)
+            let updatedCount = 0;
+            dbData.chars.forEach((c, idx) => {
+                const plannerChar = plannerGoals.find(pc => pc.name === c.name);
+                if (plannerChar) {
+                    if(!dbData.plans[idx]) dbData.plans[idx] = {};
+                    dbData.plans[idx].conGoal = plannerChar.tCon;
+                    dbData.plans[idx].traGoal = plannerChar.tTra;
+                    updatedCount++;
+                }
+            });
+
+            // อัปโหลดข้อมูลกลับขึ้นไปบน Cloud
+            await set(ref(db, `users/${userName}/id_${currentPlannerId}`), dbData);
+            
+            window.showStatus(`✅ ส่งเป้าหมายสำเร็จ! (อัปเดตไป ${updatedCount} ตัวละคร)`);
+        } catch (error) {
+            console.error("Sync Error:", error);
+            alert("เกิดข้อผิดพลาดในการซิงค์เป้าหมาย");
+        }
     };
 
     window.syncFromFirebase = async (forceId = null, isAutoLoad = false) => {
@@ -276,7 +325,6 @@
             if (data.idBuy) calculatedPoolEn -= 21;   
             if (data.idCraft) calculatedPoolEn -= 20; 
             
-            // ถ้าเป็นการดึงข้อมูลอัตโนมัติตอนโหลดหน้าจอ จะไม่ไปเขียนทับค่ายาตั้งต้นที่คุณพิมพ์ไว้
             if (!isAutoLoad) {
                 document.getElementById('basePoolEn').value = Math.max(0, calculatedPoolEn);
                 document.getElementById('poolRew').value = 21; 
@@ -356,7 +404,7 @@
         localStorage.setItem(getStorageKey(), JSON.stringify({
             targetTime: document.getElementById('targetTime').value,
             mainTargetTime: document.getElementById('mainTargetTime').value,
-            poolEn: document.getElementById('basePoolEn').value, // อิงค่ายาตั้งต้นที่บันทึก
+            poolEn: document.getElementById('basePoolEn').value,
             poolRew: document.getElementById('poolRew').value,
             chars: charData
         }));
