@@ -50,7 +50,7 @@
         select.input-cell { cursor: pointer; }
 
         .input-split { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
-        .input-split input { width: 44%; font-size: 16px; font-weight: bold; text-align:center; }
+        .input-split input { width: 44%; font-size: 16px; font-weight: bold; }
         .input-split span { width: 10px; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
 
         .switch-container { position: relative; display: inline-block; width: 42px; height: 24px; }
@@ -83,7 +83,6 @@
         
         .plan-header { background: #1e293b; padding: 12px 15px; border-radius: 10px 10px 0 0; border: 1px solid var(--border); border-bottom: none; color: var(--gold); font-weight: bold; display: flex; justify-content: space-between; font-size:15px; }
         
-        /* สไตล์ Progress Bar */
         .progress-container { width: 100%; background: #0f172a; border-radius: 8px; height: 26px; position: relative; overflow: hidden; border: 1px solid var(--border); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .progress-bar { height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; }
         .progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: white; font-size: 13px; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
@@ -93,7 +92,6 @@
         .bar-success { background: linear-gradient(90deg, #065f46, #10b981) !important; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
         .bar-global { background: linear-gradient(90deg, #ef4444, #f59e0b); }
 
-        /* การ์ดภารกิจ */
         .mission-card { background: #0f172a; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; transition: 0.3s; }
         .mission-card:hover { border-color: var(--primary); box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
         
@@ -205,7 +203,7 @@
         <div class="table-wrapper" style="border-radius:0 0 12px 12px; margin-bottom:25px;">
             <table id="charTable">
                 <colgroup>
-                    <col style="width: 14%;"> <col style="width: 11%;"> <col style="width: 19%;"> <col style="width: 8%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 7%;">  <col style="width: 40px;"> </colgroup>
+                    <col style="width: 14%;"> <col style="width: 11%;"> <col style="width: 17%;"> <col style="width: 8%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 6%;">  <col style="width: 40px;"> </colgroup>
                 <thead>
                     <tr>
                         <th rowspan="2">ชื่อตัวละคร</th>
@@ -213,12 +211,12 @@
                         <th colspan="2">Energy</th>
                         <th colspan="2" style="background:rgba(37,99,235,0.15)">Conquest (ทรัพยากร)</th>
                         <th colspan="2" style="background:rgba(147,51,234,0.15)">Transcendent (ทรัพยากร)</th>
-                        <th rowspan="2" title="Ascension">Ascension</th>
+                        <th rowspan="2">Ascension</th>
                         <th rowspan="2">ลบ</th>
                     </tr>
                     <tr>
                         <th>ปกติ + โบนัส</th>
-                        <th title="พลังงานรวมทั้งหมด">รวม</th>
+                        <th title="พลังงานดิบ">รวม</th>
                         <th style="background:rgba(37,99,235,0.1)">Reward (ปกติ + โบนัส)</th>
                         <th style="background:rgba(37,99,235,0.1)">Final Boss</th>
                         <th style="background:rgba(147,51,234,0.1)">Reward (ปกติ + โบนัส)</th>
@@ -358,7 +356,6 @@
     
     window.undoHistories = {}; 
     window.lastLiveCheck = null;
-    window.currentVipExpire = null;
 
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
@@ -366,24 +363,20 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
     initSystem();
 
-    // 💾 ระบบเซฟ Local-First ป้องกันข้อมูลหายตอนกด F5 ทันที
     function saveToLocalFast() {
         const data = collectData();
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         return data;
     }
 
-    // เมื่อกดปุ่มซิงค์คลาวด์ จะดึงข้อมูลและ "รีเฟรชหน้าต่าง" ให้อัตโนมัติ (แก้ปัญหารอโหลด)
     window.forceRefresh = async () => {
         showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
         const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
         const data = snap.val() || {};
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         
-        showStatus("✅ ดึงข้อมูลสำเร็จ! กำลังรีเฟรชหน้า...");
-        setTimeout(() => {
-            window.location.reload(); 
-        }, 500);
+        showStatus("✅ ซิงค์สำเร็จ! กำลังรีเฟรชหน้า...");
+        setTimeout(() => { window.location.reload(); }, 500);
     };
 
     window.goToPlanner = () => {
@@ -437,21 +430,25 @@
         `).join('') + `<button class="btn-add-id" onclick="addNewID()">+</button>`;
     };
 
+    // ----- แก้ไขการสลับ ID ให้เป็น Auto-Refresh (เหมือน F5) ตามคำขอ -----
     window.switchID = async (id) => {
-        saveToLocalFast(); // เซฟก่อนเปลี่ยน ID
-        currentID = id;
-        localStorage.setItem(`lastID_${userName}`, id); 
-        document.getElementById('idLabel').innerText = id;
-        renderIDTabs();
-        window.undoHistories = {}; 
-        await loadIDData(id); 
+        if (id === currentID) return; // ถ้ากดแท็บไอดีเดิม ไม่ต้องทำอะไร
+        saveToLocalFast(); // เซฟไอดีปัจจุบันก่อนสลับ
+        localStorage.setItem(`lastID_${userName}`, id); // บันทึกเป้าหมายไอดีใหม่
+        showStatus(`🔄 กำลังสลับไป ID ${id}...`);
+        setTimeout(() => {
+            window.location.reload(); // รีเฟรชหน้าเว็บทันที (เหมือนกด F5)
+        }, 300); // หน่วงนิดนึงให้ UI โชว์สถานะ
     };
 
     window.addNewID = () => {
         const nextId = idList.length > 0 ? Math.max(...idList) + 1 : 1;
         idList.push(nextId);
         set(ref(db, `users/${userName}/config/idList`), idList);
-        switchID(nextId);
+        
+        // ใช้ reload แทนการเรียก switchID สดๆ
+        localStorage.setItem(`lastID_${userName}`, nextId);
+        setTimeout(() => { window.location.reload(); }, 300);
     };
 
     window.deleteID = async (id) => {
@@ -461,8 +458,13 @@
             await set(ref(db, `users/${userName}/config/idList`), idList);
             await remove(ref(db, `users/${userName}/id_${id}`));
             localStorage.removeItem(`AION_INDEX_${userName}_ID_${id}`);
-            localStorage.removeItem(`vip_exp_${userName}_${id}`); // ลบ VIP ออกด้วย
-            if (currentID === id) switchID(idList[0]);
+            localStorage.removeItem(`vip_exp_${userName}_${id}`);
+            if (currentID === id) {
+                localStorage.setItem(`lastID_${userName}`, idList[0]);
+                window.location.reload();
+            } else {
+                renderIDTabs();
+            }
         }
     };
 
@@ -473,7 +475,6 @@
     };
 
     async function loadIDData(id) {
-        // โหลดจาก Local Storage ทันที เพื่อป้องกันข้อมูลหายตอน F5
         const localSaved = localStorage.getItem(`AION_INDEX_${userName}_ID_${id}`);
         if (localSaved) {
             try {
@@ -484,7 +485,6 @@
             } catch(e){}
         }
 
-        // ค่อยดึงอัปเดตจากคลาวด์มาทับอีกทีแบบเนียนๆ
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
         if (data && Object.keys(data).length > 0) {
@@ -499,9 +499,14 @@
         document.getElementById('idNote').value = data.note || "";
         document.getElementById('moneyKinah').value = (data.money || "0");
         
-        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage ลอยๆ แล้ว
-        window.currentVipExpire = data.vipExpire || null;
-        updateVIPDisplay(window.currentVipExpire);
+        // ⏳ กู้คืนเวลา VIP จาก Data เพื่อให้เซฟขึ้นคลาวด์ได้
+        const vipData = data.vipExpire || localStorage.getItem(`vip_exp_${userName}_${currentID}`);
+        if (vipData) {
+            localStorage.setItem(`vip_exp_${userName}_${currentID}`, vipData);
+        } else {
+            localStorage.removeItem(`vip_exp_${userName}_${currentID}`);
+        }
+        updateVIPDisplay(vipData);
 
         updateIdWideUI('idBuyCheck', data.idBuy);
         updateIdWideUI('idCraftCheck', data.idCraft);
@@ -513,8 +518,7 @@
         renderCharRows(data.chars || [], data.plans || []);
         renderItemRows(data.items || []);
         
-        // คำนวณแบบทันที (Synchronous) ไม่ต้องรอหน่วงเวลา ป้องกันจอโหลดค้าง
-        calculateAll(); 
+        setTimeout(calculateAll, 50); 
     }
 
     function collectData() {
@@ -528,7 +532,6 @@
             const rowIdx = tr.dataset.index;
             const card = Array.from(planCards).find(c => c.dataset.index === rowIdx);
             
-            // ดึงค่าลับที่ไม่โชว์ในหน้านี้กลับมาด้วย
             const ownPills = parseInt(tr.querySelector('.c-ownPills')?.value) || 0;
             const pillsUsed = parseInt(tr.querySelector('.c-pillsUsed')?.value) || 0;
             const lockPills = tr.querySelector('.c-lockPills')?.value || "";
@@ -573,7 +576,7 @@
             note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
-            vipExpire: window.currentVipExpire || null, // แนบเวลา VIP ลงเซฟไอดีเลย!
+            vipExpire: localStorage.getItem(`vip_exp_${userName}_${currentID}`) || null, // แนบเวลา VIP ลงเซฟไอดีเลย!
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
@@ -591,13 +594,12 @@
         };
     }
 
-    // เซฟลงเครื่อง 0 วิ ทันที แล้วค่อยหน่วงเวลาส่งขึ้นคลาวด์
     window.queueSave = () => {
         const data = saveToLocalFast(); 
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             set(ref(db, `users/${userName}/id_${currentID}`), data);
-            showStatus("✓ บันทึกข้อมูลขึ้นคลาวด์แล้ว");
+            showStatus("✓ อัปเดตข้อมูลขึ้นคลาวด์แล้ว");
         }, 500); 
     };
 
@@ -695,11 +697,10 @@
         `;
         body.appendChild(tr);
 
-        // วาดการ์ดภารกิจคู่กัน
         renderPlanCard(planData, charData, i);
         
         if (!isRender) {
-            calculateAll(); // แบบไม่มี Timeout
+            setTimeout(calculateAll, 50);
         }
     };
 
@@ -802,7 +803,7 @@
         
         const sancSelect = card.querySelector('.c-sanc');
         const runs = parseInt(sancSelect.value) || 0;
-        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary (2 หรือ 3) ก่อนกดปุ่ม S');
+        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary ก่อนกดปุ่ม S');
         
         const cost = runs * 80;
         const baseInput = tr.querySelector('.c-base');
@@ -879,17 +880,15 @@
         charRows.forEach((tr) => {
             const idx = tr.dataset.index;
             const card = Array.from(planCards).find(c => c.dataset.index === idx);
-            
+            if (!card) return; 
+
             const base = parseInt(tr.querySelector('.c-base').value) || 0;
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
             
-            // โชว์ Energy รวมเป็นตัวเลขดิบเลย (เช่น 980) ไม่หารรอบแล้ว
+            // โชว์ Energy รวมเป็นตัวเลขดิบ (เช่น 980) 
             const eneInput = tr.querySelector('.c-total-ene');
             if(eneInput) eneInput.value = totalEne; 
-
-            // ป้องกันถ้าหาการ์ดไม่เจอ
-            if (!card) return; 
 
             // Sync ชื่อและอาชีพไปที่การ์ดภารกิจ
             const jobStr = tr.querySelector('.c-job').value;
@@ -1193,7 +1192,7 @@
         }
     }
 
-    // ⏳ ระบบ VIP อัปเดตใหม่
+    // ระบบ VIP ที่บันทึกขึ้น Firebase ถาวร ไม่หายตอนรีเฟรช 100%
     window.calcVipExpire = () => {
         const days = parseInt(document.getElementById('vipDays').value) || 0;
         const hours = parseInt(document.getElementById('vipHours').value) || 0;
@@ -1203,8 +1202,8 @@
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
         
-        window.currentVipExpire = exp.toISOString(); // เก็บลงตัวแปรหลัก
-        document.getElementById('vipDays').value = ""; // เคลียร์ช่องพิมพ์
+        window.currentVipExpire = exp.toISOString(); 
+        document.getElementById('vipDays').value = ""; 
         document.getElementById('vipHours').value = "";
         
         document.getElementById('pageVipToggle').checked = true;
@@ -1226,6 +1225,7 @@
         const label = document.getElementById('countdownLabel');
         const fullDate = document.getElementById('expireFullDate');
         const toggle = document.getElementById('pageVipToggle');
+        const box = document.getElementById('vipBoxContainer');
         
         if (!expStr) {
             label.innerText = "ไม่ได้เปิดใช้งาน";
@@ -1234,6 +1234,7 @@
             toggle.checked = false;
             isVipActive = false;
             document.getElementById('energyValueText').innerText = "+10";
+            if(box) box.style.borderColor = "#1f2937";
             return;
         }
         
@@ -1243,6 +1244,7 @@
         isVipActive = true;
         document.getElementById('energyValueText').innerText = "+15";
         label.style.color = "var(--success)";
+        if(box) box.style.borderColor = "var(--success)";
         
         const tick = () => {
             const diff = exp - new Date();
@@ -1309,7 +1311,7 @@
                 if (energyTicks > 0 || rewardTicks > 0) {
                     const addEne = isVipActive ? 15 : 10;
                     const chars = document.querySelectorAll('#charBody tr');
-                    chars.forEach((tr, i) => {
+                    chars.forEach((tr) => {
                         if (energyTicks > 0) {
                             let b = parseInt(tr.querySelector('.c-base').value) || 0;
                             tr.querySelector('.c-base').value = Math.min(840, b + (addEne * energyTicks));
@@ -1360,7 +1362,7 @@
             const addEne = isVipActive ? 15 : 10;
             const chars = Array.from(document.querySelectorAll('#charBody tr'));
             
-            chars.forEach((tr, i) => {
+            chars.forEach((tr) => {
                 if (energyTicks > 0) {
                     let b = parseInt(tr.querySelector('.c-base').value) || 0;
                     tr.querySelector('.c-base').value = Math.min(840, b + (addEne * energyTicks));
