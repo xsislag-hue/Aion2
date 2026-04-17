@@ -369,7 +369,17 @@
         return data;
     }
 
-    // กดดึงข้อมูลคลาวด์ แล้วสั่ง F5 ทันทีเพื่อความชัวร์ ไม่ค้างแน่นอน
+    // แก้ไข 2: ล็อคค่า currentID ก่อนหน่วงเวลาอัปโหลด ป้องกันบั๊กสลับ ID แล้วข้อมูลเซฟข้ามกัน
+    window.queueSave = () => {
+        const lockedSaveID = currentID; 
+        const data = saveToLocalFast(); 
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            set(ref(db, `users/${userName}/id_${lockedSaveID}`), data);
+            showStatus("✓ บันทึกข้อมูลขึ้นคลาวด์แล้ว");
+        }, 500); 
+    };
+
     window.forceRefresh = async () => {
         showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
         const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
@@ -438,6 +448,12 @@
         document.getElementById('idLabel').innerText = id;
         renderIDTabs();
         window.undoHistories = {}; 
+        
+        // เคลียร์ UI ออกก่อนโหลด เพื่อไม่ให้ติดภาพค้างของ ID เก่าเวลาเน็ตช้า
+        document.getElementById('charBody').innerHTML = "";
+        document.getElementById('planCardsContainer').innerHTML = "";
+        document.getElementById('itemBody').innerHTML = "";
+        
         await loadIDData(id); 
     };
 
@@ -467,22 +483,29 @@
 
     async function loadIDData(id) {
         const localSaved = localStorage.getItem(`AION_INDEX_${userName}_ID_${id}`);
+        let hasLocal = false;
+        
         if (localSaved) {
             try {
                 const data = JSON.parse(localSaved);
                 applyDataToUI(data);
                 checkWeeklyReset(data);
                 processOfflineRefills(data);
+                hasLocal = true;
             } catch(e){}
         }
 
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
+        
         if (data && Object.keys(data).length > 0) {
             applyDataToUI(data);
             checkWeeklyReset(data);
             processOfflineRefills(data);
             saveToLocalFast(); 
+        } else if (!hasLocal) {
+            // กรณีสร้าง ID ใหม่ ไม่เคยมีเซฟเลย ให้รัน UI เปล่า
+            applyDataToUI({});
         }
     }
 
@@ -490,7 +513,6 @@
         document.getElementById('idNote').value = data.note || "";
         document.getElementById('moneyKinah').value = (data.money || "0");
         
-        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage แล้ว ป้องกันหาย 100%
         window.currentVipExpire = data.vipExpire || null;
         updateVIPDisplay(window.currentVipExpire);
 
@@ -502,7 +524,7 @@
         document.getElementById('sum-tra-count').value = data.sumTra || 0;
 
         renderCharRows(data.chars || [], data.plans || []);
-        renderItemRows(data.items || []);
+        renderItemRows(data.items || []); // <--- เรียกตรงนี้ จะไม่ Error แล้ว!
         
         setTimeout(calculateAll, 50); 
     }
@@ -559,7 +581,7 @@
             note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
-            vipExpire: window.currentVipExpire || null, // แนบเวลา VIP ลงเซฟไอดีเลย!
+            vipExpire: window.currentVipExpire || null, 
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
@@ -576,16 +598,6 @@
             }))
         };
     }
-
-    // เซฟลงเครื่อง 0 วิ ทันที แล้วค่อยหน่วงเวลาอัปโหลด
-    window.queueSave = () => {
-        const data = saveToLocalFast(); 
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-            set(ref(db, `users/${userName}/id_${currentID}`), data);
-            showStatus("✓ บันทึกข้อมูลขึ้นคลาวด์แล้ว");
-        }, 500); 
-    };
 
     function showStatus(msg) {
         const el = document.getElementById('saveStatus');
@@ -605,6 +617,15 @@
             addCharRow();
         } else {
             chars.forEach((c, i) => addCharRow(c, plans[i], rowIdCounter++, true));
+        }
+    }
+
+    // แก้ไข 1: เพิ่มฟังก์ชันนี้กลับเข้าไป (หายไปตอนปรับปรุงโค้ด ทำให้ระบบ Crash)
+    function renderItemRows(items) {
+        const body = document.getElementById('itemBody');
+        body.innerHTML = "";
+        if (items && items.length > 0) {
+            items.forEach(it => addItemRow(it));
         }
     }
 
@@ -852,150 +873,150 @@
     };
 
     window.calculateAll = () => {
-        let idTotalActualRuns = 0; 
-        let idTotalRem = 0;
-        let idTotalGoalsOriginal = 0;
-        let totalProgressDone = 0;
-        let totalProgressGoal = 0;
+        try {
+            let idTotalActualRuns = 0; 
+            let idTotalRem = 0;
+            let idTotalGoalsOriginal = 0;
+            let totalProgressDone = 0;
+            let totalProgressGoal = 0;
 
-        const charRows = document.querySelectorAll('#charBody tr');
-        const planCards = document.querySelectorAll('.plan-card');
+            const charRows = document.querySelectorAll('#charBody tr');
+            const planCards = document.querySelectorAll('.plan-card');
 
-        charRows.forEach((tr) => {
-            const idx = tr.dataset.index;
-            const card = Array.from(planCards).find(c => c.dataset.index === idx);
-            if (!card) return; 
+            charRows.forEach((tr) => {
+                const idx = tr.dataset.index;
+                const card = Array.from(planCards).find(c => c.dataset.index === idx);
+                if (!card) return; 
 
-            const base = parseInt(tr.querySelector('.c-base').value) || 0;
-            const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
-            const totalEne = base + bonus;
+                const base = parseInt(tr.querySelector('.c-base').value) || 0;
+                const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
+                const totalEne = base + bonus;
+                
+                const eneInput = tr.querySelector('.c-total-ene');
+                if(eneInput) eneInput.value = totalEne; 
+
+                const jobStr = tr.querySelector('.c-job').value;
+                const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
+                card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
+
+                const eneRuns = Math.floor(totalEne / 80);
+
+                const conR = parseInt(tr.querySelector('.c-con-rew').value) || 0;
+                const conB = parseInt(tr.querySelector('.c-con-bon').value) || 0;
+                const conF = parseInt(tr.querySelector('.c-con-fb').value) || 0;
+                
+                const traR = parseInt(tr.querySelector('.c-tra-rew').value) || 0;
+                const traB = parseInt(tr.querySelector('.c-tra-bon').value) || 0;
+                const traF = parseInt(tr.querySelector('.c-tra-fb').value) || 0;
+
+                const conG = parseInt(card.querySelector('.p-con-goal').value) || 0;
+                const conD = card.querySelector('.p-con-done').classList.contains('checked');
+                
+                const traG = parseInt(card.querySelector('.p-tra-goal').value) || 0;
+                const traD = card.querySelector('.p-tra-done').classList.contains('checked');
+
+                const conAct = Math.min(eneRuns, conR + conB, conF);
+                const traAct = Math.min(eneRuns, traR + traB, traF);
+                
+                const conPlayed = Math.max(0, 35 - conF);
+                const traPlayed = Math.max(0, 28 - traF);
+
+                const maxCharAct = Math.max(conAct, traAct);
+                idTotalActualRuns += maxCharAct;
+
+                const remCon = conD ? 0 : Math.max(0, conG - conPlayed);
+                const remTra = traD ? 0 : Math.max(0, traG - traPlayed);
+                const remGoals = remCon + remTra;
+
+                card.querySelector('.card-rem').innerText = remGoals;
+                idTotalRem += remGoals;
+                idTotalGoalsOriginal += (conG + traG); 
+                
+                const conBar = card.querySelector('.p-con-bar');
+                const conTxt = card.querySelector('.p-con-text');
+                const conPct = conG > 0 ? Math.min(100, Math.round((conPlayed / conG) * 100)) : 0;
+                conBar.style.width = conPct + '%';
+                if(conPct >= 100 || conD) {
+                    conBar.classList.add('bar-success');
+                    conTxt.innerText = `🎉 สำเร็จแล้ว! (${conPlayed}/${conG})`;
+                } else {
+                    conBar.classList.remove('bar-success');
+                    conTxt.innerText = `${conPlayed} / ${conG} รอบ`;
+                }
+
+                const traBar = card.querySelector('.p-tra-bar');
+                const traTxt = card.querySelector('.p-tra-text');
+                const traPct = traG > 0 ? Math.min(100, Math.round((traPlayed / traG) * 100)) : 0;
+                traBar.style.width = traPct + '%';
+                if(traPct >= 100 || traD) {
+                    traBar.classList.add('bar-success');
+                    traTxt.innerText = `🎉 สำเร็จแล้ว! (${traPlayed}/${traG})`;
+                } else {
+                    traBar.classList.remove('bar-success');
+                    traTxt.innerText = `${traPlayed} / ${traG} รอบ`;
+                }
+
+                const btnCon = card.querySelector('.p-con-btn');
+                if (conAct > 0 && !conD && conPct < 100) {
+                    btnCon.disabled = false;
+                    btnCon.innerHTML = `⚔️ ลง Conquest <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${conAct} รอบ)</span>`;
+                } else {
+                    btnCon.disabled = true;
+                    btnCon.innerHTML = `⚔️ หมดโควตา / ครบเป้าหมาย`;
+                }
+
+                const btnTra = card.querySelector('.p-tra-btn');
+                if (traAct > 0 && !traD && traPct < 100) {
+                    btnTra.disabled = false;
+                    btnTra.innerHTML = `🌌 ลง Transcendent <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${traAct} รอบ)</span>`;
+                } else {
+                    btnTra.disabled = true;
+                    btnTra.innerHTML = `🌌 หมดโควตา / ครบเป้าหมาย`;
+                }
+                
+                let cDoneForProg = conD ? conG : Math.min(conPlayed, conG);
+                let tDoneForProg = traD ? traG : Math.min(traPlayed, traG);
+                totalProgressDone += (cDoneForProg + tDoneForProg);
+                totalProgressGoal += (conG + traG);
+            });
+
+            document.getElementById('totalRunsDisplay').innerText = idTotalActualRuns;
+            const sc = parseInt(document.getElementById('sum-con-count').value) || 0;
+            const st = parseInt(document.getElementById('sum-tra-count').value) || 0;
+            document.getElementById('sum-total-count').value = sc + st;
             
-            // Energy รวม เป็นตัวเลขดิบหลักพัน
-            const eneInput = tr.querySelector('.c-total-ene');
-            if(eneInput) eneInput.value = totalEne; 
-
-            // อัปเดตป้ายชื่ออาชีพในการ์ด
-            const jobStr = tr.querySelector('.c-job').value;
-            const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
-            card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
-
-            const eneRuns = Math.floor(totalEne / 80);
-
-            const conR = parseInt(tr.querySelector('.c-con-rew').value) || 0;
-            const conB = parseInt(tr.querySelector('.c-con-bon').value) || 0;
-            const conF = parseInt(tr.querySelector('.c-con-fb').value) || 0;
+            document.getElementById('sum-total-goal').value = idTotalGoalsOriginal;
+            document.getElementById('sum-total-rem').value = idTotalRem;
             
-            const traR = parseInt(tr.querySelector('.c-tra-rew').value) || 0;
-            const traB = parseInt(tr.querySelector('.c-tra-bon').value) || 0;
-            const traF = parseInt(tr.querySelector('.c-tra-fb').value) || 0;
-
-            const conG = parseInt(card.querySelector('.p-con-goal').value) || 0;
-            const conD = card.querySelector('.p-con-done').classList.contains('checked');
+            const percent = totalProgressGoal > 0 ? Math.min(100, Math.round((totalProgressDone / totalProgressGoal) * 100)) : 0;
+            const pBar = document.getElementById('weeklyProgressBar');
+            const pTxt = document.getElementById('weeklyProgressText');
             
-            const traG = parseInt(card.querySelector('.p-tra-goal').value) || 0;
-            const traD = card.querySelector('.p-tra-done').classList.contains('checked');
-
-            const conAct = Math.min(eneRuns, conR + conB, conF);
-            const traAct = Math.min(eneRuns, traR + traB, traF);
-            
-            const conPlayed = Math.max(0, 35 - conF);
-            const traPlayed = Math.max(0, 28 - traF);
-
-            const maxCharAct = Math.max(conAct, traAct);
-            idTotalActualRuns += maxCharAct;
-
-            const remCon = conD ? 0 : Math.max(0, conG - conPlayed);
-            const remTra = traD ? 0 : Math.max(0, traG - traPlayed);
-            const remGoals = remCon + remTra;
-
-            card.querySelector('.card-rem').innerText = remGoals;
-            idTotalRem += remGoals;
-            idTotalGoalsOriginal += (conG + traG); 
-            
-            // --- อัปเดต Card UI ---
-            const conBar = card.querySelector('.p-con-bar');
-            const conTxt = card.querySelector('.p-con-text');
-            const conPct = conG > 0 ? Math.min(100, Math.round((conPlayed / conG) * 100)) : 0;
-            conBar.style.width = conPct + '%';
-            if(conPct >= 100 || conD) {
-                conBar.classList.add('bar-success');
-                conTxt.innerText = `🎉 สำเร็จแล้ว! (${conPlayed}/${conG})`;
-            } else {
-                conBar.classList.remove('bar-success');
-                conTxt.innerText = `${conPlayed} / ${conG} รอบ`;
+            if (pBar && pTxt) {
+                pBar.style.width = percent + '%';
+                if (percent >= 100) {
+                    pBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+                    pBar.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.6)';
+                    pTxt.innerText = `🎉 สำเร็จเป้าหมายทั้งไอดีแล้ว! ${totalProgressDone} / ${totalProgressGoal} รอบ (100%)`;
+                    pTxt.style.color = '#fff';
+                } else if (percent >= 75) {
+                    pBar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)';
+                    pBar.style.boxShadow = 'none';
+                    pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - ใกล้ความจริงแล้ว!`;
+                } else if (percent >= 40) {
+                    pBar.style.background = 'linear-gradient(90deg, #f59e0b, #3b82f6)';
+                    pBar.style.boxShadow = 'none';
+                    pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - กำลังลุย!`;
+                } else {
+                    pBar.style.background = 'linear-gradient(90deg, #ef4444, #f59e0b)';
+                    pBar.style.boxShadow = 'none';
+                    pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - เพิ่งเริ่มต้น!`;
+                }
             }
-
-            const traBar = card.querySelector('.p-tra-bar');
-            const traTxt = card.querySelector('.p-tra-text');
-            const traPct = traG > 0 ? Math.min(100, Math.round((traPlayed / traG) * 100)) : 0;
-            traBar.style.width = traPct + '%';
-            if(traPct >= 100 || traD) {
-                traBar.classList.add('bar-success');
-                traTxt.innerText = `🎉 สำเร็จแล้ว! (${traPlayed}/${traG})`;
-            } else {
-                traBar.classList.remove('bar-success');
-                traTxt.innerText = `${traPlayed} / ${traG} รอบ`;
-            }
-
-            const btnCon = card.querySelector('.p-con-btn');
-            if (conAct > 0 && !conD && conPct < 100) {
-                btnCon.disabled = false;
-                btnCon.innerHTML = `⚔️ ลงดัน Conquest <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${conAct} รอบ)</span>`;
-            } else {
-                btnCon.disabled = true;
-                btnCon.innerHTML = `⚔️ หมดโควตา / ครบเป้าหมาย`;
-            }
-
-            const btnTra = card.querySelector('.p-tra-btn');
-            if (traAct > 0 && !traD && traPct < 100) {
-                btnTra.disabled = false;
-                btnTra.innerHTML = `🌌 ลงดัน Transcendent <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${traAct} รอบ)</span>`;
-            } else {
-                btnTra.disabled = true;
-                btnTra.innerHTML = `🌌 หมดโควตา / ครบเป้าหมาย`;
-            }
-            
-            let cDoneForProg = conD ? conG : Math.min(conPlayed, conG);
-            let tDoneForProg = traD ? traG : Math.min(traPlayed, traG);
-            totalProgressDone += (cDoneForProg + tDoneForProg);
-            totalProgressGoal += (conG + traG);
-        });
-
-        document.getElementById('totalRunsDisplay').innerText = idTotalActualRuns;
-        const sc = parseInt(document.getElementById('sum-con-count').value) || 0;
-        const st = parseInt(document.getElementById('sum-tra-count').value) || 0;
-        document.getElementById('sum-total-count').value = sc + st;
-        
-        document.getElementById('sum-total-goal').value = idTotalGoalsOriginal;
-        document.getElementById('sum-total-rem').value = idTotalRem;
-        
-        const percent = totalProgressGoal > 0 ? Math.min(100, Math.round((totalProgressDone / totalProgressGoal) * 100)) : 0;
-        const pBar = document.getElementById('weeklyProgressBar');
-        const pTxt = document.getElementById('weeklyProgressText');
-        
-        if (pBar && pTxt) {
-            pBar.style.width = percent + '%';
-            if (percent >= 100) {
-                pBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-                pBar.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.6)';
-                pTxt.innerText = `🎉 สำเร็จเป้าหมายทั้งไอดีแล้ว! ${totalProgressDone} / ${totalProgressGoal} รอบ (100%)`;
-                pTxt.style.color = '#fff';
-            } else if (percent >= 75) {
-                pBar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)';
-                pBar.style.boxShadow = 'none';
-                pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - ใกล้ความจริงแล้ว!`;
-            } else if (percent >= 40) {
-                pBar.style.background = 'linear-gradient(90deg, #f59e0b, #3b82f6)';
-                pBar.style.boxShadow = 'none';
-                pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - กำลังลุย!`;
-            } else {
-                pBar.style.background = 'linear-gradient(90deg, #ef4444, #f59e0b)';
-                pBar.style.boxShadow = 'none';
-                pTxt.innerText = `${totalProgressDone} / ${totalProgressGoal} รอบ (${percent}%) - เพิ่งเริ่มต้น!`;
-            }
+            queueSave(); 
+        } catch (e) {
+            console.error("Calculate Error:", e);
         }
-
-        queueSave(); 
     };
 
     window.executePlay = (btn, type) => {
@@ -1176,7 +1197,6 @@
         }
     }
 
-    // ⏳ ระบบ VIP ตัวใหม่ ส่งค่าตรงเข้าเซฟหลัก
     window.calcVipExpire = () => {
         const days = parseInt(document.getElementById('vipDays').value) || 0;
         const hours = parseInt(document.getElementById('vipHours').value) || 0;
@@ -1187,7 +1207,7 @@
         exp.setHours(exp.getHours() + hours);
         
         window.currentVipExpire = exp.toISOString();
-        document.getElementById('vipDays').value = ""; // เคลียร์ช่องพิมพ์
+        document.getElementById('vipDays').value = ""; 
         document.getElementById('vipHours').value = "";
         
         document.getElementById('pageVipToggle').checked = true;
@@ -1304,12 +1324,12 @@
                             let cr = parseInt(tr.querySelector('.c-con-rew').value) || 0;
                             let trr = parseInt(tr.querySelector('.c-tra-rew').value) || 0;
                             tr.querySelector('.c-con-rew').value = Math.min(14, cr + rewardTicks);
-                            tr.querySelector('.c-tra-rew').value = Math.min(14, trr + rewardTicks);
+                            tr.querySelector('.c-tra-rew').value = Math.min(7, trr + rewardTicks); 
                         }
                     });
                     
                     window.lastLiveCheck = now;
-                    calculateAll();
+                    calculateAll(); 
                 }
             }
 
@@ -1355,12 +1375,10 @@
                     let cr = parseInt(tr.querySelector('.c-con-rew').value) || 0;
                     let trr = parseInt(tr.querySelector('.c-tra-rew').value) || 0;
                     tr.querySelector('.c-con-rew').value = Math.min(14, cr + rewardTicks);
-                    tr.querySelector('.c-tra-rew').value = Math.min(14, trr + rewardTicks);
+                    tr.querySelector('.c-tra-rew').value = Math.min(7, trr + rewardTicks); 
                 }
             });
-            
-            const newData = collectData();
-            set(ref(db, `users/${userName}/id_${currentID}`), newData);
+            calculateAll();
         }
         
         window.lastLiveCheck = new Date();
