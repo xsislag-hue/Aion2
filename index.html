@@ -19,6 +19,7 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
+        /* ปรับขนาด Container ให้กระชับขึ้น พอดีจอ 1080p */
         body { font-family: var(--font-main); background: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; padding: 15px; font-size: 15px; margin: 0; min-height: 100vh; }
         .container { background: var(--dark-card); width: 100%; max-width: 1580px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
         
@@ -49,7 +50,7 @@
         select.input-cell { cursor: pointer; }
 
         .input-split { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
-        .input-split input { width: 44%; font-size: 16px; font-weight: bold; }
+        .input-split input { width: 44%; font-size: 16px; font-weight: bold; text-align:center; }
         .input-split span { width: 10px; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
 
         .switch-container { position: relative; display: inline-block; width: 42px; height: 24px; }
@@ -82,6 +83,7 @@
         
         .plan-header { background: #1e293b; padding: 12px 15px; border-radius: 10px 10px 0 0; border: 1px solid var(--border); border-bottom: none; color: var(--gold); font-weight: bold; display: flex; justify-content: space-between; font-size:15px; }
         
+        /* สไตล์ Progress Bar */
         .progress-container { width: 100%; background: #0f172a; border-radius: 8px; height: 26px; position: relative; overflow: hidden; border: 1px solid var(--border); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .progress-bar { height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; }
         .progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: white; font-size: 13px; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
@@ -91,6 +93,7 @@
         .bar-success { background: linear-gradient(90deg, #065f46, #10b981) !important; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
         .bar-global { background: linear-gradient(90deg, #ef4444, #f59e0b); }
 
+        /* การ์ดภารกิจ */
         .mission-card { background: #0f172a; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; transition: 0.3s; }
         .mission-card:hover { border-color: var(--primary); box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
         
@@ -202,7 +205,7 @@
         <div class="table-wrapper" style="border-radius:0 0 12px 12px; margin-bottom:25px;">
             <table id="charTable">
                 <colgroup>
-                    <col style="width: 14%;"> <col style="width: 11%;"> <col style="width: 17%;"> <col style="width: 8%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 6%;">  <col style="width: 40px;"> </colgroup>
+                    <col style="width: 14%;"> <col style="width: 11%;"> <col style="width: 19%;"> <col style="width: 8%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 16%;"> <col style="width: 7%;">  <col style="width: 7%;">  <col style="width: 40px;"> </colgroup>
                 <thead>
                     <tr>
                         <th rowspan="2">ชื่อตัวละคร</th>
@@ -210,12 +213,12 @@
                         <th colspan="2">Energy</th>
                         <th colspan="2" style="background:rgba(37,99,235,0.15)">Conquest (ทรัพยากร)</th>
                         <th colspan="2" style="background:rgba(147,51,234,0.15)">Transcendent (ทรัพยากร)</th>
-                        <th rowspan="2">Ascension</th>
+                        <th rowspan="2" title="Ascension">Ascension</th>
                         <th rowspan="2">ลบ</th>
                     </tr>
                     <tr>
                         <th>ปกติ + โบนัส</th>
-                        <th title="พลังงานดิบ">รวม</th>
+                        <th title="พลังงานรวมทั้งหมด">รวม</th>
                         <th style="background:rgba(37,99,235,0.1)">Reward (ปกติ + โบนัส)</th>
                         <th style="background:rgba(37,99,235,0.1)">Final Boss</th>
                         <th style="background:rgba(147,51,234,0.1)">Reward (ปกติ + โบนัส)</th>
@@ -363,21 +366,24 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
     initSystem();
 
+    // 💾 ระบบเซฟ Local-First ป้องกันข้อมูลหายตอนกด F5 ทันที
     function saveToLocalFast() {
         const data = collectData();
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         return data;
     }
 
-    // กดดึงข้อมูลคลาวด์ แล้วสั่ง F5 ทันทีเพื่อความชัวร์ ไม่ค้างแน่นอน
+    // เมื่อกดปุ่มซิงค์คลาวด์ จะดึงข้อมูลและ "รีเฟรชหน้าต่าง" ให้อัตโนมัติ (แก้ปัญหารอโหลด)
     window.forceRefresh = async () => {
         showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
         const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
         const data = snap.val() || {};
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         
-        showStatus("✅ ซิงค์สำเร็จ! กำลังรีเฟรช...");
-        setTimeout(() => { window.location.reload(); }, 500);
+        showStatus("✅ ดึงข้อมูลสำเร็จ! กำลังรีเฟรชหน้า...");
+        setTimeout(() => {
+            window.location.reload(); 
+        }, 500);
     };
 
     window.goToPlanner = () => {
@@ -432,7 +438,7 @@
     };
 
     window.switchID = async (id) => {
-        saveToLocalFast(); 
+        saveToLocalFast(); // เซฟก่อนเปลี่ยน ID
         currentID = id;
         localStorage.setItem(`lastID_${userName}`, id); 
         document.getElementById('idLabel').innerText = id;
@@ -455,6 +461,7 @@
             await set(ref(db, `users/${userName}/config/idList`), idList);
             await remove(ref(db, `users/${userName}/id_${id}`));
             localStorage.removeItem(`AION_INDEX_${userName}_ID_${id}`);
+            localStorage.removeItem(`vip_exp_${userName}_${id}`); // ลบ VIP ออกด้วย
             if (currentID === id) switchID(idList[0]);
         }
     };
@@ -466,6 +473,7 @@
     };
 
     async function loadIDData(id) {
+        // โหลดจาก Local Storage ทันที เพื่อป้องกันข้อมูลหายตอน F5
         const localSaved = localStorage.getItem(`AION_INDEX_${userName}_ID_${id}`);
         if (localSaved) {
             try {
@@ -476,6 +484,7 @@
             } catch(e){}
         }
 
+        // ค่อยดึงอัปเดตจากคลาวด์มาทับอีกทีแบบเนียนๆ
         const snap = await get(ref(db, `users/${userName}/id_${id}`));
         const data = snap.val() || {};
         if (data && Object.keys(data).length > 0) {
@@ -490,7 +499,7 @@
         document.getElementById('idNote').value = data.note || "";
         document.getElementById('moneyKinah').value = (data.money || "0");
         
-        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage แล้ว ป้องกันหาย 100%
+        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage ลอยๆ แล้ว
         window.currentVipExpire = data.vipExpire || null;
         updateVIPDisplay(window.currentVipExpire);
 
@@ -504,7 +513,8 @@
         renderCharRows(data.chars || [], data.plans || []);
         renderItemRows(data.items || []);
         
-        setTimeout(calculateAll, 50); 
+        // คำนวณแบบทันที (Synchronous) ไม่ต้องรอหน่วงเวลา ป้องกันจอโหลดค้าง
+        calculateAll(); 
     }
 
     function collectData() {
@@ -518,18 +528,22 @@
             const rowIdx = tr.dataset.index;
             const card = Array.from(planCards).find(c => c.dataset.index === rowIdx);
             
+            // ดึงค่าลับที่ไม่โชว์ในหน้านี้กลับมาด้วย
             const ownPills = parseInt(tr.querySelector('.c-ownPills')?.value) || 0;
             const pillsUsed = parseInt(tr.querySelector('.c-pillsUsed')?.value) || 0;
             const lockPills = tr.querySelector('.c-lockPills')?.value || "";
             const isMain = tr.querySelector('.c-isMain')?.value === 'true';
+            
+            const sancR = card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0;
+            const sancD = card ? (card.querySelector('.c-sanc-done').value === '1') : false;
 
             chars.push({
                 name: tr.querySelector('.c-name').value,
                 job: tr.querySelector('.c-job').value,
                 base: parseInt(tr.querySelector('.c-base').value) || 0,
                 bonus: parseInt(tr.querySelector('.c-bonus').value) || 0,
-                sancRuns: card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0,
-                sancDone: card ? (card.querySelector('.c-sanc-done').value === '1') : false,
+                sancRuns: sancR,
+                sancDone: sancD,
                 asc: tr.querySelector('.c-asc').classList.contains('checked'),
                 ownPills, pillsUsed, lockPills, isMain
             });
@@ -577,7 +591,7 @@
         };
     }
 
-    // เซฟลงเครื่อง 0 วิ ทันที แล้วค่อยหน่วงเวลาอัปโหลด
+    // เซฟลงเครื่อง 0 วิ ทันที แล้วค่อยหน่วงเวลาส่งขึ้นคลาวด์
     window.queueSave = () => {
         const data = saveToLocalFast(); 
         clearTimeout(saveTimeout);
@@ -681,10 +695,11 @@
         `;
         body.appendChild(tr);
 
+        // วาดการ์ดภารกิจคู่กัน
         renderPlanCard(planData, charData, i);
         
         if (!isRender) {
-            setTimeout(calculateAll, 50);
+            calculateAll(); // แบบไม่มี Timeout
         }
     };
 
@@ -864,17 +879,19 @@
         charRows.forEach((tr) => {
             const idx = tr.dataset.index;
             const card = Array.from(planCards).find(c => c.dataset.index === idx);
-            if (!card) return; 
-
+            
             const base = parseInt(tr.querySelector('.c-base').value) || 0;
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
             
-            // Energy รวม เป็นตัวเลขดิบหลักพัน
+            // โชว์ Energy รวมเป็นตัวเลขดิบเลย (เช่น 980) ไม่หารรอบแล้ว
             const eneInput = tr.querySelector('.c-total-ene');
             if(eneInput) eneInput.value = totalEne; 
 
-            // อัปเดตป้ายชื่ออาชีพในการ์ด
+            // ป้องกันถ้าหาการ์ดไม่เจอ
+            if (!card) return; 
+
+            // Sync ชื่อและอาชีพไปที่การ์ดภารกิจ
             const jobStr = tr.querySelector('.c-job').value;
             const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
             card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
@@ -1176,7 +1193,7 @@
         }
     }
 
-    // ⏳ ระบบ VIP ตัวใหม่ ส่งค่าตรงเข้าเซฟหลัก
+    // ⏳ ระบบ VIP อัปเดตใหม่
     window.calcVipExpire = () => {
         const days = parseInt(document.getElementById('vipDays').value) || 0;
         const hours = parseInt(document.getElementById('vipHours').value) || 0;
@@ -1186,7 +1203,7 @@
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
         
-        window.currentVipExpire = exp.toISOString();
+        window.currentVipExpire = exp.toISOString(); // เก็บลงตัวแปรหลัก
         document.getElementById('vipDays').value = ""; // เคลียร์ช่องพิมพ์
         document.getElementById('vipHours').value = "";
         
@@ -1209,7 +1226,6 @@
         const label = document.getElementById('countdownLabel');
         const fullDate = document.getElementById('expireFullDate');
         const toggle = document.getElementById('pageVipToggle');
-        const box = document.getElementById('vipBoxContainer');
         
         if (!expStr) {
             label.innerText = "ไม่ได้เปิดใช้งาน";
@@ -1218,7 +1234,6 @@
             toggle.checked = false;
             isVipActive = false;
             document.getElementById('energyValueText').innerText = "+10";
-            if(box) box.style.borderColor = "#1f2937";
             return;
         }
         
@@ -1228,7 +1243,6 @@
         isVipActive = true;
         document.getElementById('energyValueText').innerText = "+15";
         label.style.color = "var(--success)";
-        if(box) box.style.borderColor = "var(--success)";
         
         const tick = () => {
             const diff = exp - new Date();
@@ -1295,7 +1309,7 @@
                 if (energyTicks > 0 || rewardTicks > 0) {
                     const addEne = isVipActive ? 15 : 10;
                     const chars = document.querySelectorAll('#charBody tr');
-                    chars.forEach((tr) => {
+                    chars.forEach((tr, i) => {
                         if (energyTicks > 0) {
                             let b = parseInt(tr.querySelector('.c-base').value) || 0;
                             tr.querySelector('.c-base').value = Math.min(840, b + (addEne * energyTicks));
@@ -1346,7 +1360,7 @@
             const addEne = isVipActive ? 15 : 10;
             const chars = Array.from(document.querySelectorAll('#charBody tr'));
             
-            chars.forEach((tr) => {
+            chars.forEach((tr, i) => {
                 if (energyTicks > 0) {
                     let b = parseInt(tr.querySelector('.c-base').value) || 0;
                     tr.querySelector('.c-base').value = Math.min(840, b + (addEne * energyTicks));
