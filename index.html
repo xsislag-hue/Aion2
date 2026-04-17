@@ -19,9 +19,9 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-        /* ปรับขนาด Container ให้กระชับขึ้น พอดีจอ 1080p */
+        /* ขยาย max-width ให้พอดีกับจอ 1080p (ไม่เกิน 1650px) */
         body { font-family: var(--font-main); background: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; padding: 15px; font-size: 15px; margin: 0; min-height: 100vh; }
-        .container { background: var(--dark-card); width: 100%; max-width: 1580px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
+        .container { background: var(--dark-card); width: 100%; max-width: 1650px; padding: 25px; border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid var(--border); position: relative; display: flex; flex-direction: column; gap: 15px; }
         
         .reset-notice { background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: #60a5fa; padding: 10px 20px; border-radius: 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .global-summary-bar { background: #0f172a; padding: 15px 25px; border-radius: 15px; border: 1px solid var(--gold); display: flex; justify-content: space-between; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
@@ -50,8 +50,8 @@
         select.input-cell { cursor: pointer; }
 
         .input-split { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
-        .input-split input { width: 45%; font-size: 16px; font-weight: bold; }
-        .input-split span { width: 10%; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
+        .input-split input { width: 44%; font-size: 16px; font-weight: bold; text-align:center; }
+        .input-split span { width: 10px; color: var(--text-dim); font-weight: bold; font-size:14px; text-align:center; }
 
         .switch-container { position: relative; display: inline-block; width: 42px; height: 24px; }
         .switch-container input { opacity: 0; width: 0; height: 0; }
@@ -204,15 +204,16 @@
         <div class="table-wrapper" style="border-radius:0 0 12px 12px; margin-bottom:25px;">
             <table id="charTable">
                 <colgroup>
-                    <col style="width: 15%;"> <col style="width: 10%;"> <col style="width: 17%;"> <col style="width: 8%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 6%;">  <col style="width: 40px;"> </colgroup>
+                    <col style="width: 14%;"> <col style="width: 10%;"> <col style="width: 16%;"> <col style="width: 6%;">  <col style="width: 10%;"> <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 15%;"> <col style="width: 7%;">  <col style="width: 6%;">  <col style="width: 40px;"> </colgroup>
                 <thead>
                     <tr>
                         <th rowspan="2">ชื่อตัวละคร</th>
                         <th rowspan="2">อาชีพ</th>
                         <th colspan="2">Energy</th>
+                        <th rowspan="2" style="color:#db2777; background:rgba(219,39,119,0.05);">⛩️ Sanctuary</th>
                         <th colspan="2" style="background:rgba(37,99,235,0.15)">Conquest (ทรัพยากร)</th>
                         <th colspan="2" style="background:rgba(147,51,234,0.15)">Transcendent (ทรัพยากร)</th>
-                        <th rowspan="2" title="Ascension">Ascension</th>
+                        <th rowspan="2">Ascension</th>
                         <th rowspan="2">ลบ</th>
                     </tr>
                     <tr>
@@ -230,7 +231,7 @@
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-            <div style="background:#0f172a; color:white; padding:10px 18px; border-radius:12px 12px 0 0; font-weight:bold; font-size:16px; border:1px solid var(--border); border-bottom:none;">🎯 กระดานภารกิจ (Sanctuary & เลือกลงดันเจี้ยน)</div>
+            <div style="background:#0f172a; color:white; padding:10px 18px; border-radius:12px 12px 0 0; font-weight:bold; font-size:16px; border:1px solid var(--border); border-bottom:none;">🎯 กระดานภารกิจ (เลือกลงดันเจี้ยน)</div>
         </div>
         
         <div id="planCardsContainer" style="background:var(--dark-card); border:1px solid var(--border); border-radius:0 12px 12px 12px; padding:15px; margin-bottom:25px;">
@@ -365,7 +366,7 @@
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
     initSystem();
 
-    // ฟังก์ชันเซฟลงเครื่องทันที (0 วิ) แก้ปัญหาเน็ตตัดตอนกด F5
+    // 💾 ระบบเซฟ Local-First ป้องกันข้อมูลหายตอนกด F5 ทันที
     function saveToLocalFast() {
         const data = collectData();
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
@@ -373,14 +374,17 @@
     }
 
     window.forceRefresh = async () => {
-        showStatus("🔄 กำลังดึงข้อมูลจากคลาวด์...");
+        showStatus("🔄 กำลังดึงข้อมูลและรีเฟรชหน้าจอ...");
         const snap = await get(ref(db, `users/${userName}/id_${currentID}`));
         const data = snap.val() || {};
         localStorage.setItem(`AION_INDEX_${userName}_ID_${currentID}`, JSON.stringify(data));
         applyDataToUI(data);
         checkWeeklyReset(data);
         processOfflineRefills(data);
-        showStatus("✅ ซิงค์ข้อมูลคลาวด์สำเร็จ");
+        
+        // บังคับอัปเดต UI ทันทีเพื่อลบ "รอโหลด.." ทิ้ง
+        calculateAll();
+        showStatus("✅ ซิงค์และรีเฟรชข้อมูลสำเร็จ");
     };
 
     window.goToPlanner = () => {
@@ -458,6 +462,7 @@
             await set(ref(db, `users/${userName}/config/idList`), idList);
             await remove(ref(db, `users/${userName}/id_${id}`));
             localStorage.removeItem(`AION_INDEX_${userName}_ID_${id}`);
+            localStorage.removeItem(`vip_exp_${userName}_${id}`);
             if (currentID === id) switchID(idList[0]);
         }
     };
@@ -508,8 +513,8 @@
         renderCharRows(data.chars || [], data.plans || []);
         renderItemRows(data.items || []);
         
-        // กู้คืนเวลา VIP จาก Data ไม่ใช้ LocalStorage ลอยๆ แล้ว
-        window.currentVipExpire = data.vipExpire || null;
+        // ⏳ กู้คืนเวลา VIP ป้องกันการหายตอนกด F5
+        window.currentVipExpire = data.vipExpire || localStorage.getItem(`vip_exp_${userName}_${currentID}`) || null;
         updateVIPDisplay(window.currentVipExpire);
         
         setTimeout(calculateAll, 50); 
@@ -526,14 +531,15 @@
             const rowIdx = tr.dataset.index;
             const card = Array.from(planCards).find(c => c.dataset.index === rowIdx);
             
-            // ดึงค่าลับที่ไม่โชว์ในหน้านี้กลับมาด้วย
+            // ดึงค่าลับที่ไม่โชว์ในหน้า Index กลับมาด้วย
             const ownPills = parseInt(tr.querySelector('.c-ownPills')?.value) || 0;
             const pillsUsed = parseInt(tr.querySelector('.c-pillsUsed')?.value) || 0;
             const lockPills = tr.querySelector('.c-lockPills')?.value || "";
             const isMain = tr.querySelector('.c-isMain')?.value === 'true';
             
-            const sancR = card ? (parseInt(card.querySelector('.c-sanc').value) || 0) : 0;
-            const sancD = card ? (card.querySelector('.c-sanc-done').value === '1') : false;
+            // อ่านค่า Sanctuary อย่างปลอดภัย ป้องกันการ Error
+            const sancR = parseInt(tr.querySelector('.c-sanc')?.value) || 0;
+            const sancD = tr.querySelector('.c-sanc-done')?.value === '1';
 
             chars.push({
                 name: tr.querySelector('.c-name').value,
@@ -571,7 +577,7 @@
             note: document.getElementById('idNote').value, 
             money: document.getElementById('moneyKinah').value,
             isVip: isVipActive,
-            vipExpire: window.currentVipExpire || null, // เซฟ VIP ไว้ใน Database ด้วยเลย ไม่หายแน่นอน
+            vipExpire: window.currentVipExpire || localStorage.getItem(`vip_exp_${userName}_${currentID}`) || null, // เซฟ VIP ไว้ป้องกันหาย
             idBuy: document.getElementById('idBuyCheck').classList.contains('active'),
             idCraft: document.getElementById('idCraftCheck').classList.contains('active'),
             idDaily: document.getElementById('idDailyCheck').classList.contains('active'),
@@ -589,6 +595,7 @@
         };
     }
 
+    // เซฟลงเครื่องทันที (0s) และหน่วงเวลา 0.5s เพื่อส่งขึ้นคลาวด์
     window.queueSave = () => {
         const data = saveToLocalFast(); 
         clearTimeout(saveTimeout);
@@ -638,6 +645,9 @@
         const pillsUsed = charData?.pillsUsed || 0;
         const lockPills = charData?.lockPills || "";
         const isMain = charData?.isMain || false;
+        
+        const sancR = charData?.sancRuns || 0;
+        const sancD = charData?.sancDone || false;
 
         tr.innerHTML = `
             <input type="hidden" class="c-ownPills" value="${ownPills}">
@@ -667,6 +677,18 @@
                 </div>
             </td>
             <td class="readonly-cell"><input type="text" class="input-cell c-total-ene" readonly style="font-weight:bold; font-size:16px;"></td>
+            <td style="background:rgba(219,39,119,0.05);">
+                <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
+                    <select class="input-cell c-sanc" onchange="queueSave()" style="width:38px; background:#0f172a; color:white; border-radius:4px; border:1px solid #db2777; outline:none; font-size:13px;" ${sancD ? 'disabled' : ''}>
+                        <option value="0" ${sancR==0?'selected':''}>0</option>
+                        <option value="2" ${sancR==2?'selected':''}>2</option>
+                        <option value="3" ${sancR==3?'selected':''}>3</option>
+                    </select>
+                    <button class="btn-action-small" style="background:${sancD ? 'var(--success)' : '#db2777'}; width:24px;" onclick="executeSanc(this)" ${sancD ? 'disabled' : ''}>${sancD ? '✔' : 'S'}</button>
+                    <input type="hidden" class="c-sanc-done" value="${sancD ? '1' : '0'}">
+                    <button class="btn-action-small btn-undo-sanc ${sancD ? '' : 'hidden'}" style="background:var(--danger); width:24px;" onclick="undoSanc(this)">U</button>
+                </div>
+            </td>
             <td style="background:rgba(37,99,235,0.05);">
                 <div class="input-split">
                     <input type="number" class="input-cell c-con-rew" value="${conR}" oninput="calculateAll()">
@@ -705,8 +727,6 @@
         
         const charName = charData?.name || `ตัวละคร ${index+1}`;
         const jobName = charData?.job || '';
-        const sancR = charData?.sancRuns || 0;
-        const sancD = charData?.sancDone || false;
 
         const conG = (planData && planData.conGoal !== undefined) ? planData.conGoal : 35;
         const traG = (planData && planData.traGoal !== undefined) ? planData.traGoal : 7;
@@ -720,7 +740,7 @@
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="background: linear-gradient(135deg, #f59e0b, #ef4444); padding: 8px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);">
+                    <div style="background: linear-gradient(135deg, #ea580c, #ef4444); padding: 8px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);">
                         <h3 style="margin:0; font-size:18px; color:white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);" class="card-title">${charName}${jobBadgeHtml}</h3>
                     </div>
                     <div style="font-size:15px; background:rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); padding:8px 15px; border-radius:8px; color:white; font-weight:bold;">
@@ -730,22 +750,6 @@
                 <button class="btn-undo-card btn-undo hidden" onclick="undoPlay(this)">↺ ยกเลิกล่าสุด</button>
             </div>
 
-            <div style="background: rgba(219, 39, 119, 0.05); border: 1px solid rgba(219, 39, 119, 0.3); border-radius: 10px; padding: 12px 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <div style="color: #db2777; font-weight: bold; font-size: 15px; display:flex; align-items:center; gap:10px;">
-                    ⛩️ โหมดพิเศษ: Sanctuary <span style="font-size:13px; font-weight:normal; color:var(--text-dim);">(หักลบ EN ล่วงหน้า)</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <select class="c-sanc" onchange="queueSave()" style="width:75px; background:#0f172a; color:white; border-radius:6px; border:1px solid #db2777; outline:none; padding:6px; font-family:'Prompt'; font-size:14px;" ${sancD ? 'disabled' : ''}>
-                        <option value="0" ${sancR==0?'selected':''}>0 รอบ</option>
-                        <option value="2" ${sancR==2?'selected':''}>2 รอบ</option>
-                        <option value="3" ${sancR==3?'selected':''}>3 รอบ</option>
-                    </select>
-                    <button class="btn-action-small" style="background:${sancD ? 'var(--success)' : '#db2777'}; width:40px; padding:6px; font-size:14px;" onclick="executeSanc(this)" ${sancD ? 'disabled' : ''}>${sancD ? '✔' : 'S'}</button>
-                    <input type="hidden" class="c-sanc-done" value="${sancD ? '1' : '0'}">
-                    <button class="btn-action-small btn-undo-sanc ${sancD ? '' : 'hidden'}" style="background:var(--danger); width:40px; padding:6px; font-size:14px;" onclick="undoSanc(this)">U</button>
-                </div>
-            </div>
-            
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                 <div style="background:rgba(37,99,235,0.05); padding:20px; border-radius:12px; border:1px solid rgba(37,99,235,0.3);">
                     <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.4); padding:12px 15px; border-radius:10px; margin-bottom:15px; border:1px solid rgba(37,99,235,0.2);">
@@ -790,13 +794,10 @@
     }
 
     window.executeSanc = (btn) => {
-        const card = btn.closest('.plan-card');
-        const idx = card.dataset.index;
-        const tr = document.querySelector(`#charBody tr[data-index="${idx}"]`);
-        
-        const sancSelect = card.querySelector('.c-sanc');
+        const tr = btn.closest('tr');
+        const sancSelect = tr.querySelector('.c-sanc');
         const runs = parseInt(sancSelect.value) || 0;
-        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary ก่อนกดปุ่ม S');
+        if (runs === 0) return alert('กรุณาเลือกรอบ Sanctuary (2 หรือ 3) ก่อนกดปุ่ม S');
         
         const cost = runs * 80;
         const baseInput = tr.querySelector('.c-base');
@@ -814,32 +815,29 @@
             bonusInput.value = Math.max(0, bonE - rem);
         }
         
-        card.querySelector('.c-sanc-done').value = '1';
+        tr.querySelector('.c-sanc-done').value = '1';
         sancSelect.disabled = true;
         btn.disabled = true;
         btn.style.background = 'var(--success)';
         btn.innerText = '✔';
-        card.querySelector('.btn-undo-sanc').classList.remove('hidden');
+        tr.querySelector('.btn-undo-sanc').classList.remove('hidden');
         
         calculateAll();
     };
 
     window.undoSanc = (btn) => {
-        const card = btn.closest('.plan-card');
-        const idx = card.dataset.index;
-        const tr = document.querySelector(`#charBody tr[data-index="${idx}"]`);
-
-        const sancSelect = card.querySelector('.c-sanc');
+        const tr = btn.closest('tr');
+        const sancSelect = tr.querySelector('.c-sanc');
         const runs = parseInt(sancSelect.value) || 0;
         const cost = runs * 80;
         
         const baseInput = tr.querySelector('.c-base');
         baseInput.value = (parseInt(baseInput.value) || 0) + cost; 
         
-        card.querySelector('.c-sanc-done').value = '0';
+        tr.querySelector('.c-sanc-done').value = '0';
         sancSelect.disabled = false;
         
-        const sBtn = card.querySelector('button[onclick="executeSanc(this)"]');
+        const sBtn = tr.querySelector('button[onclick="executeSanc(this)"]');
         sBtn.disabled = false;
         sBtn.style.background = '#db2777';
         sBtn.innerText = 'S';
@@ -864,7 +862,6 @@
         let idTotalActualRuns = 0; 
         let idTotalRem = 0;
         let idTotalGoalsOriginal = 0;
-        
         let totalProgressDone = 0;
         let totalProgressGoal = 0;
 
@@ -879,12 +876,11 @@
             const base = parseInt(tr.querySelector('.c-base').value) || 0;
             const bonus = parseInt(tr.querySelector('.c-bonus').value) || 0;
             const totalEne = base + bonus;
-            const eneInput = tr.querySelector('.c-total-ene');
             
-            // นำ Energy รวมกลับมาโชว์ตัวเลขดิบตามคำเรียกร้อง
+            // นำ Energy รวมที่เป็นตัวเลขดิบกลับมา
+            const eneInput = tr.querySelector('.c-total-ene');
             if(eneInput) eneInput.value = totalEne; 
 
-            // Sync Title & Job
             const jobStr = tr.querySelector('.c-job').value;
             const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
             card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
@@ -922,7 +918,7 @@
             idTotalRem += remGoals;
             idTotalGoalsOriginal += (conG + traG); 
             
-            // --- อัปเดต Card UI ---
+            // อัปเดต Card UI
             const conBar = card.querySelector('.p-con-bar');
             const conTxt = card.querySelector('.p-con-text');
             const conPct = conG > 0 ? Math.min(100, Math.round((conPlayed / conG) * 100)) : 0;
@@ -1194,7 +1190,9 @@
         exp.setDate(exp.getDate() + days);
         exp.setHours(exp.getHours() + hours);
         
-        window.currentVipExpire = exp.toISOString(); // เก็บลงตัวแปรหลักเพื่อเซฟลง Firebase ต่อ
+        window.currentVipExpire = exp.toISOString(); // เก็บลงตัวแปรหลัก
+        localStorage.setItem(`vip_exp_${userName}_${currentID}`, window.currentVipExpire); // เซฟเผื่อไว้ด้วย
+        
         document.getElementById('pageVipToggle').checked = true;
         isVipActive = true;
         updateVIPDisplay(window.currentVipExpire);
@@ -1212,6 +1210,7 @@
             toggle.checked = false;
             isVipActive = false;
             document.getElementById('energyValueText').innerText = "+10";
+            localStorage.removeItem(`vip_exp_${userName}_${currentID}`); // เคลียร์ถ้าไม่มี
             return;
         }
         const exp = new Date(expStr);
