@@ -154,15 +154,15 @@
                 </div>
                 <div style="display:flex; gap:15px; border-top: 1px solid #334155; padding-top:12px; margin-top:5px; flex-wrap:wrap;">
                     <div class="id-checkbox-wrapper" id="idBuyCheck" onclick="toggleIdWide('idBuyCheck')">
-                        <span style="color:var(--text-main); font-weight:bold;">Buy Energy:</span>
+                        <span style="color:var(--text-main); font-weight:bold;">Buy Energy</span>
                         <div class="check-box-ui unchecked" style="width: auto; height: auto;">✘</div>
                     </div>
                     <div class="id-checkbox-wrapper" id="idCraftCheck" onclick="toggleIdWide('idCraftCheck')">
-                        <span style="color:var(--text-main); font-weight:bold;">Craft Energy:</span>
+                        <span style="color:var(--text-main); font-weight:bold;">Craft Energy</span>
                         <div class="check-box-ui unchecked" style="width: auto; height: auto;">✘</div>
                     </div>
                     <div class="id-checkbox-wrapper" id="idDailyCheck" onclick="toggleIdWide('idDailyCheck')">
-                        <span style="color:var(--text-main); font-weight:bold;">ดันเจี้ยนรายวัน:</span>
+                        <span style="color:var(--text-main); font-weight:bold;">ดันเจี้ยนรายวัน</span>
                         <div class="check-box-ui unchecked" style="width: auto; height: auto;">✘</div>
                     </div>
                 </div>
@@ -198,7 +198,7 @@
             </div>
         </div>
 
-        <div class="plan-header">🎒 คลังเสบียงตัวละคร (Energy / ตั๋ว Reward / Final Boss)</div>
+        <div class="plan-header">🎒 ระบบจัดการตัวละคร (Energy / Reward / Final Boss)</div>
         <div class="table-wrapper" style="border-radius:0 0 12px 12px; margin-bottom:25px;">
             <table id="charTable">
                 <colgroup>
@@ -208,8 +208,8 @@
                         <th rowspan="2">ชื่อตัวละคร</th>
                         <th rowspan="2">อาชีพ</th>
                         <th colspan="2">Energy</th>
-                        <th colspan="2" style="background:rgba(37,99,235,0.15)">Conquest (ทรัพยากร)</th>
-                        <th colspan="2" style="background:rgba(147,51,234,0.15)">Transcendent (ทรัพยากร)</th>
+                        <th colspan="2" style="background:rgba(37,99,235,0.15)">Conquest </th>
+                        <th colspan="2" style="background:rgba(147,51,234,0.15)">Transcendent</th>
                         <th rowspan="2">Ascension</th>
                         <th rowspan="2">ลบ</th>
                     </tr>
@@ -224,7 +224,7 @@
                 </thead>
                 <tbody id="charBody"></tbody>
             </table>
-            <button onclick="addCharRow()" style="width:100%; padding:12px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:15px; transition:0.3s;">+ เพิ่มตัวละครใหม่เข้าทีม</button>
+            <button onclick="addCharRow()" style="width:100%; padding:12px; background:#1e293b; color:var(--success); border:none; border-top:1px solid var(--border); cursor:pointer; font-weight:bold; font-size:15px; transition:0.3s;">+ เพิ่มตัวละคร</button>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
@@ -940,7 +940,7 @@
             const btnCon = card.querySelector('.p-con-btn');
             if (conAct > 0 && !conD && conPct < 100) {
                 btnCon.disabled = false;
-                btnCon.innerHTML = `⚔️ ลงดัน Conquest <span style="color:#fbbf24;">(จัดได้อีก ${conAct} รอบ)</span>`;
+                btnCon.innerHTML = `⚔️ ลงดัน Conquest <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${conAct} รอบ)</span>`;
             } else {
                 btnCon.disabled = true;
                 btnCon.innerHTML = `⚔️ หมดโควตา / ครบเป้าหมาย`;
@@ -949,7 +949,7 @@
             const btnTra = card.querySelector('.p-tra-btn');
             if (traAct > 0 && !traD && traPct < 100) {
                 btnTra.disabled = false;
-                btnTra.innerHTML = `🌌 ลงดัน Transcendent <span style="color:#fbbf24;">(จัดได้อีก ${traAct} รอบ)</span>`;
+                btnTra.innerHTML = `🌌 ลงดัน Transcendent <span style="color:#fbbf24;">(ลงได้อีกจำนวน ${traAct} รอบ)</span>`;
             } else {
                 btnTra.disabled = true;
                 btnTra.innerHTML = `🌌 หมดโควตา / ครบเป้าหมาย`;
