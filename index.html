@@ -347,7 +347,7 @@
 
             <div style="margin-bottom:25px;">
                 <div style="font-size:16px; font-weight:bold; color:var(--gold); margin-bottom:10px;">📑 แยกรายละเอียดตามไอดี:</div>
-                <div id="idBreakdownContainer" style="max-height:300px; overflow-y:auto; padding-right:10px;">
+                <div id="idBreakdownContainer" style="max-height:400px; overflow-y:auto; padding-right:10px;">
                     </div>
             </div>
             
@@ -446,6 +446,7 @@
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
 
+    // ----------------------------------------------------
     // ฟังก์ชันแปลวันที่และเวลาเป็นภาษาไทยแบบสวยงาม (สำหรับหน้าสรุป)
     function formatThaiDateTimeCustom(d) {
         if (!d) return "";
@@ -453,12 +454,12 @@
         const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         const hh = String(d.getHours()).padStart(2, '0');
         const mm = String(d.getMinutes()).padStart(2, '0');
-        return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543} เวลา ${hh}:${mm} น.`;
+        return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} เวลา ${hh}:${mm} น.`;
     }
+    // ----------------------------------------------------
 
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
 
-    // ฟังก์ชันสำหรับหน้าสรุปเซิร์ฟเวอร์ 
     window.loadMbSettings = () => {
         const savedMb = localStorage.getItem('AION_MULTIBOX_PLANNER');
         if (savedMb) {
@@ -523,6 +524,8 @@
             });
         });
 
+        // ----------------------------------------------------
+        // โค้ดส่วนอัปเดตหน้า "สรุปภาพรวมเซิร์ฟเวอร์" (แก้เฉพาะตรงนี้ ไม่ยุ่งกับระบบเซฟ!)
         onValue(ref(db, `users/${userName}`), (snap) => {
             const allData = snap.val() || {};
             let totalKinah = 0;
@@ -538,18 +541,39 @@
 
                 let idRem = 0;
                 let idPlayable = 0;
-                let idMaxEtaDate = null;
+                
                 let isVip = false;
                 if (d.vipExpire && new Date(d.vipExpire) > now) {
                     isVip = true;
                 }
+                let regenRate = isVip ? 15 : 10;
                 let idNameDisplay = d.note || `ID ${id}`;
+
+                // โหลดข้อมูล Planner เพื่อดึงเส้นตายและการกดยา
+                let plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${id}_V16`);
+                let pData = null;
+                try { if (plannerDataStr) pData = JSON.parse(plannerDataStr); } catch(e) {}
+
+                let targetTimeStr = pData ? pData.targetTime : "";
+                let mainTargetTimeStr = pData ? pData.mainTargetTime : "";
+
+                // ตั้งเส้นตาย Default วันอังคาร 22:00
+                let defaultDeadline = new Date(now);
+                let daysToTue = (2 + 7 - now.getDay()) % 7;
+                if (daysToTue === 0 && now.getHours() >= 22) daysToTue = 7;
+                defaultDeadline.setDate(now.getDate() + daysToTue);
+                defaultDeadline.setHours(22, 0, 0, 0);
+
+                let idPillsUsed = 0;
+                let idPillsNeeded = 0;
+                let idMaxEtaDate = null;
 
                 if (d.plans && d.chars) {
                     d.plans.forEach((p, idx) => {
                         const c = d.chars[idx] || {};
-                        
-                        // 1. คำนวณรอบคงเหลือ
+                        const pdChar = (pData && pData.chars) ? pData.chars[idx] : null;
+
+                        // 1. คำนวณเป้าหมายคงเหลือ
                         let conF = p.conFb !== undefined ? p.conFb : 35;
                         let traF = p.traFb !== undefined ? p.traFb : 28;
                         let conPlayed = Math.max(0, 35 - conF);
@@ -574,25 +598,48 @@
                         
                         idPlayable += charPlayable;
 
-                        // 3. คำนวณ ETA หากรอบยังไม่ครบ
+                        // 3. ข้อมูลการกดยาและคำนวณ ETA ทันเส้นตายไหม
+                        let isMain = pdChar ? pdChar.isMain : (c.isMain || false);
+                        let pUsed = parseInt(pdChar ? pdChar.pillsUsed : c.pillsUsed) || 0;
+                        idPillsUsed += pUsed;
+
+                        let charDeadline = defaultDeadline;
+                        if (isMain && mainTargetTimeStr) charDeadline = new Date(mainTargetTimeStr);
+                        else if (targetTimeStr) charDeadline = new Date(targetTimeStr);
+
                         if (targetRem > 0) {
                             let requiredEne = targetRem * 80;
-                            if (currentEne < requiredEne) {
-                                let deficit = requiredEne - currentEne;
-                                let ticks = Math.ceil(deficit / (isVip ? 15 : 10));
-                                
-                                let dEta = new Date();
-                                dEta.setMinutes(0, 0, 0, 0);
-                                let t = 0;
-                                let safety = 0;
-                                while (t < ticks && safety < 1000) {
-                                    dEta.setHours(dEta.getHours() + 1);
-                                    if (ENERGY_MILESTONES.includes(dEta.getHours())) t++;
-                                    safety++;
+                            let deficit = requiredEne - currentEne;
+
+                            if (deficit > 0) {
+                                let regenByDeadline = 0;
+                                let checkD = new Date(now);
+                                checkD.setMinutes(0,0,0,0);
+                                let safetyCounter = 0;
+                                while(checkD < charDeadline && safetyCounter < 1000) {
+                                    checkD.setHours(checkD.getHours() + 1);
+                                    if(checkD > charDeadline) break;
+                                    if(ENERGY_MILESTONES.includes(checkD.getHours())) regenByDeadline += regenRate;
+                                    safetyCounter++;
                                 }
-                                
-                                if (!idMaxEtaDate || dEta > idMaxEtaDate) {
-                                    idMaxEtaDate = dEta;
+
+                                let missingAtDeadline = deficit - regenByDeadline;
+                                if (missingAtDeadline > 0) {
+                                    // หากรีเจนไม่ทัน ต้องกดยาเพิ่ม
+                                    idPillsNeeded += Math.ceil(missingAtDeadline / 40);
+                                    if (!idMaxEtaDate || charDeadline > idMaxEtaDate) idMaxEtaDate = charDeadline;
+                                } else {
+                                    // รีเจนทันเส้นตายแน่ๆ หาเวลาที่มันเต็ม
+                                    let etaD = new Date(now);
+                                    etaD.setMinutes(0,0,0,0);
+                                    let r = 0;
+                                    let s2 = 0;
+                                    while(r < deficit && s2 < 1000) {
+                                        etaD.setHours(etaD.getHours() + 1);
+                                        if(ENERGY_MILESTONES.includes(etaD.getHours())) r += regenRate;
+                                        s2++;
+                                    }
+                                    if (!idMaxEtaDate || etaD > idMaxEtaDate) idMaxEtaDate = etaD;
                                 }
                             }
                         }
@@ -602,28 +649,8 @@
                 totalGlobalRem += idRem;
                 totalGlobalPlayable += idPlayable;
 
-                // --- NEW: ซิงค์ข้อมูลเส้นตายจาก Planner มาแสดงผล ---
-                let targetTimeStr = "";
-                let targetTimeDate = null;
-                try {
-                    const plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${id}_V16`);
-                    if (plannerDataStr) {
-                        const pData = JSON.parse(plannerDataStr);
-                        if (pData.targetTime) {
-                            targetTimeDate = new Date(pData.targetTime);
-                            targetTimeStr = formatThaiDateTimeCustom(targetTimeDate);
-                        }
-                    }
-                } catch(e) {}
-
-                let deadlineHtml = "";
-                if (targetTimeStr) {
-                    deadlineHtml = `<span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">🎯 เส้นตาย: <b>${targetTimeStr}</b></span>`;
-                } else {
-                    deadlineHtml = `<span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; color:var(--text-dim);">🎯 เส้นตาย: อังคาร 22:00 น. (Default)</span>`;
-                }
-
-                // จัดการข้อความ ETA สำหรับไอดีนี้ และเทียบกับเส้นตาย
+                // การแสดงผลเส้นตาย
+                let deadlineText = targetTimeStr ? `🎯 เส้นตาย: ${formatThaiDateTimeCustom(new Date(targetTimeStr))}` : `🎯 เส้นตาย: อังคาร 22:00 น.`;
                 let etaText = "";
                 let etaColor = "var(--text-main)";
                 let alertIcon = "";
@@ -636,22 +663,25 @@
                     etaColor = "var(--gold)";
                 } else {
                     etaText = `⏳ รอรีเจนครบ: ${formatThaiDateTimeCustom(idMaxEtaDate)}`;
-                    etaColor = "white";
-
-                    if (targetTimeDate && idMaxEtaDate > targetTimeDate) {
-                        etaColor = "#fca5a5"; // สีแดงอ่อน
-                        alertIcon = " <b style='color:var(--danger);'>⚠️ ไม่ทันเส้นตาย!</b>";
+                    if (idPillsNeeded > 0) {
+                        etaColor = "#fca5a5";
+                        alertIcon = ` <b style='color:var(--danger);'>(พึ่งยา ${idPillsNeeded} ขวด)</b>`;
+                    } else {
+                        etaColor = "white";
+                        alertIcon = " <b style='color:var(--success);'>(ทันชัวร์)</b>";
                     }
                 }
 
-                // สร้าง HTML แสดงผลรายไอดี (เพิ่มข้อมูลการซิงค์และแจ้งเตือน)
                 idBreakdownHtml += `
-                    <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:10px; padding:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div style="font-weight:bold; color:var(--primary); font-size:16px;">💎 ${idNameDisplay}</div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:14px; align-items:center;">
+                    <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:10px; padding:15px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+                            <div style="font-weight:bold; color:var(--primary); font-size:18px;">💎 ${idNameDisplay}</div>
+                            <div style="font-size:13px; color:var(--text-dim);">${deadlineText}</div>
+                        </div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:14px; align-items:center;">
                             <span style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:4px 8px; border-radius:6px; color:#fca5a5;">เป้าเหลือ: <b>${idRem}</b> รอบ</span>
                             <span style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:6px; color:var(--success);">พร้อมลงทันที: <b style="font-size:16px;">${idPlayable}</b> รอบ</span>
-                            ${deadlineHtml}
+                            <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">💊 กดแล้ว: <b>${idPillsUsed}</b> ขวด | ต้องกดเพิ่ม: <b style="color:${idPillsNeeded > 0 ? 'var(--danger)' : 'var(--success)'}">${idPillsNeeded}</b> ขวด</span>
                             <span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; color:${etaColor};">${etaText}${alertIcon}</span>
                         </div>
                     </div>
@@ -660,7 +690,6 @@
 
             document.getElementById('globalKinahTotal').innerText = totalKinah.toLocaleString();
             
-            // อัปเดตข้อมูลบน DOM
             window.globalTotalRemCache = totalGlobalRem;
             const remEl = document.getElementById('globalTotalRem');
             if (remEl) remEl.innerText = totalGlobalRem;
@@ -673,6 +702,8 @@
 
             window.calculateGlobalTime();
         });
+        // ----------------------------------------------------
+        
         startClocks();
     }
 
