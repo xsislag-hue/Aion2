@@ -212,7 +212,7 @@
         return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543} เวลา ${hh}:${mm} น.`;
     }
 
-    // ซิงค์สถานะ VIP เพื่อคำนวณ Regen Rate ให้แม่นยำ
+    // ดึงสถานะ VIP ของ ID ปัจจุบัน
     window.getVipStatus = () => {
         try {
             const saved = localStorage.getItem(`AION_INDEX_${userName}_ID_${currentPlannerId}`);
@@ -226,6 +226,7 @@
         return false;
     };
 
+    // คำนวณ Regen โดยอิงตาม VIP ด้วย
     function calcRegenToDate(targetD) {
         if (!targetD) return 0;
         let isVip = window.getVipStatus();
@@ -568,11 +569,28 @@
                 conStock, traStock, alreadyDone, 
                 rawTargetTotal, netTargetTotal, conLeft, traLeft, tCon, tTra,
                 conFromPool: 0, traFromPool: 0,
-                evalTargetDate: null, evalFutureRegen: 0, hasDeadline: false
+                evalTargetDate: null, evalFutureRegen: 0, hasDeadline: false,
+                pillsNeededNow: 0, pillsNeededDeadline: 0
             });
         });
 
         let poolEn = Math.max(0, originalPoolEn - totalPillsAlreadyUsed);
+
+        charsData.forEach(c => {
+            if (c.isMain) {
+                c.evalTargetDate = mainTargetDate;
+                c.evalFutureRegen = mainFutureRegen;
+                c.hasDeadline = !!mainTargetDateStr; 
+            } else {
+                c.evalTargetDate = targetDate;
+                c.evalFutureRegen = globalFutureRegen;
+                c.hasDeadline = !!targetDateStr;
+            }
+            
+            // คำนวณความต้องการยา EN เปรียบเทียบ ตอนนี้ vs เส้นตาย
+            c.pillsNeededNow = Math.ceil(Math.max(0, (c.netTargetTotal * 80) + c.sancCost - c.currentBaseEn) / 40);
+            c.pillsNeededDeadline = Math.ceil(Math.max(0, (c.netTargetTotal * 80) + c.sancCost - c.currentBaseEn - c.evalFutureRegen) / 40);
+        });
 
         function allocatePills(c, amount) {
             let given = 0;
@@ -585,22 +603,10 @@
             c.usedSharedPills += fromShared;
             poolEn -= fromShared;
             given += fromShared;
-            
             return given;
         }
 
-        charsData.forEach(c => {
-            if (c.isMain) {
-                c.evalTargetDate = mainTargetDate;
-                c.evalFutureRegen = mainFutureRegen;
-                c.hasDeadline = !!mainTargetDateStr; 
-            } else {
-                c.evalTargetDate = targetDate;
-                c.evalFutureRegen = globalFutureRegen;
-                c.hasDeadline = !!targetDateStr;
-            }
-        });
-
+        // จ่ายยาให้ตัวที่โดนล็อคไว้ก่อน
         charsData.forEach(c => {
             if (c.isPillsLocked) {
                 allocatePills(c, c.lockedPillsValue);
@@ -613,7 +619,6 @@
 
         function allocateRewards(c) {
             let charOwnRew = c.ownRew;
-            
             let conNeed = Math.max(0, c.conLeft - c.conStock);
             let conFromOwn = Math.min(conNeed, charOwnRew);
             charOwnRew -= conFromOwn;
@@ -635,27 +640,15 @@
         if (mainChar) allocateRewards(mainChar);
         otherChars.forEach(c => allocateRewards(c));
 
-        // แก้ไขบัค Greedy: จัดสรรยาเฉพาะกรณีที่เป้าหมาย "หลังรวมรีเจนฟรี" ยังคงติดลบ
+        // แจกยาที่เหลือให้เฉพาะตัวที่ขาดจริงๆ (คำนวณหักรีเจนเส้นตายแล้ว)
         if (mainChar && !mainChar.isPillsLocked) {
-            let requiredEn = (mainChar.netTargetTotal * 80) + mainChar.sancCost;
-            let projectedEn = mainChar.currentBaseEn + mainChar.evalFutureRegen;
-            let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) {
-                allocatePills(mainChar, Math.ceil(deficit / 40));
-            }
+            if (mainChar.pillsNeededDeadline > 0) allocatePills(mainChar, mainChar.pillsNeededDeadline);
         }
         
         otherChars.forEach(c => {
             if (c.isPillsLocked) return;
-            let requiredEn = (c.netTargetTotal * 80) + c.sancCost;
-            let projectedEn = c.currentBaseEn + c.evalFutureRegen; 
-            let deficit = Math.max(0, requiredEn - projectedEn);
-            if (deficit > 0) {
-                allocatePills(c, Math.ceil(deficit / 40));
-            }
+            if (c.pillsNeededDeadline > 0) allocatePills(c, c.pillsNeededDeadline);
         });
-
-        // ลบ while loop จอมตะกละทิ้ง! ระบบจะไม่ดึงยามาเติมเกินความจำเป็นของเส้นตายแล้ว
 
         let logHtml = "";
         let totalNetRounds = 0;
@@ -790,18 +783,39 @@
             let sancLabel = c.isSancDone ? `<div style="color:var(--success); margin-top:5px; padding-left:10px; font-weight:bold;">⛩️ Sanctuary: ลงไปแล้ว ${c.sancRuns} รอบ (EN ถูกหักแล้ว)</div>` : 
                             (c.sancRuns > 0 ? `<div style="color:#db2777; margin-top:5px; padding-left:10px; font-weight:bold;">⛩️ หัก EN ให้ Sanctuary ล่วงหน้า: -${c.sancCost} EN</div>` : "");
 
+            let targetUI = `
+                <div style="background:rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); padding:10px 20px; border-radius:10px; color:white; font-weight:bold; text-align:center; min-width: 140px;">
+                    🎯 เป้าที่ต้องทำเพิ่ม<br>
+                    <span style="font-size:32px; color:var(--gold); line-height:1;">${c.netTargetTotal}</span> <span style="font-size:16px;">รอบ</span>
+                </div>
+            `;
+
+            let pillsInfoUI = `
+                <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:14px; align-items:center; margin-top:10px; margin-bottom:10px;">
+                    <span style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:6px 12px; border-radius:6px; color:#fca5a5;">⚡ ถ้ารีบลงตอนนี้: ขาดยา <b>${c.pillsNeededNow}</b> ขวด</span>
+                    <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:6px 12px; border-radius:6px; color:var(--gold);">⏳ ถ้าลุยตอนเส้นตาย: ขาดยา <b>${c.pillsNeededDeadline}</b> ขวด</span>
+                </div>
+            `;
+
             logHtml += `
                 <div class="log-card" style="border-left-color: ${borderStyle}; ${c.isMain ? 'box-shadow: 0 0 15px rgba(251,191,36,0.2);' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <b style="font-size:20px; color:${c.isMain ? 'var(--gold)' : 'var(--primary)'}">${c.isMain ? '👑 ' : ''}${c.name}</b> 
-                            <span class="badge-info">เป้าหมายรวม: ต้องทำเพิ่ม ${c.netTargetTotal} รอบ</span>
-                            ${c.isMain ? `<span style="color:var(--gold); font-size:12px; margin-left:10px;">⭐ [เส้นตายตัวหลัก: ${deadlineLabel}]</span>` : ''}
+                            <b style="font-size:24px; color:${c.isMain ? 'var(--gold)' : 'var(--primary)'}">${c.isMain ? '👑 ' : ''}${c.name}</b> 
+                            ${c.isMain ? `<div style="color:var(--gold); font-size:13px; margin-top:5px;">⭐ [เส้นตาย: ${deadlineLabel}]</div>` : `<div style="color:var(--text-dim); font-size:13px; margin-top:5px;">[เส้นตาย: ${deadlineLabel}]</div>`}
                         </div>
-                        <b style="font-size:22px; color:${isSuccess ? 'var(--success)' : 'var(--gold)'}">
-                            ลงได้รวมตอนนี้เลย: ${canDoNow} / ${c.netTargetTotal} รอบ
-                        </b>
+                        <div style="display:flex; gap:15px; align-items:center;">
+                            <div style="text-align:right;">
+                                <div style="font-size:14px; color:var(--text-dim);">ลงได้รวมตอนนี้เลย</div>
+                                <b style="font-size:26px; color:${isSuccess ? 'var(--success)' : 'var(--gold)'}">
+                                    ${canDoNow} / ${c.netTargetTotal}
+                                </b>
+                            </div>
+                            ${targetUI}
+                        </div>
                     </div>
+                    
+                    ${pillsInfoUI}
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:15px;">
                         <div style="background: linear-gradient(to bottom, rgba(37,99,235,0.15), rgba(37,99,235,0.05)); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(37,99,235,0.4); box-shadow: inset 0 0 20px rgba(37,99,235,0.1); position: relative;">
@@ -862,24 +876,30 @@
             </div>
         `;
 
-        // 🔮 ระบบทำนายอนาคต (รอบ 6 วัน ปรับปรุงใหม่ตามรอบรีเซ็ตพุธ)
+        // 🔮 ระบบแนะนำตุนของสัปดาห์นี้ (สำหรับเป้าสัปดาห์หน้า กวาดของกองกลางทิ้งให้หมด 100%)
         const suggestBox = document.getElementById('leftoverSuggestion');
         let isVipForFuture = window.getVipStatus();
         let weeklyFreeEn = isVipForFuture ? 720 : 480; 
 
-        let futureHtml = `<div style="font-size:20px; font-weight:bold; margin-bottom:10px; color:var(--gold);">🔮 ประเมินโควตาร้านค้าสัปดาห์หน้า (ปิดยอดวันอังคาร 22:00 น.)</div>`;
+        let futureHtml = `<div style="font-size:20px; font-weight:bold; margin-bottom:10px; color:var(--gold);">🔮 คำแนะนำการตุนของสัปดาห์นี้ (เพื่อเป้าหมายสัปดาห์หน้า)</div>`;
         futureHtml += `<div style="font-size:14px; color:#cbd5e1; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
-            <b>วันพุธ 02:30 น.</b> ร้านค้าจะรีเซ็ตโควตาให้ใหม่ (ยา 41 ขวด, ใบ 21 ใบ)<br>
-            อิงจากเป้าหมายที่สำเร็จแล้วในสัปดาห์นี้ หากต้องการเล่น 6 วันในสัปดาห์หน้า คุณจะมีการดึงโควตาใหม่มาใช้ดังนี้:</div>`;
+            เพื่อไม่ให้เสียโควตาที่ต้องรีเซ็ตทิ้งฟรีๆ AI ขอแนะนำให้ดึงของกองกลางที่เหลือ <b>"นำไปซื้อดองใส่กระเป๋าติดตัว"</b> ดังนี้:</div>`;
         
+        let simPoolEn = poolEn;
+        let simPoolRew = poolRew;
         let futureList = "";
-        let totalNextWeekPillDemand = 0;
-        let totalNextWeekRewDemand = 0;
+        let charNeeds = [];
+        let mainCharForHoard = charsData.find(c => c.isMain) || charsData[0];
 
         charsData.forEach(c => {
             let nextReqEn = c.rawTargetTotal * 80;
             let missingEn = Math.max(0, nextReqEn - weeklyFreeEn); 
             let nextPillsNeeded = Math.ceil(missingEn / 40);
+            
+            // เช็คว่าถ้าตัวไหนล็อคยา 0 ขวด ก็จะไม่แจกยาให้ เพื่อให้ยาเด้งไปเข้าคลังตัวหลักแทน
+            if (c.isPillsLocked) {
+                nextPillsNeeded = Math.min(nextPillsNeeded, c.lockedPillsValue);
+            }
             
             let missingConRew = Math.max(0, c.tCon - 12); 
             let missingTraRew = Math.max(0, c.tTra - 12);
@@ -888,63 +908,64 @@
             let leftoverOwnPills = c.ownPills - c.usedOwnPills;
             let leftoverOwnRew = c.ownRew - c.usedOwnRew;
 
-            let finalPillsToUse = Math.max(0, nextPillsNeeded - leftoverOwnPills);
-            let finalRewToUse = Math.max(0, totalRewNeeded - leftoverOwnRew);
+            let finalPillsNeed = Math.max(0, nextPillsNeeded - leftoverOwnPills);
+            let finalRewNeed = Math.max(0, totalRewNeeded - leftoverOwnRew);
             
-            totalNextWeekPillDemand += finalPillsToUse;
-            totalNextWeekRewDemand += finalRewToUse;
+            charNeeds.push({ c: c, pills: finalPillsNeed, rews: finalRewNeed, allocatedPills: 0, allocatedRews: 0 });
+        });
 
-            if(finalPillsToUse > 0 || finalRewToUse > 0) {
+        // 1. แจกจ่ายตามความจำเป็นของแต่ละคนก่อน
+        charNeeds.sort((a, b) => (b.c.isMain ? 1 : 0) - (a.c.isMain ? 1 : 0));
+        charNeeds.forEach(need => {
+            if (simPoolEn > 0 && need.pills > 0) {
+                let take = Math.min(need.pills, simPoolEn);
+                need.allocatedPills += take;
+                simPoolEn -= take;
+            }
+            if (simPoolRew > 0 && need.rews > 0) {
+                let take = Math.min(need.rews, simPoolRew);
+                need.allocatedRews += take;
+                simPoolRew -= take;
+            }
+        });
+
+        // 2. เทยากองกลาง/ใบกองกลาง ที่เหลือทั้งหมด 100% ยัดใส่ "ตัวละครหลัก" เพื่อไม่ให้เสียของ
+        if (simPoolEn > 0 || simPoolRew > 0) {
+            let mainNeed = charNeeds.find(n => n.c === mainCharForHoard);
+            if (mainNeed) {
+                mainNeed.allocatedPills += simPoolEn;
+                mainNeed.allocatedRews += simPoolRew;
+                simPoolEn = 0;
+                simPoolRew = 0;
+            }
+        }
+
+        // 3. สร้าง UI สรุปการย้ายของ
+        charNeeds.forEach(need => {
+            let gotPills = need.allocatedPills > 0;
+            let gotRews = need.allocatedRews > 0;
+            
+            if (gotPills || gotRews) {
                 futureList += `
-                    <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px; border-left:4px solid ${c.isMain?'var(--gold)':'var(--primary)'}; margin-bottom:8px; font-size:15px;">
-                        <b style="color:${c.isMain?'var(--gold)':'var(--text-main)'}">${c.isMain?'👑 ':''}${c.name}</b> 
-                        <span style="color:var(--text-dim); font-size:13px;">(เป้า ${c.rawTargetTotal} รอบ)</span> ➡️ 
-                        ${finalPillsToUse > 0 ? `ดึงโควตายาใหม่ <b style="color:var(--gold)">${finalPillsToUse}</b> ขวด` : ''} 
-                        ${(finalPillsToUse > 0 && finalRewToUse > 0) ? ' | ' : ''}
-                        ${finalRewToUse > 0 ? `ดึงโควตาใบใหม่ <b style="color:var(--success)">${finalRewToUse}</b> ใบ` : ''}
+                    <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px; border-left:4px solid ${need.c.isMain?'var(--gold)':'var(--primary)'}; margin-bottom:8px; font-size:15px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span><b style="color:${need.c.isMain?'var(--gold)':'var(--text-main)'}">${need.c.isMain?'👑 ':''}${need.c.name}</b> <span style="color:var(--text-dim); font-size:13px;">(เป้า ${need.c.rawTargetTotal} รอบ)</span></span>
+                        </div>
+                        <div style="color:var(--success); font-size:14px; margin-top:6px; padding-top:6px; border-top:1px dashed #334155;">
+                            ✅ <b>ให้ดึงของกองกลาง ย้ายมาตุนเข้าช่อง "ติดตัว" ของตัวนี้:</b> <br>
+                            ${gotPills ? `👉 ซื้อยามาดอง <b>${need.allocatedPills}</b> ขวด ` : ''}
+                            ${gotRews ? `👉 ซื้อใบมาดอง <b>${need.allocatedRews}</b> ใบ` : ''}
+                        </div>
                     </div>
                 `;
             }
         });
-        
+
         if(futureList === "") {
-             futureList = `<div style="color:var(--success); font-size:16px; padding:10px;">🎉 <b>พึ่งพารีเจนฟรีได้ 100%!</b> (สัปดาห์หน้าไม่ต้องใช้โควตาร้านค้าเลย)</div>`;
+             futureList = `<div style="color:var(--success); font-size:16px; padding:10px;">🎉 กองกลางสัปดาห์นี้ใช้เกลี้ยงแล้ว ไม่มีของเหลือให้ดอง!</div>`;
         }
 
-        let netPillsDemand = Math.max(0, totalNextWeekPillDemand - poolEn);
-        let netRewDemand = Math.max(0, totalNextWeekRewDemand - poolRew);
-
-        let quotaPillsHtml = "";
-        if (netPillsDemand > 41) {
-            let hoardNeed = netPillsDemand - 41;
-            quotaPillsHtml = `<span style="color:var(--danger); font-weight:bold;">${netPillsDemand} / 41 ขวด <br>⚠️ เกินโควตารายสัปดาห์! (ต้องบังคับซื้อยาตุนไว้ตั้งแต่สัปดาห์นี้อย่างน้อย ${hoardNeed} ขวด)</span>`;
-        } else {
-            quotaPillsHtml = `<span style="color:var(--success); font-weight:bold;">${netPillsDemand} / 41 ขวด (ซื้อสัปดาห์หน้าได้สบาย ไม่ต้องตุน)</span>`;
-        }
-
-        let quotaRewHtml = "";
-        if (netRewDemand > 21) {
-            let hoardNeed = netRewDemand - 21;
-            quotaRewHtml = `<span style="color:var(--danger); font-weight:bold;">${netRewDemand} / 21 ใบ <br>⚠️ เกินโควตารายสัปดาห์! (ต้องบังคับซื้อใบตุนไว้ตั้งแต่สัปดาห์นี้อย่างน้อย ${hoardNeed} ใบ)</span>`;
-        } else {
-            quotaRewHtml = `<span style="color:var(--success); font-weight:bold;">${netRewDemand} / 21 ใบ (ซื้อสัปดาห์หน้าได้สบาย ไม่ต้องตุน)</span>`;
-        }
-        
         futureHtml += futureList;
-        
-        futureHtml += `<div style="margin-top:15px; padding:15px; background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:10px;">
-            <div style="font-size:16px; font-weight:bold; margin-bottom:8px; color:white;">📦 สรุปยอดดึงโควตากองกลางสัปดาห์หน้า:</div>
-            <div style="font-size:15px; margin-bottom:10px;">💊 ยา EN: ${quotaPillsHtml}</div>
-            <div style="font-size:15px;">🎟️ ใบ Reward: ${quotaRewHtml}</div>
-        </div>`;
-
-        if (poolEn > 0 || poolRew > 0) {
-            futureHtml += `<div style="margin-top:15px; padding:15px; background:rgba(16,185,129,0.15); border:1px solid var(--success); border-radius:10px;">
-                <div style="color:var(--success); font-weight:bold; font-size:16px; margin-bottom:5px;">✨ กองกลางสัปดาห์นี้ยังมีของเหลือ! (ยา ${poolEn} ขวด | ใบ ${poolRew} ใบ)</div>
-                <div style="font-size:14px; color:#e2e8f0;">👉 <b>AI แนะนำ:</b> สามารถปล่อยทิ้งไว้ในกองกลาง หรือโอนย้ายไปยัดใส่ "ติดตัว" ให้ตัวละครต่างๆ ไว้เลย เพื่อลดภาระการใช้โควตาร้านค้าของสัปดาห์หน้าได้ครับ</div>
-            </div>`;
-        }
-
         suggestBox.innerHTML = futureHtml;
         suggestBox.style.display = 'block';
 
