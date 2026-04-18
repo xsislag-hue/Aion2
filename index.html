@@ -446,7 +446,6 @@
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
 
-    // ----------------------------------------------------
     // ฟังก์ชันแปลวันที่และเวลาเป็นภาษาไทยแบบสวยงาม (สำหรับหน้าสรุป)
     function formatThaiDateTimeCustom(d) {
         if (!d) return "";
@@ -456,7 +455,6 @@
         const mm = String(d.getMinutes()).padStart(2, '0');
         return `วัน${days[d.getDay()]}ที่ ${d.getDate()} ${months[d.getMonth()]} เวลา ${hh}:${mm} น.`;
     }
-    // ----------------------------------------------------
 
     document.getElementById('currentUserLabel').innerText = `👤 User: ${userName}`;
 
@@ -524,8 +522,6 @@
             });
         });
 
-        // ----------------------------------------------------
-        // โค้ดส่วนอัปเดตหน้า "สรุปภาพรวมเซิร์ฟเวอร์" (แก้เฉพาะตรงนี้ ไม่ยุ่งกับระบบเซฟ!)
         onValue(ref(db, `users/${userName}`), (snap) => {
             const allData = snap.val() || {};
             let totalKinah = 0;
@@ -541,6 +537,10 @@
 
                 let idRem = 0;
                 let idPlayable = 0;
+                let idPillsNeededNow = 0;
+                let idPillsNeededDeadline = 0;
+                let idPillsUsed = 0;
+                let idMaxEtaDate = null;
                 
                 let isVip = false;
                 if (d.vipExpire && new Date(d.vipExpire) > now) {
@@ -549,7 +549,6 @@
                 let regenRate = isVip ? 15 : 10;
                 let idNameDisplay = d.note || `ID ${id}`;
 
-                // โหลดข้อมูล Planner เพื่อดึงเส้นตายและการกดยา
                 let plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${id}_V16`);
                 let pData = null;
                 try { if (plannerDataStr) pData = JSON.parse(plannerDataStr); } catch(e) {}
@@ -557,23 +556,17 @@
                 let targetTimeStr = pData ? pData.targetTime : "";
                 let mainTargetTimeStr = pData ? pData.mainTargetTime : "";
 
-                // ตั้งเส้นตาย Default วันอังคาร 22:00
                 let defaultDeadline = new Date(now);
                 let daysToTue = (2 + 7 - now.getDay()) % 7;
                 if (daysToTue === 0 && now.getHours() >= 22) daysToTue = 7;
                 defaultDeadline.setDate(now.getDate() + daysToTue);
                 defaultDeadline.setHours(22, 0, 0, 0);
 
-                let idPillsUsed = 0;
-                let idPillsNeeded = 0;
-                let idMaxEtaDate = null;
-
                 if (d.plans && d.chars) {
                     d.plans.forEach((p, idx) => {
                         const c = d.chars[idx] || {};
                         const pdChar = (pData && pData.chars) ? pData.chars[idx] : null;
 
-                        // 1. คำนวณเป้าหมายคงเหลือ
                         let conF = p.conFb !== undefined ? p.conFb : 35;
                         let traF = p.traFb !== undefined ? p.traFb : 28;
                         let conPlayed = Math.max(0, 35 - conF);
@@ -584,7 +577,6 @@
 
                         idRem += targetRem;
 
-                        // 2. คำนวณรอบที่ลงได้ทันที
                         let currentEne = (parseInt(c.base) || 0) + (parseInt(c.bonus) || 0);
                         let eneRuns = Math.floor(currentEne / 80);
                         let conTick = (parseInt(p.conRew) || 0) + (parseInt(p.conBon) || 0);
@@ -598,7 +590,6 @@
                         
                         idPlayable += charPlayable;
 
-                        // 3. ข้อมูลการกดยาและคำนวณ ETA ทันเส้นตายไหม
                         let isMain = pdChar ? pdChar.isMain : (c.isMain || false);
                         let pUsed = parseInt(pdChar ? pdChar.pillsUsed : c.pillsUsed) || 0;
                         idPillsUsed += pUsed;
@@ -609,9 +600,11 @@
 
                         if (targetRem > 0) {
                             let requiredEne = targetRem * 80;
-                            let deficit = requiredEne - currentEne;
+                            let deficitNow = requiredEne - currentEne;
+                            
+                            if (deficitNow > 0) {
+                                idPillsNeededNow += Math.ceil(deficitNow / 40);
 
-                            if (deficit > 0) {
                                 let regenByDeadline = 0;
                                 let checkD = new Date(now);
                                 checkD.setMinutes(0,0,0,0);
@@ -623,18 +616,16 @@
                                     safetyCounter++;
                                 }
 
-                                let missingAtDeadline = deficit - regenByDeadline;
-                                if (missingAtDeadline > 0) {
-                                    // หากรีเจนไม่ทัน ต้องกดยาเพิ่ม
-                                    idPillsNeeded += Math.ceil(missingAtDeadline / 40);
+                                let deficitDeadline = deficitNow - regenByDeadline;
+                                if (deficitDeadline > 0) {
+                                    idPillsNeededDeadline += Math.ceil(deficitDeadline / 40);
                                     if (!idMaxEtaDate || charDeadline > idMaxEtaDate) idMaxEtaDate = charDeadline;
                                 } else {
-                                    // รีเจนทันเส้นตายแน่ๆ หาเวลาที่มันเต็ม
                                     let etaD = new Date(now);
                                     etaD.setMinutes(0,0,0,0);
                                     let r = 0;
                                     let s2 = 0;
-                                    while(r < deficit && s2 < 1000) {
+                                    while(r < deficitNow && s2 < 1000) {
                                         etaD.setHours(etaD.getHours() + 1);
                                         if(ENERGY_MILESTONES.includes(etaD.getHours())) r += regenRate;
                                         s2++;
@@ -649,27 +640,24 @@
                 totalGlobalRem += idRem;
                 totalGlobalPlayable += idPlayable;
 
-                // การแสดงผลเส้นตาย
                 let deadlineText = targetTimeStr ? `🎯 เส้นตาย: ${formatThaiDateTimeCustom(new Date(targetTimeStr))}` : `🎯 เส้นตาย: อังคาร 22:00 น.`;
-                let etaText = "";
-                let etaColor = "var(--text-main)";
-                let alertIcon = "";
-
+                
+                let etaHtml = "";
                 if (idRem === 0) {
-                    etaText = "✅ เคลียร์เป้าหมายครบแล้ว";
-                    etaColor = "var(--success)";
-                } else if (!idMaxEtaDate || idMaxEtaDate <= now) {
-                    etaText = "🔥 พลังงานพร้อมลุยครบแล้ว!";
-                    etaColor = "var(--gold)";
+                    etaHtml = `<span style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:6px; color:var(--success);">✅ เคลียร์เป้าหมายครบแล้ว</span>`;
                 } else {
-                    etaText = `⏳ รอรีเจนครบ: ${formatThaiDateTimeCustom(idMaxEtaDate)}`;
-                    if (idPillsNeeded > 0) {
-                        etaColor = "#fca5a5";
-                        alertIcon = ` <b style='color:var(--danger);'>(พึ่งยา ${idPillsNeeded} ขวด)</b>`;
+                    let pillsNowHtml = `<span style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:4px 8px; border-radius:6px; color:#fca5a5;">⚡ ถ้ารีบลงตอนนี้: ต้องกดยาเพิ่ม <b>${idPillsNeededNow}</b> ขวด</span>`;
+                    
+                    let deadlineEtaHtml = "";
+                    if (idPillsNeededDeadline > 0) {
+                        deadlineEtaHtml = `<span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">⏳ ถ้าลุยตอนเส้นตาย: ต้องกดยาเพิ่ม <b>${idPillsNeededDeadline}</b> ขวด</span>`;
+                    } else if (!idMaxEtaDate || idMaxEtaDate <= now) {
+                        deadlineEtaHtml = `<span style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:6px; color:var(--success);">🔥 พลังงานพร้อมลุยครบแล้ว! ไม่ต้องใช้ยา</span>`;
                     } else {
-                        etaColor = "white";
-                        alertIcon = " <b style='color:var(--success);'>(ทันชัวร์)</b>";
+                        deadlineEtaHtml = `<span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; color:white;">⏳ รอรีเจนครบ: <b>${formatThaiDateTimeCustom(idMaxEtaDate)}</b> (ไม่ต้องใช้ยา)</span>`;
                     }
+
+                    etaHtml = `${pillsNowHtml} ${deadlineEtaHtml}`;
                 }
 
                 idBreakdownHtml += `
@@ -681,8 +669,8 @@
                         <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:14px; align-items:center;">
                             <span style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:4px 8px; border-radius:6px; color:#fca5a5;">เป้าเหลือ: <b>${idRem}</b> รอบ</span>
                             <span style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:6px; color:var(--success);">พร้อมลงทันที: <b style="font-size:16px;">${idPlayable}</b> รอบ</span>
-                            <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">💊 กดแล้ว: <b>${idPillsUsed}</b> ขวด | ต้องกดเพิ่ม: <b style="color:${idPillsNeeded > 0 ? 'var(--danger)' : 'var(--success)'}">${idPillsNeeded}</b> ขวด</span>
-                            <span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; color:${etaColor};">${etaText}${alertIcon}</span>
+                            <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">💊 กดแล้ว: <b>${idPillsUsed}</b> ขวด</span>
+                            ${etaHtml}
                         </div>
                     </div>
                 `;
@@ -702,8 +690,6 @@
 
             window.calculateGlobalTime();
         });
-        // ----------------------------------------------------
-        
         startClocks();
     }
 
