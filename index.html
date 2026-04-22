@@ -172,6 +172,24 @@
                         <div class="check-box-ui unchecked" style="width: auto; height: auto;">✘</div>
                     </div>
                 </div>
+
+                <div style="width: 100%; margin-top: 5px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div style="font-size:15px; font-weight:bold; color:white; display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:18px;">📦</span> คลังส่วนกลาง (ดึงจาก Planner)
+                    </div>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="display:flex; align-items:center; gap:8px; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:6px 12px; border-radius:8px;">
+                            <span style="color:var(--gold); font-size:13px; font-weight:bold;">ยา EN (ขวด):</span>
+                            <input type="number" id="idxPoolEn" value="41" style="width:55px; background:#0f172a; border:1px solid var(--gold); color:white; border-radius:6px; text-align:center; outline:none; font-family:'Prompt'; font-weight:bold; font-size:15px;" oninput="updatePlannerPools()">
+                            <span style="font-size:12px; color:var(--text-dim); margin-left:5px;">ใช้ไป <span id="idxUsedEn" style="color:var(--danger); font-weight:bold;">0</span> ➡️ เหลือ <span id="idxRemEn" style="color:var(--success); font-weight:bold; font-size:16px;">41</span></span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:6px 12px; border-radius:8px;">
+                            <span style="color:var(--success); font-size:13px; font-weight:bold;">ใบ Reward:</span>
+                            <input type="number" id="idxPoolRew" value="21" style="width:55px; background:#0f172a; border:1px solid var(--success); color:white; border-radius:6px; text-align:center; outline:none; font-family:'Prompt'; font-weight:bold; font-size:15px;" oninput="updatePlannerPools()">
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div style="background: #111827; border-radius: 15px; padding: 15px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: center;">
                 <div style="color:var(--text-dim); font-size:14px; font-weight:600;">⚔️ ลงได้จริงรวม (เฉพาะไอดีนี้)</div>
@@ -446,7 +464,7 @@
     const ENERGY_MILESTONES = [1, 4, 7, 10, 13, 16, 19, 22];
     const REWARD_HOURS = [4, 16];
 
-    // ฟังก์ชันแปลวันที่และเวลาเป็นภาษาไทยแบบสวยงาม (สำหรับหน้าสรุป)
+    // ฟังก์ชันแปลวันที่และเวลาเป็นภาษาไทยแบบสวยงาม
     function formatThaiDateTimeCustom(d) {
         if (!d) return "";
         const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
@@ -471,6 +489,20 @@
             } catch(e) {}
         }
     };
+
+    // --- ฟังก์ชันอัปเดตและบันทึกคลังส่วนกลางไปให้ Planner ---
+    window.updatePlannerPools = () => {
+        let plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${currentID}_V16`);
+        let pData = { poolEn: 41, poolRew: 21, chars: [] };
+        try { if (plannerDataStr) pData = JSON.parse(plannerDataStr); } catch(e) {}
+        
+        pData.poolEn = parseInt(document.getElementById('idxPoolEn').value) || 0;
+        pData.poolRew = parseInt(document.getElementById('idxPoolRew').value) || 0;
+        
+        localStorage.setItem(`AION_PLANNER_${userName}_ID_${currentID}_V16`, JSON.stringify(pData));
+        window.calculateAll(); // สั่งอัปเดต UI ทันทีเมื่อกรอกเลข
+    };
+    // --------------------------------------------------------
 
     initSystem();
 
@@ -669,8 +701,8 @@
                         <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:14px; align-items:center;">
                             <span style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); padding:4px 8px; border-radius:6px; color:#fca5a5;">เป้าเหลือ: <b>${idRem}</b> รอบ</span>
                             <span style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:6px; color:var(--success);">พร้อมลงทันที: <b style="font-size:16px;">${idPlayable}</b> รอบ</span>
-                            <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">💊 กดแล้ว: <b>${idPillsUsed}</b> ขวด</span>
-                            ${etaHtml}
+                            <span style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:4px 8px; border-radius:6px; color:var(--gold);">💊 กดแล้ว: <b>${idPillsUsed}</b> ขวด | ต้องกดเพิ่ม: <b style="color:${idPillsNeededNow > 0 ? 'var(--danger)' : 'var(--success)'}">${idPillsNeededNow}</b> ขวด</span>
+                            <span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; color:white;">${etaHtml}</span>
                         </div>
                     </div>
                 `;
@@ -780,6 +812,17 @@
 
         document.getElementById('sum-con-count').value = data.sumCon || 0;
         document.getElementById('sum-tra-count').value = data.sumTra || 0;
+
+        // --- โหลดข้อมูลคลังส่วนกลางลง DOM (ซิงค์ Planner) ---
+        let plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${currentID}_V16`);
+        let pData = null;
+        try { if (plannerDataStr) pData = JSON.parse(plannerDataStr); } catch(e) {}
+        
+        const poolEnInput = document.getElementById('idxPoolEn');
+        const poolRewInput = document.getElementById('idxPoolRew');
+        if (poolEnInput) poolEnInput.value = pData && pData.poolEn !== undefined ? pData.poolEn : 41;
+        if (poolRewInput) poolRewInput.value = pData && pData.poolRew !== undefined ? pData.poolRew : 21;
+        // --------------------------------------------------
 
         renderCharRows(data.chars || [], data.plans || []);
         renderItemRows(data.items || []);
@@ -984,19 +1027,19 @@
 
         window.undoHistories[index] = []; 
 
-        const jobBadgeHtml = jobName ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobName}</span>` : `<span class="card-job"></span>`;
-
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:15px; margin-bottom:15px;">
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="background: linear-gradient(135deg, #ea580c, #ef4444); padding: 8px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);">
-                        <h3 style="margin:0; font-size:18px; color:white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);" class="card-title">${charName}${jobBadgeHtml}</h3>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 8px 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); border: 1px solid #93c5fd;">
+                        <h3 style="margin:0; font-size:18px; color:white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);" class="card-title-name">${charName}</h3>
                     </div>
-                    <div style="font-size:15px; background:rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); padding:8px 15px; border-radius:8px; color:white; font-weight:bold;">
-                        🎯 เป้าหมายรวมที่ต้องทำเพิ่ม: <span class="card-rem" style="font-size:20px; color:var(--gold); margin:0 5px;">0</span> รอบ
+                    <div class="card-title-job-container">
+                        ${jobName ? `<div style="background: linear-gradient(135deg, #b45309, #f59e0b); padding: 8px 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4); border: 1px solid #fde68a;"><span style="color:white; font-size:15px; font-weight:bold;" class="card-title-job">${jobName}</span></div>` : ``}
                     </div>
                 </div>
-                <button class="btn-undo-card btn-undo hidden" onclick="undoPlay(this)">↺ ยกเลิกล่าสุด</button>
+                <div style="font-size:15px; background:rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.5); padding:8px 15px; border-radius:8px; color:white; font-weight:bold;">
+                    🎯 เป้าหมายรวมที่ต้องทำเพิ่ม: <span class="card-rem" style="font-size:20px; color:var(--gold); margin:0 5px;">0</span> รอบ
+                </div>
             </div>
 
             <div style="background: rgba(219, 39, 119, 0.05); border: 1px solid rgba(219, 39, 119, 0.3); border-radius: 10px; padding: 12px 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -1054,6 +1097,9 @@
                     </button>
                 </div>
             </div>
+            
+            <div class="p-suggestion-box" style="margin-top: 15px;"></div>
+            <button class="btn-undo-card btn-undo hidden" onclick="undoPlay(this)" style="width:100%; margin-top:15px;">↺ ยกเลิกล่าสุด</button>
         `;
         container.appendChild(div);
     }
@@ -1140,6 +1186,36 @@
             const charRows = document.querySelectorAll('#charBody tr');
             const planCards = document.querySelectorAll('.plan-card');
 
+            // --- เตรียมข้อมูลจาก Planner สำหรับทำระบบคำแนะนำ (Sync) ---
+            let plannerDataStr = localStorage.getItem(`AION_PLANNER_${userName}_ID_${currentID}_V16`);
+            let pData = null;
+            try { if (plannerDataStr) pData = JSON.parse(plannerDataStr); } catch(e) {}
+            
+            let targetTimeStr = pData ? pData.targetTime : "";
+            let mainTargetTimeStr = pData ? pData.mainTargetTime : "";
+            
+            let now = new Date();
+            let defaultDeadline = new Date(now);
+            let daysToTue = (2 + 7 - now.getDay()) % 7;
+            if (daysToTue === 0 && now.getHours() >= 22) daysToTue = 7;
+            defaultDeadline.setDate(now.getDate() + daysToTue);
+            defaultDeadline.setHours(22, 0, 0, 0);
+
+            // คำนวณยาคงเหลือในคลัง
+            let totalUsedPills = 0;
+            if (pData && pData.chars) {
+                pData.chars.forEach(c => {
+                    totalUsedPills += (parseInt(c.pillsUsed) || 0);
+                });
+            }
+            let basePool = parseInt(document.getElementById('idxPoolEn')?.value) || 0;
+            let remPool = Math.max(0, basePool - totalUsedPills);
+            let elUsed = document.getElementById('idxUsedEn');
+            let elRem = document.getElementById('idxRemEn');
+            if(elUsed) elUsed.innerText = totalUsedPills;
+            if(elRem) elRem.innerText = remPool;
+            // ---------------------------------------------------------
+
             charRows.forEach((tr) => {
                 const idx = tr.dataset.index;
                 const card = Array.from(planCards).find(c => c.dataset.index === idx);
@@ -1152,9 +1228,18 @@
                 const eneInput = tr.querySelector('.c-total-ene');
                 if(eneInput) eneInput.value = totalEne; 
 
+                // อัปเดต UI ชื่อตัวละครใน Card ให้ตรงกับที่กรอก
                 const jobStr = tr.querySelector('.c-job').value;
-                const jobBadgeHtml = jobStr ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${jobStr}</span>` : `<span class="card-job"></span>`;
-                card.querySelector('.card-title').innerHTML = (tr.querySelector('.c-name').value || `ตัวละคร`) + jobBadgeHtml;
+                const nameEl = card.querySelector('.card-title-name');
+                if(nameEl) nameEl.innerText = tr.querySelector('.c-name').value || `ตัวละคร ${parseInt(idx)+1}`;
+                const jobCont = card.querySelector('.card-title-job-container');
+                if(jobCont) {
+                    if(jobStr) {
+                        jobCont.innerHTML = `<div style="background: linear-gradient(135deg, #b45309, #f59e0b); padding: 8px 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4); border: 1px solid #fde68a;"><span style="color:white; font-size:15px; font-weight:bold;" class="card-title-job">${jobStr}</span></div>`;
+                    } else {
+                        jobCont.innerHTML = '';
+                    }
+                }
 
                 const eneRuns = Math.floor(totalEne / 80);
 
@@ -1184,6 +1269,86 @@
                 const remCon = conD ? 0 : Math.max(0, conG - conPlayed);
                 const remTra = traD ? 0 : Math.max(0, traG - traPlayed);
                 const remGoals = remCon + remTra;
+
+                // --- 💡 UI คำแนะนำทรัพยากร (อิงจาก Planner) ---
+                let suggBox = card.querySelector('.p-suggestion-box');
+                if (suggBox) {
+                    const sancR_val = parseInt(card.querySelector('.c-sanc').value) || 0;
+                    const sancD_val = card.querySelector('.c-sanc-done').value === '1';
+                    const sancCost = sancD_val ? 0 : (sancR_val * 80);
+                    
+                    let requiredEn = (remGoals * 80) + sancCost;
+                    
+                    // เช็คว่าตัวนี้คือ Main หรือเปล่า จากข้อมูล Planner
+                    let isMain = tr.querySelector('.c-isMain').value === 'true'; 
+                    let pdChar = null;
+                    if (pData && pData.chars && pData.chars[idx]) {
+                        pdChar = pData.chars[idx];
+                        isMain = pdChar.isMain;
+                    }
+                    
+                    let charDeadline = defaultDeadline;
+                    if (isMain && mainTargetTimeStr) charDeadline = new Date(mainTargetTimeStr);
+                    else if (targetTimeStr) charDeadline = new Date(targetTimeStr);
+
+                    let deficitNow = Math.max(0, requiredEn - totalEne);
+                    let pillsNow = Math.ceil(deficitNow / 40);
+
+                    let regenRate = isVipActive ? 15 : 10;
+                    let regenByDeadline = 0;
+                    if (requiredEn > 0 && charDeadline > now) {
+                        let checkD = new Date(now);
+                        checkD.setMinutes(0,0,0,0);
+                        let safetyCounter = 0;
+                        while(checkD < charDeadline && safetyCounter < 1000) {
+                            checkD.setHours(checkD.getHours() + 1);
+                            if(checkD > charDeadline) break;
+                            if(ENERGY_MILESTONES.includes(checkD.getHours())) regenByDeadline += regenRate;
+                            safetyCounter++;
+                        }
+                    }
+
+                    let deficitDeadline = Math.max(0, requiredEn - totalEne - regenByDeadline);
+                    let pillsDeadline = Math.ceil(deficitDeadline / 40);
+
+                    let currentConRew = conR + conB;
+                    let currentTraRew = traR + traB;
+                    let missingConRew = Math.max(0, remCon - currentConRew);
+                    let missingTraRew = Math.max(0, remTra - currentTraRew);
+                    let missingTotalRew = missingConRew + missingTraRew;
+
+                    let lockedPillHtml = "";
+                    if (pdChar && pdChar.lockPills !== "") {
+                        lockedPillHtml = `<span style="margin-left: 8px; font-size: 11px; background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 2px 6px; border-radius: 4px; border:1px solid rgba(16, 185, 129, 0.4);">🔒 Planner ล็อคให้กด: ${pdChar.lockPills} ขวด</span>`;
+                    }
+
+                    if (remGoals === 0 && sancR_val === 0) {
+                        suggBox.innerHTML = `<div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:var(--success); padding:10px; border-radius:8px; text-align:center; font-weight:bold;">✅ พลังงานและรอบดันเจี้ยนเคลียร์ครบเป้าหมายแล้ว!</div>`;
+                    } else {
+                        let deadlineText = (isMain && mainTargetTimeStr) ? "เส้นตายตัวหลัก" : "เส้นตาย";
+                        suggBox.innerHTML = `
+                            <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #ef4444; border-radius: 12px; padding: 15px; margin-top: 15px; box-shadow: 0 4px 15px rgba(239,68,68,0.15);">
+                                <div style="font-size: 15px; font-weight: bold; color: var(--gold); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #334155; padding-bottom: 8px; flex-wrap:wrap; gap:10px;">
+                                    <span>💡 คำแนะนำทรัพยากร ${lockedPillHtml}</span>
+                                    <span style="font-size:14px; color:var(--gold); background:rgba(251,191,36,0.1); padding:4px 10px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">🎯 ${deadlineText}: <b>${formatThaiDateTimeCustom(charDeadline)}</b></span>
+                                </div>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 14px;">
+                                    <div style="flex: 1; min-width: 220px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 12px; border-radius: 10px;">
+                                        <div style="color: #fca5a5; margin-bottom:6px; font-weight:bold; font-size:15px; display:flex; align-items:center; gap:5px;">⚡ ถ้ารีบลงให้ครบตอนนี้:</div>
+                                        <div style="color: white; margin-bottom:4px; margin-left:10px;">• ต้องกดยา <b style="color: var(--gold); font-size:18px;">${pillsNow}</b> ขวด</div>
+                                        <div style="color: white; margin-left:10px;">• ตั๋ว Reward <b style="color: ${missingTotalRew > 0 ? 'var(--danger)' : 'var(--success)'}; font-size:16px;">${missingTotalRew > 0 ? `ขาด ${missingTotalRew} ใบ` : 'พอแล้ว'}</b></div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 220px; background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); padding: 12px; border-radius: 10px;">
+                                        <div style="color: var(--gold); margin-bottom:6px; font-weight:bold; font-size:15px; display:flex; align-items:center; gap:5px;">⏳ ถ้าลุยตอนเส้นตาย:</div>
+                                        <div style="color: white; margin-bottom:4px; margin-left:10px;">• ต้องกดยา <b style="color: var(--gold); font-size:18px;">${pillsDeadline}</b> ขวด</div>
+                                        <div style="color: var(--text-dim); font-size:12px; margin-left:10px; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; display:inline-block;">(ประหยัดยาได้ ${Math.max(0, pillsNow - pillsDeadline)} ขวด จากรีเจนฟรี +${regenByDeadline} EN)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                // ------------------------------------------------
 
                 card.querySelector('.card-rem').innerText = remGoals;
                 idTotalRem += remGoals;
@@ -1344,18 +1509,26 @@
         const cards = document.querySelectorAll('.plan-card');
         const target = Array.from(cards).find(c => c.dataset.index === idx);
         const tr = document.querySelector(`#charBody tr[data-index="${idx}"]`);
-        const job = tr ? tr.querySelector('.c-job').value : '';
-        const jobBadgeHtml = job ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${job}</span>` : `<span class="card-job"></span>`;
-        if (target) target.querySelector('.card-title').innerHTML = (val || `ตัวละคร`) + jobBadgeHtml;
+        
+        if (target) {
+            const nameEl = target.querySelector('.card-title-name');
+            if (nameEl) nameEl.innerText = val || `ตัวละคร ${parseInt(idx)+1}`;
+        }
     };
     
     window.syncJob = (idx, val) => {
         const cards = document.querySelectorAll('.plan-card');
         const target = Array.from(cards).find(c => c.dataset.index === idx);
+        
         if (target) {
-            const name = document.querySelector(`#charBody tr[data-index="${idx}"] .c-name`).value || `ตัวละคร`;
-            const jobBadgeHtml = val ? `<span class="card-job" style="background:rgba(255,255,255,0.25); padding:2px 10px; border-radius:6px; font-size:13px; margin-left:12px; color:white; font-weight:normal; border:1px solid rgba(255,255,255,0.3);">${val}</span>` : `<span class="card-job"></span>`;
-            target.querySelector('.card-title').innerHTML = name + jobBadgeHtml;
+            const jobCont = target.querySelector('.card-title-job-container');
+            if (jobCont) {
+                if (val) {
+                    jobCont.innerHTML = `<div style="background: linear-gradient(135deg, #b45309, #f59e0b); padding: 8px 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4); border: 1px solid #fde68a;"><span style="color:white; font-size:15px; font-weight:bold;" class="card-title-job">${val}</span></div>`;
+                } else {
+                    jobCont.innerHTML = '';
+                }
+            }
         }
     };
 
